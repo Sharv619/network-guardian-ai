@@ -1,0 +1,60 @@
+
+import { useState, useEffect, useCallback } from 'react';
+import { mockStartChatStream } from '../api/mockApi';
+import { ChatMessage } from '../types';
+
+export const useChat = () => {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setMessages([
+        { id: 'initial', role: 'model', text: 'I am the Network Guardian AI. How can I help you understand the system?' }
+    ]);
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+  };
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: ChatMessage = { id: Date.now().toString(), role: 'user', text: input };
+    setMessages(prev => [...prev, userMessage]);
+    const userQuery = input;
+    setInput('');
+    setIsLoading(true);
+
+    const modelMessageId = (Date.now() + 1).toString();
+    setMessages(prev => [...prev, { id: modelMessageId, role: 'model', text: '' }]);
+
+    try {
+      // Use the mock API stream
+      const stream = mockStartChatStream(userQuery);
+
+      for await (const chunk of stream) {
+        setMessages(prev => prev.map(msg => 
+            msg.id === modelMessageId ? { ...msg, text: msg.text + chunk } : msg
+        ));
+      }
+    } catch (error) {
+      console.error("Chat error:", error);
+      setMessages(prev => prev.map(msg => 
+          msg.id === modelMessageId ? { ...msg, text: "Sorry, I encountered an error. Please try again." } : msg
+      ));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [input, isLoading]);
+
+  return {
+    messages,
+    input,
+    isLoading,
+    handleInputChange,
+    handleSubmit
+  };
+};
