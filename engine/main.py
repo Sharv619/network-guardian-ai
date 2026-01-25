@@ -6,12 +6,14 @@ import requests
 import threading
 import uvicorn
 from contextlib import asynccontextmanager
-from typing import List, Optional
+from typing import List, Optional, Dict, Any, Tuple
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from notion_client import Client
 import google.generativeai as genai
 from dotenv import load_dotenv
+from requests.auth import HTTPBasicAuth
+from google.generativeai.types import GenerationConfig
 
 # Load environment variables
 load_dotenv()
@@ -26,15 +28,18 @@ ADGUARD_PASS = os.getenv("ADGUARD_PASS")
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", 30))
 
 if not all([GEMINI_API_KEY, NOTION_TOKEN, NOTION_DATABASE_ID]):
-    print("WARNING: Missing critical environment variables (GEMINI/NOTION).")
+    # Raise an error to stop execution immediately if keys are missing
+    raise ValueError("CRITICAL: Missing environment variables (GEMINI_API_KEY, NOTION_TOKEN, or NOTION_DATABASE_ID).")
 
 # Initialize Clients
 notion = Client(auth=NOTION_TOKEN)
-genai.configure(api_key=GEMINI_API_KEY)
+# Set API key using environment variable approach
+if GEMINI_API_KEY:
+    os.environ['GOOGLE_API_KEY'] = GEMINI_API_KEY
 
 # Use a flash model for speed
 model = genai.GenerativeModel(
-    'gemini-1.5-flash',
+    'gemini-2.5-flash',
     system_instruction="You are a cybersecurity expert. Analyze the domain. Return ONLY valid JSON."
 )
 
@@ -57,7 +62,7 @@ class ThreatEntry(BaseModel):
 
 # --- Core Logic ---
 
-def analyze_domain_with_gemini(domain: str, context: dict = None) -> dict:
+def analyze_domain_with_gemini(domain: str, context: Optional[Dict[str, Any]] = None) -> dict:
     context_str = f" Context: {context}" if context else ""
     prompt = f"""
     Analyze this domain for security risks: {domain}{context_str}
@@ -104,15 +109,43 @@ def push_to_notion(domain: str, analysis: dict):
         print(f"Logged to Notion: {domain}")
     except Exception as e:
         print(f"Notion Logging Failed: {e}")
-
-# ... (Fetch history remains the same)
+def fetch_history_from_notion() -> List[ThreatEntry]:
+    if not NOTION_DATABASE_ID:
+        return []
+    
+    history = []
+    try:
+        response = notion.databases.query(database_id=NOTION_DATABASE_ID, page_size=20)
+        for page in response.get('results', []):
+            props = page.get('properties', {})
+            
+            # Safe extraction helpers
+            domain = props.get('Domain', {}).get('title', [{}])[0].get('text', {}).get('content', 'Unknown') if props.get('Domain', {}).get('title') else 'Unknown'
+            risk = props.get('Risk', {}).get('select', {}).get('name', 'Unknown') if props.get('Risk', {}).get('select') else 'Unknown'
+            
+            cats = props.get('Category', {}).get('multi_select', [])
+            category = cats[0].get('name', 'Unknown') if cats else 'Unknown'
+            
+            summary = props.get('AI Insights', {}).get('rich_text', [{}])[0].get('text', {}).get('content', '') if props.get('AI Insights', {}).get('rich_text') else ''
+            
+            history.append(ThreatEntry(
+                domain=domain,
+                risk_score=risk,
+                category=category,
+                summary=summary,
+                timestamp=page.get('created_time', '')
+            ))
+    except Exception as e:
+        print(f"History Fetch Error: {e}")
+    return history
 
 # --- Background Worker ---
+
 def background_poller():
     print("Starting AdGuard Poller...")
     while True:
         try:
-            if ADGUARD_URL:
+            if ADGUARD_URL and ADGUARD_USER and ADGUARD_PASS:
                 url = f"{ADGUARD_URL}/control/querylog"
                 try:
                     r = requests.get(url, auth=(ADGUARD_USER, ADGUARD_PASS), timeout=10)
