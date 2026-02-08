@@ -1,6 +1,5 @@
-
 import { useState, useEffect, useCallback } from 'react';
-import { mockStartChatStream } from '../api/mockApi';
+import { sendChatMessage } from '../services/geminiService';
 import { ChatMessage } from '../types';
 
 export const useChat = () => {
@@ -10,7 +9,7 @@ export const useChat = () => {
 
   useEffect(() => {
     setMessages([
-        { id: 'initial', role: 'model', text: 'I am the Network Guardian AI. How can I help you understand the system?' }
+      { id: 'initial', role: 'model', text: 'I am the Network Guardian AI. How can I help you understand the system?' }
     ]);
   }, []);
 
@@ -29,21 +28,19 @@ export const useChat = () => {
     setIsLoading(true);
 
     const modelMessageId = (Date.now() + 1).toString();
-    setMessages(prev => [...prev, { id: modelMessageId, role: 'model', text: '' }]);
+    setMessages(prev => [...prev, { id: modelMessageId, role: 'model', text: 'Thinking...' }]);
 
     try {
-      // Use the mock API stream
-      const stream = mockStartChatStream(userQuery);
+      // SRE Pattern: BFF Chat Proxy
+      const response = await sendChatMessage(userQuery);
 
-      for await (const chunk of stream) {
-        setMessages(prev => prev.map(msg => 
-            msg.id === modelMessageId ? { ...msg, text: msg.text + chunk } : msg
-        ));
-      }
+      setMessages(prev => prev.map(msg =>
+        msg.id === modelMessageId ? { ...msg, text: response } : msg
+      ));
     } catch (error) {
       console.error("Chat error:", error);
-      setMessages(prev => prev.map(msg => 
-          msg.id === modelMessageId ? { ...msg, text: "Sorry, I encountered an error. Please try again." } : msg
+      setMessages(prev => prev.map(msg =>
+        msg.id === modelMessageId ? { ...msg, text: "Sorry, I encountered an error. Please try again." } : msg
       ));
     } finally {
       setIsLoading(false);

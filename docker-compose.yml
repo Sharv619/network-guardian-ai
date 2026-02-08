@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # The Background Worker (The Brain)
   guardian-engine:
-    build: ./engine
+    build: ./backend
     container_name: guardian-engine
     restart: always
     environment:
@@ -14,14 +14,28 @@ services:
       - ADGUARD_USER=${ADGUARD_USER}
       - ADGUARD_PASS=${ADGUARD_PASS}
       - POLL_INTERVAL=30 # seconds
+      - GOOGLE_SHEET_ID=${GOOGLE_SHEET_ID}
+      - GOOGLE_SHEETS_CREDENTIALS=${GOOGLE_SHEETS_CREDENTIALS}
+    ports:
+      - "8000:8000"
 
   # Your Frontend (The Dashboard)
   guardian-ui:
     build: ./frontend
     container_name: guardian-ui
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - REACT_APP_NOTION_DATABASE_ID=${NOTION_DATABASE_ID}
     depends_on:
       - guardian-engine
+
+  # AdGuard Home (The Traffic Source)
+  adguard:
+    image: adguard/adguardhome
+    container_name: adguard
+    restart: always
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "3000:3000" # Web UI & API
