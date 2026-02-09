@@ -132,8 +132,8 @@ const LiveFeed: React.FC = () => {
                                     </span>
                                 )}
                                 {item.is_anomaly && (
-                                    <span className="flex items-center space-x-1 px-2 py-0.5 bg-yellow-900/50 text-yellow-400 border border-yellow-500/30 rounded text-[10px] font-mono uppercase tracking-wider animate-pulse" title="Unusual network behavior detected by local ML model.">
-                                        ANOMALY
+                                    <span className="flex items-center space-x-1 px-2 py-0.5 bg-yellow-900/50 text-yellow-400 border border-yellow-500/30 rounded text-[10px] font-mono uppercase tracking-wider animate-pulse" title={`Unusual network behavior detected by local ML model. Score: ${item.anomaly_score?.toFixed(4)}`}>
+                                        <span>ANOMALY SCORE: {item.anomaly_score?.toFixed(2)}</span>
                                     </span>
                                 )}
                             </div>
@@ -179,11 +179,7 @@ const LiveFeed: React.FC = () => {
                             {item.summary}
                         </p>
 
-                        {item.is_anomaly && (
-                            <div className="mt-2 text-[10px] font-mono text-yellow-500/70 italic">
-                                Verified by Local Behavioral Engine (Score: {item.anomaly_score?.toFixed(4)})
-                            </div>
-                        )}
+
 
                         {/* Google Sheets Icon */}
                         <div className="absolute bottom-2 right-2 opacity-20 group-hover:opacity-100 transition-opacity" title="Synced to Google Sheets">

@@ -1,7 +1,26 @@
-
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+## [1.3.0] - Phase 2: Anomaly Detection & Testing
+
+### Added
+
+- **Isolation Forest ML Model:** Integrated a new anomaly detection engine using `scikit-learn`'s `IsolationForest` to identify unusual network behavior in real-time. This provides a behavior-based detection layer.
+- **Host-Gateway Networking:** Established a robust networking bridge between the Docker environment and the host machine, ensuring the poller can always reach the AdGuard instance.
+- **Automated Testing Suite:** Initialized a comprehensive testing suite for the backend using `pytest`.
+    - Added unit tests for ML heuristics (`test_heuristics.py`).
+    - Added integration tests for API endpoints (`test_router.py`).
+
+### Changed
+
+- **UI Polish:** The dashboard now visually highlights anomalous traffic with a pulsing gold border and displays the anomaly score for quick identification.
+
+<!--
+**Learning Tip: Hybrid Defense**
+
+By combining AdGuard (Signature-based), Isolation Forest (Behavior-based), and Gemini (Semantic-based), we have built a Defense-in-Depth architecture that catches threats at multiple layers.
+-->
 
 ## [1.2.0] - Frontend Mock API Layer
 

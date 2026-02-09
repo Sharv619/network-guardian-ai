@@ -21,12 +21,19 @@ def poll_adguard():
     session.headers.update({"Accept": "application/json"})
 
     # Task 1: Harden the Poller URLs
-    # Primary: http://adguard/control/querylog (Internal Port 80)
-    # Secondary: http://172.17.0.1:8080/control/querylog (Host Gateway)
-    target_urls = [
-        "http://adguard/control/querylog",
-        "http://172.17.0.1:8080/control/querylog"
-    ]
+    # Use configured AdGuard URL first, then fallbacks
+    target_urls = []
+    
+    # Add configured URL if available
+    if settings.ADGUARD_URL:
+        configured_url = f"{settings.ADGUARD_URL}/control/querylog"
+        target_urls.append(configured_url)
+    
+    # Add fallback URLs
+    target_urls.extend([
+        "http://172.17.0.1:8080/control/querylog",
+        "http://adguard:80/control/querylog"
+    ])
 
     while True:
         try:
@@ -58,6 +65,11 @@ def poll_adguard():
 
             # Process valid response 'r' from the successful loop iteration
             # Task 1: Action: If the response is not JSON, log the first 100 characters
+            if r is None:
+                print("AdGuard Response Error: No response received")
+                time.sleep(settings.POLL_INTERVAL)
+                continue
+                
             content_type = r.headers.get('Content-Type', '')
             try:
                 logs = r.json().get('data', [])
