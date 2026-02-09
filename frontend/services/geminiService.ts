@@ -1,21 +1,12 @@
 
 import { ThreatReport } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 /**
  * Model Discovery Service
  */
-export const getAvailableModels = async (): Promise<string[]> => {
-    try {
-        const res = await fetch(`${API_BASE}/models`);
-        if (!res.ok) return ["gemini-2.0-flash"];
-        return await res.json();
-    } catch (e) {
-        console.error("Failed to fetch models", e);
-        return ["gemini-2.0-flash"];
-    }
-};
+to};
 
 /**
  * BFF Pattern: Proxy analysis through Python Backend

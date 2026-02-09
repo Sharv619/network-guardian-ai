@@ -1,30 +1,42 @@
 
+from pydantic_settings import BaseSettings
+from pydantic import Field, ValidationError
+from typing import Optional
 import os
-from dotenv import load_dotenv
+import logging
 
-load_dotenv()
+logger = logging.getLogger(__name__)
 
-class Settings:
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-    NOTION_TOKEN = os.getenv("NOTION_TOKEN")
-    NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
+class Settings(BaseSettings):
+    GEMINI_API_KEY: str = Field(..., description="Google Gemini API Key")
+    NOTION_TOKEN: Optional[str] = Field(None, description="Notion API Token (optional)")
+    NOTION_DATABASE_ID: Optional[str] = Field(None, description="Notion Database ID (optional)")
     
     # AdGuard is now optional
-    ADGUARD_URL = os.getenv("ADGUARD_URL", "")
-    ADGUARD_USER = os.getenv("ADGUARD_USER", "")
-    ADGUARD_PASS = os.getenv("ADGUARD_PASS", "")
+    ADGUARD_URL: Optional[str] = Field(None, description="AdGuard Home URL")
+    ADGUARD_USER: Optional[str] = Field(None, description="AdGuard Home Username")
+    ADGUARD_PASS: Optional[str] = Field(None, description="AdGuard Home Password")
     
-    POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", 30))
-    GOOGLE_SHEETS_CREDENTIALS = os.getenv("GOOGLE_SHEETS_CREDENTIALS")
-    GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")  
+    POLL_INTERVAL: int = Field(30, ge=5, description="Polling interval in seconds")
+    GOOGLE_SHEETS_CREDENTIALS: str = Field(..., description="Google Sheets Service Account Credentials (JSON)")
+    GOOGLE_SHEET_ID: str = Field(..., description="Google Sheet ID for logging")
+
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
 
     @property
     def is_valid(self) -> bool:
-        # Minimum requirement is Gemini API Key
-        return bool(self.GEMINI_API_KEY)
+        # Minimum requirement is Gemini API Key and Google Sheets credentials
+        return bool(self.GEMINI_API_KEY) and bool(self.GOOGLE_SHEETS_CREDENTIALS) and bool(self.GOOGLE_SHEET_ID)
     
     @property
     def has_adguard(self) -> bool:
         return all([self.ADGUARD_URL, self.ADGUARD_USER, self.ADGUARD_PASS])
 
-settings = Settings()
+try:
+    settings = Settings()
+    logger.info("Configuration loaded successfully")
+except ValidationError as e:
+    logger.critical(f"Configuration validation failed: {e}")
+    raise SystemExit(1)

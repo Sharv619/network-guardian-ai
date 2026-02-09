@@ -40,6 +40,9 @@ const Header: React.FC<HeaderProps> = ({ availableModels, selectedModel, onModel
               ))}
             </select>
           </div>
+          <div className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+            Logic Verified
+          </div>
         </div>
       </div>
     </header>

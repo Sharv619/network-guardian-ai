@@ -128,7 +128,7 @@ def chat_with_ai(message: str, model_id: Optional[str] = None) -> str:
         return "Network Guardian AI: Engine not initialized. Please check your API keys."
     
     # SRE Requirement: Default stable model
-    target_model = model_id if model_id else 'gemini-1.5-flash'
+    target_model = model_id if model_id else 'gemini-2.0-flash'
     
     try:
         response = client.models.generate_content(
