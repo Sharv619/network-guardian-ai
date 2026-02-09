@@ -1,9 +1,5 @@
 version: '3.8'
 
-networks:
-  guardian-net:
-    driver: bridge
-
 services:
   # The Unified Network Guardian (Frontend + Backend)
   network-guardian:
@@ -19,24 +15,40 @@ services:
       - POLL_INTERVAL=${POLL_INTERVAL:-30}
       - GOOGLE_SHEET_ID=${GOOGLE_SHEET_ID}
       - GOOGLE_SHEETS_CREDENTIALS=${GOOGLE_SHEETS_CREDENTIALS}
-      # AdGuard settings are now optional
-      - ADGUARD_URL=${ADGUARD_URL} 
+      # AdGuard settings (pointing to local AdGuard instance)
+      - ADGUARD_URL=http://adguard:80
       - ADGUARD_USER=${ADGUARD_USER}
       - ADGUARD_PASS=${ADGUARD_PASS}
     ports:
       - "8000:8000"
-    networks:
-      - guardian-net
+    # Self-Health Check (Assumes FastAPI has a /health endpoint)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
-  # Optional: AdGuard Home (Uncomment if you want to run it locally)
+  # AdGuard Home (DNS Server & Content Filter)
   adguard:
-    image: adguard/adguardhome
+    image: adguard/adguardhome:latest
     container_name: adguard
     restart: always
     ports:
       - "53:53/tcp"
       - "53:53/udp"
-      - "8080:80/tcp" # Web UI & API mapped to host 8080
-      - "3000:3000/tcp" # Setup Wizard
-    networks:
-      - guardian-net
+      - "3000:80/tcp"
+    volumes:
+      - adguard_work:/opt/adguardhome/work
+      - adguard_conf:/opt/adguardhome/conf
+    # Health check for AdGuard Home
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  adguard_work:
+  adguard_conf:

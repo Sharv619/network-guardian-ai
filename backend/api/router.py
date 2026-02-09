@@ -94,3 +94,15 @@ def api_history():
 def api_manual_history():
     """Get manual analysis session history."""
     return manual_scans
+
+@router.get("/test-report")
+def get_test_report():
+    """Get automated test report status."""
+    return {
+        "status": "success",
+        "passed": 0,
+        "failed": 0,
+        "total": 0,
+        "summary": "Test report not available",
+        "details": "Automated testing is not configured"
+    }
