@@ -9,7 +9,11 @@ export const useChat = () => {
 
   useEffect(() => {
     setMessages([
-      { id: 'initial', role: 'model', text: 'I am the Network Guardian AI. How can I help you understand the system?' }
+      { 
+        id: 'initial', 
+        role: 'model', 
+        text: '🛡️ Network Guardian AI Online\n\nI monitor your network traffic in real-time, analyzing DNS requests for threats using AI and local heuristics. Ask me about:\n• System architecture\n• Threat detection logic\n• Live feed analysis\n• Security recommendations' 
+      }
     ]);
   }, []);
 

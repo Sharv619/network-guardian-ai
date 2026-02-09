@@ -6,7 +6,17 @@ const API_BASE = import.meta.env.VITE_API_BASE || '';
 /**
  * Model Discovery Service
  */
-to};
+export const getAvailableModels = async (): Promise<string[]> => {
+    try {
+        const res = await fetch(`${API_BASE}/models`);
+        if (!res.ok) throw new Error('Failed to fetch models');
+        const data = await res.json();
+        return data.models || [];
+    } catch (error) {
+        console.error("Model Discovery Error:", error);
+        return [];
+    }
+};
 
 /**
  * BFF Pattern: Proxy analysis through Python Backend
