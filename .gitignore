@@ -12,3 +12,6 @@ node_modules
 .env
 docker-compose.yml
 datalogChanges.md
+.clinerules
+docker-compose.yml
+Dockerfile

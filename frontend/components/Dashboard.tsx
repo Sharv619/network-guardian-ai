@@ -10,16 +10,30 @@ interface HistoryItem {
     category: string;
     summary: string;
     timestamp: string;
+    is_anomaly?: boolean;
+    anomaly_score?: number;
+    adguard_metadata?: {
+        reason: string;
+        rule?: string;
+        filter_id?: number;
+        client?: string;
+    };
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
+const API_BASE = ""; // Relative path since Backend serves Frontend
 
-const Dashboard: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'live' | 'manual'>('live');
+import ChatPanel from './ChatPanel';
+
+interface DashboardProps {
+    selectedModel: string;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ selectedModel }) => {
+    const [activeTab, setActiveTab] = useState<'live' | 'manual' | 'chat'>('live');
 
     return (
         <div className="h-full flex flex-col space-y-6">
-            <div className="flex space-x-4 border-b border-slate-700 pb-2">
+            <div className="flex space-x-4 border-b border-slate-700 pb-2 overflow-x-auto whitespace-nowrap">
                 <button
                     onClick={() => setActiveTab('live')}
                     className={`pb-2 px-4 font-mono font-bold transition-colors ${activeTab === 'live'
@@ -38,16 +52,27 @@ const Dashboard: React.FC = () => {
                 >
                     MANUAL ANALYSIS
                 </button>
+                <button
+                    onClick={() => setActiveTab('chat')}
+                    className={`pb-2 px-4 font-mono font-bold transition-colors ${activeTab === 'chat'
+                        ? 'text-cyan-400 border-b-2 border-cyan-400'
+                        : 'text-slate-500 hover:text-slate-300'
+                        }`}
+                >
+                    SYSTEM CHAT
+                </button>
             </div>
 
             <div className="flex-grow overflow-hidden">
-                {activeTab === 'live' ? <LiveFeed /> : <ManualAnalysis />}
+                {activeTab === 'live' && <LiveFeed />}
+                {activeTab === 'manual' && <ManualAnalysis selectedModel={selectedModel} />}
+                {activeTab === 'chat' && <ChatPanel selectedModel={selectedModel} />}
             </div>
         </div>
     );
 };
 
-import { LocateFixed } from 'lucide-react';
+import { LocateFixed, ShieldAlert, ShieldCheck } from 'lucide-react';
 
 const LiveFeed: React.FC = () => {
     const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -76,7 +101,7 @@ const LiveFeed: React.FC = () => {
 
     useEffect(() => {
         fetchHistory();
-        const interval = setInterval(fetchHistory, 5000); // Poll every 5s
+        const interval = setInterval(fetchHistory, 30000); // Poll every 30s to respect Google Sheets Quota
         return () => clearInterval(interval);
     }, []);
 
@@ -86,19 +111,36 @@ const LiveFeed: React.FC = () => {
         <div className="space-y-3 h-full overflow-y-auto pr-2 custom-scrollbar">
             {history.map((item, idx) => {
                 const geoRisk = isPrivacyRisk(item.domain);
+                const displayTime = item.timestamp && !isNaN(Date.parse(item.timestamp))
+                    ? new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                    : "Just Now";
+
+                const isBlocked = item.adguard_metadata && item.adguard_metadata.reason !== 'NotFilteredNotFound';
+
                 return (
-                    <div key={idx} className={`bg-slate-800 p-4 rounded border-l-4 ${geoRisk ? 'border-red-500 bg-red-900/10' : 'border-slate-600'} hover:border-cyan-500 transition-all shadow-md relative overflow-hidden group`}>
+                    <div key={idx} className={`bg-slate-800 p-4 rounded border-l-4 ${item.is_anomaly ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)] animate-[pulse_3s_infinite]' : geoRisk ? 'border-red-500 bg-red-900/10' : isBlocked ? 'border-orange-500 bg-orange-950/5' : 'border-slate-600'} hover:border-cyan-500 transition-all shadow-md relative overflow-hidden group`}>
                         <div className="flex justify-between items-start mb-2">
                             <div className="flex items-center space-x-2">
                                 <h3 className="text-lg font-bold text-slate-100 font-mono break-all">{item.domain}</h3>
                                 {geoRisk && (
                                     <LocateFixed className="w-5 h-5 text-red-500 animate-pulse" />
                                 )}
+                                {isBlocked && (
+                                    <span className="flex items-center space-x-1 px-2 py-0.5 bg-slate-700 text-cyan-400 border border-cyan-500/30 rounded text-[10px] font-mono uppercase tracking-wider">
+                                        <ShieldAlert className="w-3 h-3" />
+                                        <span>ADGUARD BLOCKED: {item.adguard_metadata?.rule || item.adguard_metadata?.reason}</span>
+                                    </span>
+                                )}
+                                {item.is_anomaly && (
+                                    <span className="flex items-center space-x-1 px-2 py-0.5 bg-yellow-900/50 text-yellow-400 border border-yellow-500/30 rounded text-[10px] font-mono uppercase tracking-wider animate-pulse" title="Unusual network behavior detected by local ML model.">
+                                        ANOMALY
+                                    </span>
+                                )}
                             </div>
-                            <span className="text-xs text-slate-500 font-mono">{new Date(item.timestamp).toLocaleTimeString()}</span>
+                            <span className="text-xs text-slate-500 font-mono">{displayTime}</span>
                         </div>
 
-                        <div className="flex items-center space-x-3 text-sm mb-3">
+                        <div className="flex flex-wrap items-center gap-2 text-sm mb-3">
                             <RiskBadge score={item.risk_score} />
                             <span className="px-2 py-0.5 bg-slate-700 text-slate-300 rounded text-xs font-mono uppercase tracking-wide">
                                 {item.category}
@@ -108,16 +150,40 @@ const LiveFeed: React.FC = () => {
                                     GEOLOCATION ATTEMPT
                                 </span>
                             )}
-                            {item.summary.includes("Fallback") && (
+                            {item.summary.includes("SOC GUARD ACTIVE") && (
                                 <span className="px-2 py-0.5 bg-purple-900 text-purple-200 border border-purple-700 rounded text-xs font-mono uppercase tracking-wide">
                                     Heuristic Mode
                                 </span>
                             )}
                         </div>
 
+                        {item.adguard_metadata && item.adguard_metadata.reason !== 'NotFilteredNotFound' && (
+                            <div className="mb-3 p-2 bg-slate-900/50 rounded border border-slate-700/50">
+                                <p className="text-[10px] uppercase font-mono text-slate-500 mb-1">AdGuard Intelligence</p>
+                                <div className="flex flex-col space-y-1">
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-slate-400">Reason:</span>
+                                        <span className="text-orange-400 font-mono">{item.adguard_metadata.reason}</span>
+                                    </div>
+                                    {item.adguard_metadata.rule && (
+                                        <div className="flex flex-col text-xs">
+                                            <span className="text-slate-400">Rule:</span>
+                                            <code className="text-[10px] text-cyan-500 bg-slate-900 p-1 rounded mt-1 overflow-x-auto">{item.adguard_metadata.rule}</code>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         <p className="text-slate-400 text-sm leading-relaxed font-sans border-t border-slate-700 pt-2">
                             {item.summary}
                         </p>
+
+                        {item.is_anomaly && (
+                            <div className="mt-2 text-[10px] font-mono text-yellow-500/70 italic">
+                                Verified by Local Behavioral Engine (Score: {item.anomaly_score?.toFixed(4)})
+                            </div>
+                        )}
 
                         {/* Google Sheets Icon */}
                         <div className="absolute bottom-2 right-2 opacity-20 group-hover:opacity-100 transition-opacity" title="Synced to Google Sheets">
@@ -139,7 +205,11 @@ const LiveFeed: React.FC = () => {
 
 import { analyzeDomain } from '../services/geminiService';
 
-const ManualAnalysis: React.FC = () => {
+interface ManualAnalysisProps {
+    selectedModel: string;
+}
+
+const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel }) => {
     const [domain, setDomain] = useState('');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
@@ -168,8 +238,8 @@ const ManualAnalysis: React.FC = () => {
         setLoading(true);
         setResult(null);
         try {
-            // SRE Pattern: BFF (Backend-for-Frontend) Proxy
-            const data = await analyzeDomain(domain);
+            // SRE Pattern: BFF (Backend-for-Frontend) Proxy with Dynamic Model Selection
+            const data = await analyzeDomain(domain, null, selectedModel);
 
             // Map back to UI format
             setResult({
@@ -234,17 +304,22 @@ const ManualAnalysis: React.FC = () => {
             <div className="mt-4">
                 <h3 className="text-slate-400 font-mono text-sm uppercase mb-4 border-b border-slate-700 pb-2">Session Research</h3>
                 <div className="space-y-3">
-                    {sessionHistory.map((item, idx) => (
-                        <div key={idx} className="bg-slate-800/50 p-3 rounded border-l-2 border-slate-600 flex justify-between items-center hover:bg-slate-800 transition-colors">
-                            <div>
-                                <div className="font-mono text-slate-200 font-bold">{item.domain}</div>
-                                <div className="text-xs text-slate-500">{item.category} • {item.risk_score} Risk</div>
+                    {sessionHistory.map((item, idx) => {
+                        const displayTime = item.timestamp && !isNaN(Date.parse(item.timestamp))
+                            ? new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                            : "Just Now";
+                        return (
+                            <div key={idx} className="bg-slate-800/50 p-3 rounded border-l-2 border-slate-600 flex justify-between items-center hover:bg-slate-800 transition-colors">
+                                <div>
+                                    <div className="font-mono text-slate-200 font-bold">{item.domain}</div>
+                                    <div className="text-xs text-slate-500">{item.category} • {item.risk_score} Risk</div>
+                                </div>
+                                <div className="text-xs text-slate-600 font-mono">
+                                    {displayTime}
+                                </div>
                             </div>
-                            <div className="text-xs text-slate-600 font-mono">
-                                {new Date(item.timestamp).toLocaleTimeString()}
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                     {sessionHistory.length === 0 && (
                         <div className="text-slate-500 text-xs font-mono italic">No manual scans this session.</div>
                     )}

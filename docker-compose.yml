@@ -1,36 +1,34 @@
 version: '3.8'
 
+networks:
+  guardian-net:
+    driver: bridge
+
 services:
-  # The Background Worker (The Brain)
-  guardian-engine:
-    build: ./backend
-    container_name: guardian-engine
+  # The Unified Network Guardian (Frontend + Backend)
+  network-guardian:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: network-guardian
     restart: always
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - NOTION_TOKEN=${NOTION_TOKEN}
       - NOTION_DATABASE_ID=${NOTION_DATABASE_ID}
-      - ADGUARD_URL=${ADGUARD_URL} # e.g., http://192.168.1.1
-      - ADGUARD_USER=${ADGUARD_USER}
-      - ADGUARD_PASS=${ADGUARD_PASS}
-      - POLL_INTERVAL=30 # seconds
+      - POLL_INTERVAL=${POLL_INTERVAL:-30}
       - GOOGLE_SHEET_ID=${GOOGLE_SHEET_ID}
       - GOOGLE_SHEETS_CREDENTIALS=${GOOGLE_SHEETS_CREDENTIALS}
+      # AdGuard settings are now optional
+      - ADGUARD_URL=${ADGUARD_URL} 
+      - ADGUARD_USER=${ADGUARD_USER}
+      - ADGUARD_PASS=${ADGUARD_PASS}
     ports:
       - "8000:8000"
+    networks:
+      - guardian-net
 
-  # Your Frontend (The Dashboard)
-  guardian-ui:
-    build: ./frontend
-    container_name: guardian-ui
-    ports:
-      - "3001:3000"
-    environment:
-      - REACT_APP_NOTION_DATABASE_ID=${NOTION_DATABASE_ID}
-    depends_on:
-      - guardian-engine
-
-  # AdGuard Home (The Traffic Source)
+  # Optional: AdGuard Home (Uncomment if you want to run it locally)
   adguard:
     image: adguard/adguardhome
     container_name: adguard
@@ -38,4 +36,7 @@ services:
     ports:
       - "53:53/tcp"
       - "53:53/udp"
-      - "3000:3000" # Web UI & API
+      - "8080:80/tcp" # Web UI & API mapped to host 8080
+      - "3000:3000/tcp" # Setup Wizard
+    networks:
+      - guardian-net

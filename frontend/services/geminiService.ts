@@ -4,9 +4,23 @@ import { ThreatReport } from '../types';
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
 
 /**
+ * Model Discovery Service
+ */
+export const getAvailableModels = async (): Promise<string[]> => {
+    try {
+        const res = await fetch(`${API_BASE}/models`);
+        if (!res.ok) return ["gemini-2.0-flash"];
+        return await res.json();
+    } catch (e) {
+        console.error("Failed to fetch models", e);
+        return ["gemini-2.0-flash"];
+    }
+};
+
+/**
  * BFF Pattern: Proxy analysis through Python Backend
  */
-export const analyzeDomain = async (domain: string, whoisData?: any): Promise<ThreatReport> => {
+export const analyzeDomain = async (domain: string, whoisData?: any, modelId?: string): Promise<ThreatReport> => {
     try {
         const res = await fetch(`${API_BASE}/analyze`, {
             method: 'POST',
@@ -15,7 +29,8 @@ export const analyzeDomain = async (domain: string, whoisData?: any): Promise<Th
                 domain,
                 registrar: whoisData?.registrar,
                 age: whoisData?.age,
-                organization: whoisData?.organization
+                organization: whoisData?.organization,
+                model_id: modelId
             })
         });
 
@@ -37,12 +52,12 @@ export const analyzeDomain = async (domain: string, whoisData?: any): Promise<Th
 /**
  * BFF Pattern: Proxy chat through Python Backend
  */
-export const sendChatMessage = async (message: string): Promise<string> => {
+export const sendChatMessage = async (message: string, modelId?: string): Promise<string> => {
     try {
         const res = await fetch(`${API_BASE}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message })
+            body: JSON.stringify({ message, model_id: modelId })
         });
 
         if (!res.ok) throw new Error('Backend chat failed');

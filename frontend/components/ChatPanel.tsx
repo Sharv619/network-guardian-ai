@@ -5,7 +5,11 @@ import { useChat } from '../hooks/useChat';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-const ChatPanel: React.FC = () => {
+interface ChatPanelProps {
+  selectedModel?: string;
+}
+
+const ChatPanel: React.FC<ChatPanelProps> = ({ selectedModel }) => {
   const { messages, input, isLoading, handleInputChange, handleSubmit } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -14,6 +18,10 @@ const ChatPanel: React.FC = () => {
   };
 
   useEffect(scrollToBottom, [messages]);
+
+  const onChatSubmit = (e: React.FormEvent) => {
+    handleSubmit(e, selectedModel);
+  };
 
   return (
     <div className="bg-slate-800 rounded-lg shadow-xl h-full flex flex-col">
@@ -37,7 +45,7 @@ const ChatPanel: React.FC = () => {
         </div>
       </div>
       <div className="p-4 border-t border-slate-700">
-        <form onSubmit={handleSubmit} className="flex gap-2">
+        <form onSubmit={onChatSubmit} className="flex gap-2">
           <input
             type="text"
             value={input}

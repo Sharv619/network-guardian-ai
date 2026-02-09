@@ -3,6 +3,7 @@ import os
 import json
 import gspread
 from google.oauth2.service_account import Credentials
+from datetime import datetime, timezone
 
 _client = None
 
@@ -38,6 +39,7 @@ def get_sheets_service():
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         client = gspread.authorize(creds)
         _client = client
+        print("DEBUG: Google Sheets Data Pipeline is ACTIVE.")
         return client
     except json.JSONDecodeError as je:
         print(f"⚠️ Auth Error: GOOGLE_SHEETS_CREDENTIALS is malformed JSON. {je}")
@@ -46,7 +48,7 @@ def get_sheets_service():
         print(f"⚠️ Auth Error: Could not parse Google Credentials. {e}")
         return None
 
-def log_threat_to_sheet(domain: str, analysis: dict):
+def log_threat_to_sheet(domain: str, analysis: dict, adguard_metadata: dict = None, is_anomaly: bool = False, anomaly_score: float = 0.0):
     """
     Logs threat data to Google Sheet defined in ENV 'GOOGLE_SHEET_ID'.
     """
@@ -64,15 +66,26 @@ def log_threat_to_sheet(domain: str, analysis: dict):
         
         # Prepare row data
         row = [
-            analysis.get('timestamp', 'Now'),
+            datetime.now(timezone.utc).isoformat(),
             domain,
             analysis.get('risk_score', 'Unknown'),
             analysis.get('category', 'Unknown'),
             analysis.get('summary', '')
         ]
         
+        # Append AdGuard metadata if available (Cols F, G)
+        if adguard_metadata:
+            row.append(adguard_metadata.get("reason", ""))
+            row.append(adguard_metadata.get("rule", ""))
+        else:
+            row.extend(["", ""]) # Fill F and G if missing
+
+        # Append Anomaly data (Cols H, I)
+        row.append(is_anomaly)
+        row.append(anomaly_score)
+        
         sheet.append_row(row)
-        print(f"📊 Logged to Sheets: {domain}")
+        print(f"📊 Logged to Sheets: {domain} (Anomaly: {is_anomaly})")
     except Exception as e:
         print(f"Sheets API Error: {e}")
 
@@ -113,13 +126,26 @@ def fetch_recent_from_sheets(limit=20):
             history = []
             for r in recent_rows:
                 if len(r) >= 5:
-                    history.append({
+                    item = {
                         "timestamp": r[0],
                         "domain": r[1],
                         "risk_score": r[2],
                         "category": r[3],
                         "summary": r[4]
-                    })
+                    }
+                    # Add back AdGuard metadata if columns exist
+                    if len(r) >= 7:
+                        item["adguard_metadata"] = {
+                            "reason": r[5],
+                            "rule": r[6]
+                        }
+                    
+                    # Add back Anomaly data if columns exist
+                    if len(r) >= 9:
+                        item["is_anomaly"] = r[7].lower() == 'true' if isinstance(r[7], str) else bool(r[7])
+                        item["anomaly_score"] = float(r[8]) if r[8] else 0.0
+
+                    history.append(item)
             
             _history_cache = history
             _last_fetch_time = now

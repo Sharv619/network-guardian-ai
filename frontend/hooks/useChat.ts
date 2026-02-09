@@ -17,7 +17,7 @@ export const useChat = () => {
     setInput(e.target.value);
   };
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent, modelId?: string) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
@@ -31,8 +31,8 @@ export const useChat = () => {
     setMessages(prev => [...prev, { id: modelMessageId, role: 'model', text: 'Thinking...' }]);
 
     try {
-      // SRE Pattern: BFF Chat Proxy
-      const response = await sendChatMessage(userQuery);
+      // SRE Pattern: BFF Chat Proxy with Dynamic Model
+      const response = await sendChatMessage(userQuery, modelId);
 
       setMessages(prev => prev.map(msg =>
         msg.id === modelMessageId ? { ...msg, text: response } : msg
