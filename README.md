@@ -1,100 +1,3 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-***
-=======
-=======
->>>>>>> 09d5fb4a61b269a7e9f329a0a76cab6ce114d0bb
-🛡️ Network Guardian AI: Project Antigravity
-Autonomous Threat Intelligence & Behavioral Anomaly Detection
-
-![alt text](https://img.shields.io/badge/AI-Google%20Gemini%203-blueviolet) ![alt text](https://img.shields.io/badge/Architecture-SRE--Engineered-success) ![alt text](https://img.shields.io/badge/Security-BFF--Pattern-red) ![alt text](https://img.shields.io/badge/License-MIT-yellow.svg)
-
-🧠 The "Why"
-
-"Is it freedom or loneliness?" I built Network Guardian AI during a career break to answer a single question: Why does my phone feel like a spy?
-
-As a former social media manager, I saw the tracking side of the industry from the inside. As an engineer who once worked a delivery job to pay rent while managing production servers, I learned that Reliability is a requirement for survival. This project is the culmination of those "war scars"—a tool that turns a "lonely" black box of network logs into a transparent, AI-powered audit trail.
-🚀 The Vision: Moving from Reactive to Proactive
-
-Most firewalls just block a domain because a static list told them to. Network Guardian AI gives your network a Brain. It doesn't just block; it explains, learns, and remembers.
-1. Intercept (The Eyes)
-
-DNS-level interception via AdGuard Home catches every background request your phone or IoT devices make.
-2. Behavioral ML (The Intuition)
-
-A local Isolation Forest model (Unsupervised Machine Learning) analyzes the structural patterns of every domain. It identifies "Zero-Day" anomalies that haven't even hit global blocklists yet based on their statistical "weirdness."
-3. Gemini 3 Reasoning (The Analyst)
-
-Google Gemini 3 acts as a senior SOC Analyst. Using its advanced reasoning, it interprets the local ML scores and provides human-readable context: "This domain is a legitimate Google service" vs "This is a stealthy geolocation tracking attempt."
-4. Cloud Ledger (The Memory)
-
-Verdicts are streamed live to a Google Sheets Data Lake via IAM-secured Service Accounts, providing a permanent, mobile-accessible security audit trail.
-🛠️ The "Guardian" Stack
-
-    AI/ML: Google Gemini 3 (Flash & Pro), Scikit-Learn (Isolation Forest), Shannon Entropy heuristics.
-
-    Orchestrator: Python 3.12, FastAPI (Asynchronous Data Pipeline).
-
-    Infrastructure: Docker Compose (Multi-container orchestration), Linux Bridge Networking.
-
-    Persistence: Google Sheets API v4 (Google Ecosystem Integration).
-
-    Observability: React + TypeScript Dashboard with real-time "Heartbeat" monitoring.
-
-⚙️ SRE & Reliability Pillars
-
-This project was built with a Production-First mindset, focusing on high-paying SRE skills:
-
-    BFF (Backend-for-Frontend) Pattern: Secured API secrets by centralizing all AI logic in the backend. The browser never sees the keys.
-
-    Circuit Breaker Logic: If the Gemini API is throttled (429 Error), the system gracefully degrades to "Autonomous SOC Mode," using local Shannon Entropy math to maintain network protection without the cloud.
-
-    FinOps Optimization: Implemented JIT (Just-In-Time) Context Injection, reducing token burn by 70% by only sending system documentation to the AI when architecturally relevant.
-
-    Continuous Verification: 100% logic coverage via an automated Pytest suite that validates mathematical entropy and API failover resilience.
-
-🚦 Getting Started
-1. Configuration
-
-Create a .env file in the root directory:
-code Bash
-
-GEMINI_API_KEY='your_google_ai_studio_key'
-GOOGLE_SHEET_ID='your_spreadsheet_id'
-GOOGLE_SHEETS_CREDENTIALS='{"type": "service_account", ...}' # Minified JSON string
-ADGUARD_USER='admin'
-ADGUARD_PASS='admin12345'
-ADGUARD_URL='http://172.17.0.1:8080' # Host Gateway for Linux
-
-2. Deploy
-code Bash
-
-docker compose up -d --build
-
-3. Verify Logic
-code Bash
-
-docker exec network-guardian pytest backend/tests/
-
-📂 Project Structure
-
-    backend/logic/ml_heuristics.py: Shannon Entropy & Input Sanitization.
-
-    backend/logic/anomaly_engine.py: Isolation Forest Unsupervised Learning.
-
-    backend/services/gemini_analyzer.py: XAI (Explainable AI) & Circuit Breaker logic.
-
-    frontend/components/Dashboard.tsx: Real-time Observability & Privacy Radar.
-
-🤝 Open Source
-
-"Isolation is the gift." — Charles Bukowski.
-This project is open-source. Use it to watch the watchers. Take your digital sovereignty back.
-
-Built for the Google Gemini 3 Hackathon 2026. 🛡️📊🚀🏁
-<<<<<<< HEAD
->>>>>>> 09d5fb4 (finalising readme)
-
 # 🛡️ Network Guardian AI: Project Antigravity
 ### *Autonomous Network Threat Intelligence & Behavioral Audit Pipeline*
 
@@ -105,14 +8,18 @@ Built for the Google Gemini 3 Hackathon 2026. 🛡️📊🚀🏁
 2. [🕹️ Core Features](#-core-features)
 3. [🏗️ System Architecture](#-system-architecture)
 4. [🧠 Intelligence Layers](#-intelligence-layers)
-5. [⚙️ Reliability & SRE Design](#-reliability--sre-design)
-6. [🚦 Getting Started](#-getting-started)
-7. [🧪 Technical Verification](#-technical-verification)
+5. [📊 Google Sheets Integration](#-google-sheets-integration)
+6. [⚙️ Reliability & SRE Design](#-reliability--sre-design)
+7. [🚦 Getting Started](#-getting-started)
+8. [🧪 Technical Verification](#-technical-verification)
+9. [🎨 Enhanced UI Components](#-enhanced-ui-components)
 
 ---
 
 ## 🔍 Overview
 Network Guardian AI is a real-time security operations tool that unmasks hidden network telemetry. It intercepts background DNS requests, performs multi-layered behavioral and semantic analysis, and logs verdicts into a cloud-hosted audit trail. The system transforms cryptic logs into human-readable intelligence, identifying everything from standard tracking pixels to stealthy geolocation exfiltration attempts.
+
+Built with a Production-First mindset, this system provides enterprise-grade reliability while maintaining accessibility for personal use.
 
 ---
 
@@ -122,6 +29,7 @@ Network Guardian AI is a real-time security operations tool that unmasks hidden 
 *   **Privacy Radar**: Specialized detection logic that flags background geolocation pings and telemetry spikes.
 *   **Cloud Data Lake**: Automatic synchronization of every security verdict to Google Sheets for permanent record-keeping and mobile access.
 *   **System Awareness Chat**: A technical agent capable of explaining the current network state and underlying architecture.
+*   **Enhanced AnalysisModal**: Comprehensive domain analysis with Google Sheets integration details and historical insights.
 
 ---
 
@@ -146,6 +54,36 @@ Security verdicts are determined through a three-stage "Defense in Depth" pipeli
 
 ---
 
+## 📊 Google Sheets Integration
+### Real-Time Threat Synchronization
+Every domain analysis is automatically logged to Google Sheets with comprehensive metadata:
+
+**Data Fields Logged:**
+- Domain name and classification
+- Risk assessment (Low/Medium/High/Critical)
+- Category (Tracker/System/Advertising/Malware/etc.)
+- AI-generated summary and reasoning
+- Anomaly detection scores
+- Timestamp and analysis method
+
+**Integration Features:**
+- **Real-time synchronization**: Domains like `rr8---sn-v2u0n-hxad.googlevideo.com` are logged immediately
+- **Error handling**: Robust retry mechanisms and fallback logging
+- **Mobile access**: View security audit trail from any device
+- **Historical analysis**: Track threat patterns over time
+
+**Example Log Entry:**
+```
+Domain: rr8---sn-v2u0n-hxad.googlevideo.com
+Category: System/Tracker
+Risk Score: High
+Summary: YouTube video streaming domain - legitimate but tracks viewing behavior
+Anomaly Score: 0.0537
+Timestamp: 2026-10-02T09:08:15Z
+```
+
+---
+
 ## ⚙️ Reliability & SRE Design
 The system is built to maintain 100% network observability through professional-grade patterns:
 
@@ -153,6 +91,24 @@ The system is built to maintain 100% network observability through professional-
 *   **BFF Pattern**: The Backend-for-Frontend pattern centralizes all secrets and AI logic, ensuring API keys never leak to the client browser.
 *   **FinOps Logic**: Just-In-Time (JIT) context injection minimizes token usage by only sending system documentation to the AI when relevant.
 *   **Standardization**: All telemetry uses ISO-8601 UTC timestamps for accurate cross-system log correlation.
+*   **Graceful Degradation**: System continues operating with local analysis if cloud services are unavailable.
+
+---
+
+## 🎨 Enhanced UI Components
+### AnalysisModal Improvements
+The AnalysisModal has been enhanced with a comprehensive 4-column layout:
+
+1. **System Intelligence**: Displays autonomy score, local vs cloud decisions, and pattern counts
+2. **Cache Performance**: Shows memory cache status, valid entries, and disk cache information
+3. **System Usage Details**: Active integrations, tracker detection statistics, and learning progress
+4. **Google Sheets Integration**: Real-time synchronization status, total records, and domain-specific insights
+
+**Key Features:**
+- Professional dark theme with cyberpunk aesthetic
+- Real-time data visualization
+- Domain-specific analysis examples (e.g., googlevideo.com)
+- Historical context and trend analysis
 
 ---
 
@@ -161,11 +117,11 @@ The system is built to maintain 100% network observability through professional-
 ### 1. Environment Configuration
 Create a `.env` file in the root directory with the following variables:
 ```bash
-GEMINI_API_KEY='your_api_key'
+GEMINI_API_KEY='your_google_ai_studio_key'
 GOOGLE_SHEET_ID='your_spreadsheet_id'
 GOOGLE_SHEETS_CREDENTIALS='{ "type": "service_account", ... }'
 ADGUARD_USER='admin'
-ADGUARD_PASS='password'
+ADGUARD_PASS='admin12345'
 ADGUARD_URL='http://172.17.0.1:8080'
 ```
 
@@ -188,120 +144,36 @@ The system includes a suite of automated tests to verify mathematical logic and 
 ```bash
 docker exec network-guardian pytest backend/tests/ -v
 ```
+
 **Current Coverage:**
 *   Shannon Entropy Accuracy (Base 2 Math)
 *   URL Sanitization & Regex Performance
 *   API Circuit Breaker & Fallback Veracity
 *   Data Serialization Consistency
+*   Google Sheets Integration Error Handling
+*   Anomaly Detection Algorithm Validation
 
 ---
 
+## 🤝 Open Source & Contributions
+This project is open-source and built with passion. It provides tools for digital sovereignty and network transparency.
+
+**Key Technologies:**
+- **AI/ML**: Google Gemini 3, Scikit-Learn (Isolation Forest), Shannon Entropy
+- **Backend**: Python 3.12, FastAPI, Docker
+- **Frontend**: React, TypeScript, Tailwind CSS
+- **Integration**: Google Sheets API v4, AdGuard Home
+
 **Built for the Google Gemini 3 Hackathon 2026.** 🛡️📊🚀🏁
-=======
 
-# 🛡️ Network Guardian AI: Project Antigravity
+---
 
-An Automated Threat Intelligence Pipeline powered by Google Gemini & Behavioral ML
+## 📈 Current System Status
+- ✅ **20+ historical records** in the system
+- ✅ **Google Sheets integration** active and logging domains
+- ✅ **Enhanced AnalysisModal** displaying Google Sheets data
+- ✅ **Real-time threat detection** and logging working
+- ✅ **System serving** on http://localhost:8000
+- ✅ **Multi-layered intelligence** pipeline operational
 
-![alt text](https://img.shields.io/badge/AI-Google%20Gemini-blue)
-
-
-![alt text](https://img.shields.io/badge/Architecture-SRE--Ready-green)
-
-
-![alt text](https://img.shields.io/badge/License-MIT-yellow.svg)
-
-🧠 The "Why"
-
-"Is it freedom or loneliness?" I built this project during a career break to answer a simple question: Why does my phone feel like a spy?
-
-As a former social media manager, I've seen the "tracking" side of the industry. As an engineer who once worked a delivery job to pay rent while managing production servers at 2 AM, I learned that you cannot afford a single point of failure.
-
-Network Guardian AI is a passion project born from the necessity of sovereignty. It turns your network's "lonely" black box of logs into a transparent, AI-powered audit trail.
-🚀 Vision: From "Dumb Logs" to "Explainable AI"
-
-Most firewalls just block a domain because a list told them to. Network Guardian AI gives your network a Brain.
-
-    Intercept: DNS-level blocking via AdGuard Home.
-
-    Filter: Local Shannon Entropy math detects random "Malware-looking" domains (DGA) instantly.
-
-    Learn: An unsupervised Isolation Forest (Machine Learning) model identifies behavioral anomalies on your network.
-
-    Reason: Google Gemini 1.5 Flash acts as a SOC Analyst, providing a human-readable "Why" for every threat.
-
-    Persist: Verdicts are streamed live to a Google Sheets Data Lake for a permanent security audit.
-
-🛠️ Tech Stack
-
-    AI/ML: Google Gemini 1.5 Flash, Scikit-Learn (Isolation Forest), Shannon Entropy (Heuristics).
-
-    Backend: Python 3.12, FastAPI.
-
-    Frontend: React, Tailwind CSS (Hacker-style UI).
-
-    Database: Google Sheets API (Google Ecosystem Integration).
-
-    Infrastructure: Docker Compose, Linux Bridge Networking.
-
-⚙️ SRE & Security Architecture
-
-This project was built with a Production-First mindset:
-
-    BFF (Backend-for-Frontend) Pattern: AI API keys are hidden in the backend; the browser never sees them.
-
-    Graceful Degradation: If the Gemini API is throttled (429), a Circuit Breaker triggers local Heuristic analysis so the network remains guarded.
-
-    Observability: Integrated "Heartbeat" status indicators and standardized ISO-8601 time-series logging.
-
-    Continuous Verification: Automated Pytest suite validating mathematical logic and API resilience.
-
-🚦 Getting Started
-1. Prerequisites
-
-    Google AI Studio Key: Get a Gemini API Key
-
-    Google Cloud Service Account: Create a service account, download the JSON key, and share your Google Sheet with the service account email.
-
-    AdGuard Home: Running via Docker (included in stack).
-
-2. Configure Environment
-
-Create a .env file:
-code Bash
-
-GEMINI_API_KEY='your_key'
-GOOGLE_SHEET_ID='your_spreadsheet_id'
-GOOGLE_SHEETS_CREDENTIALS='{"type": "service_account", ...}' # Single-line minified JSON
-ADGUARD_USER='admin'
-ADGUARD_PASS='admin12345'
-ADGUARD_URL='http://172.17.0.1:8080' # Host Gateway for Linux
-
-3. Deploy the Stack
-code Bash
-
-docker compose up -d --build
-
-4. Run the Reliability Tests
-code Bash
-
-docker exec network-guardian pytest backend/tests/
-
-📂 Project Logic
-
-    backend/logic/ml_heuristics.py: Shannon Entropy & URL Sanitization.
-
-    backend/logic/anomaly_engine.py: Isolation Forest Unsupervised Learning.
-
-    backend/services/gemini_analyzer.py: Explainable AI (XAI) & Circuit Breaker logic.
-
-    backend/services/sheets_logger.py: Google Sheets Persistence Layer.
-
-🤝 Open Source & Contributions
-
-This project is Vibe-Coded—built with passion, curiosity, and a lot of late nights. It is open-source because I believe everyone should have the tools to watch the watchers.
-
-Feel free to fork, modify, and build your own Guardian.
-
-"Isolation is the gift." — Charles Bukowski
->>>>>>> 09d5fb4a61b269a7e9f329a0a76cab6ce114d0bb
+The system successfully detects and logs domains like `rr8---sn-v2u0n-hxad.googlevideo.com` with comprehensive analysis including risk scores, anomaly detection, and AI-generated explanations.

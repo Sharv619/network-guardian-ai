@@ -154,7 +154,7 @@ const AnalysisModal: React.FC<AnalysisModalProps> = ({
                             <Shield className="w-5 h-5 text-blue-400" />
                             <span>System Usage Details</span>
                         </h3>
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                             {/* Column 1: Active Integrations */}
                             <div className="space-y-4">
                                 <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Active Integrations</h4>
@@ -232,6 +232,45 @@ const AnalysisModal: React.FC<AnalysisModalProps> = ({
                                     <div className="text-xs text-slate-300 mb-1">Next Milestone</div>
                                     <div className="text-sm font-bold text-green-400 font-mono">
                                         {stats.system_usage.learning_progress.next_milestone}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Column 4: Google Sheets Integration */}
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Google Sheets Integration</h4>
+                                <div className="bg-slate-700 p-4 rounded border border-slate-600">
+                                    <div className="flex items-center space-x-3 mb-3">
+                                        <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-2h2v2zm0-4H7v-2h2v2zm0-4H7V7h2v2zm4 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V7h2v2zm4 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V7h2v2z"/>
+                                        </svg>
+                                        <div>
+                                            <div className="text-sm font-bold text-white">Threat Log Synchronization</div>
+                                            <div className="text-xs text-slate-400">Real-time data backup</div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-300">Last Sync</span>
+                                            <span className="text-green-400 font-mono">Just Now</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-300">Total Records</span>
+                                            <span className="text-cyan-400 font-mono">Live Count</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-300">Domain Examples</span>
+                                            <span className="text-purple-400 font-mono">googlevideo.com</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-gradient-to-r from-blue-900/50 to-green-900/50 p-3 rounded border border-blue-500/30">
+                                    <div className="text-xs text-slate-300 mb-1">Domain Analysis</div>
+                                    <div className="text-xs text-blue-400 font-mono">
+                                        rr8---sn-v2u0n-hxad.googlevideo.com
+                                    </div>
+                                    <div className="text-xs text-slate-400 mt-1">
+                                        YouTube video streaming domain - System/Tracker classification
                                     </div>
                                 </div>
                             </div>

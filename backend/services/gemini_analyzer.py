@@ -50,7 +50,6 @@ def get_available_models() -> List[str]:
                 
         print(f"DEBUG: {len(models)} models support generateContent.")
         
-        # Prioritize confirmed hackathon models, then add any discovered models
         available_models = []
         for model in confirmed_models:
             if model in models:
