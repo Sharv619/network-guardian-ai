@@ -1,11 +1,5 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-***
-=======
-=======
->>>>>>> 09d5fb4a61b269a7e9f329a0a76cab6ce114d0bb
-🛡️ Network Guardian AI: Project Antigravity
-Autonomous Threat Intelligence & Behavioral Anomaly Detection
+***🛡️ Network Guardian AI: Project Antigravity
+Autonomous Threat Intelligence & Behavioral Anomaly Detection***
 
 ![alt text](https://img.shields.io/badge/AI-Google%20Gemini%203-blueviolet) ![alt text](https://img.shields.io/badge/Architecture-SRE--Engineered-success) ![alt text](https://img.shields.io/badge/Security-BFF--Pattern-red) ![alt text](https://img.shields.io/badge/License-MIT-yellow.svg)
 
