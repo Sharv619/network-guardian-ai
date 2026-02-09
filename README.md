@@ -1,13 +1,7 @@
 🛡️ Network Guardian AI: Project Antigravity
 An Automated Threat Intelligence Pipeline powered by Google Gemini & Behavioral ML
 
-![alt text](https://img.shields.io/badge/AI-Google%20Gemini-blue)
-
-
-![alt text](https://img.shields.io/badge/Architecture-SRE--Ready-green)
-
-
-![alt text](https://img.shields.io/badge/License-MIT-yellow.svg)
+![alt text](https://img.shields.io/badge/AI-Google%20Gemini-blue) ![alt text](https://img.shields.io/badge/Architecture-SRE--Ready-green) ![alt text](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 🧠 The "Why"
 
