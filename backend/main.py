@@ -1,4 +1,3 @@
- 
 import threading
 import uvicorn
 from contextlib import asynccontextmanager
@@ -9,10 +8,14 @@ from backend.services.adguard_poller import poll_adguard
 from backend.api.router import router
 from typing import Dict
 import time
+import json
 
 from typing import Dict
 import time
 import json
+
+# System Intelligence Display
+from backend.system_intelligence import display_system_intelligence
 
 # Rate Limiter Implementation
 class RateLimiter:
@@ -48,6 +51,11 @@ async def rate_limit_middleware(request: Request, call_next):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Display system intelligence on startup
+    print("\n" + "="*80)
+    display_system_intelligence()
+    print("="*80 + "\n")
+    
     # Start background poller only if configured
     if settings.has_adguard:
         print("AdGuard configured. Starting poller...")
@@ -71,19 +79,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import os
-import json
-
-# Include Routes
+# Include Routes - MUST be at the top to avoid shadowing
 app.include_router(router)
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
 
-# Serve Frontend Static Files
+@app.get("/models")
+def api_list_models():
+    """SRE Discovery: List available Gemini models."""
+    from backend.services.gemini_analyzer import get_available_models
+    return get_available_models()
+
+# Serve Frontend Static Files - MUST be at the bottom
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+import json
+
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 assets_dir = os.path.join(static_dir, "assets")
 
@@ -91,19 +105,20 @@ if os.path.exists(static_dir):
     # Mount assets directory if it exists (Vite build output)
     if os.path.exists(assets_dir):
         app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
-    track e
+
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
-        # Serve API routes first (already handled by router above)
-        if full_path.startswith("api"):
-            return {"error": "API route not found"}
-            
         # Serve static files if they exist directly
         file_path = os.path.join(static_dir, full_path)
         if os.path.exists(file_path) and os.path.isfile(file_path):
             return FileResponse(file_path)
+        
+        # Don't serve API routes - let them return 404 if not found
+        api_routes = ["api/", "system-chat", "analyze", "chat", "history", "manual-history", "test-report", "health", "models"]
+        if any(full_path.startswith(route) for route in api_routes):
+            return {"error": "API route not found"}
             
-        # Fallback to index.html for React Router
+        # Fallback to index.html for React Router (only for non-API paths)
         return FileResponse(os.path.join(static_dir, "index.html"))
 else:
     print(f"WARNING: Static directory not found at {static_dir}. Frontend will not be served.")

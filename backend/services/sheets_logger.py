@@ -1,9 +1,9 @@
-
 import os
 import json
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime, timezone
+from ..core.utils import get_iso_timestamp
 
 _client = None
 
@@ -30,12 +30,12 @@ def get_sheets_service():
     try:
         # Parse the JSON string from .env
         creds_dict = json.loads(creds_json)
-        
+
         scopes = [
             'https://www.googleapis.com/auth/spreadsheets',
             'https://www.googleapis.com/auth/drive'
         ]
-        
+
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         client = gspread.authorize(creds)
         _client = client
@@ -48,12 +48,12 @@ def get_sheets_service():
         print(f"⚠️ Auth Error: Could not parse Google Credentials. {e}")
         return None
 
-def log_threat_to_sheet(domain: str, analysis: dict, adguard_metadata: dict = None, is_anomaly: bool = False, anomaly_score: float = 0.0):
+def log_threat_to_sheet(domain: str, analysis: dict | None = None, adguard_metadata: dict | None = None, is_anomaly: bool = False, anomaly_score: float = 0.0):
     """
     Logs threat data to Google Sheet defined in ENV 'GOOGLE_SHEET_ID'.
     """
     client = get_sheets_service()
-    if not client: 
+    if not client:
         return
 
     spreadsheet_id = os.getenv("GOOGLE_SHEET_ID")
@@ -63,16 +63,16 @@ def log_threat_to_sheet(domain: str, analysis: dict, adguard_metadata: dict = No
 
     try:
         sheet = client.open_by_key(spreadsheet_id).sheet1
-        
+
         # Prepare row data
         row = [
-            datetime.now(timezone.utc).isoformat(),
+            get_iso_timestamp(),
             domain,
-            analysis.get('risk_score', 'Unknown'),
-            analysis.get('category', 'Unknown'),
-            analysis.get('summary', '')
+            (analysis or {}).get('risk_score', 'Unknown'),
+            (analysis or {}).get('category', 'Unknown'),
+            (analysis or {}).get('summary', '')
         ]
-        
+
         # Append AdGuard metadata if available (Cols F, G)
         if adguard_metadata:
             row.append(adguard_metadata.get("reason", ""))
@@ -83,7 +83,7 @@ def log_threat_to_sheet(domain: str, analysis: dict, adguard_metadata: dict = No
         # Append Anomaly data (Cols H, I)
         row.append(is_anomaly)
         row.append(anomaly_score)
-        
+
         sheet.append_row(row)
         print(f"📊 Logged to Sheets: {domain} (Anomaly: {is_anomaly})")
     except Exception as e:
@@ -102,7 +102,7 @@ def fetch_recent_from_sheets(limit=20):
     Includes a TTL cache to avoid Google API Quota limits (429).
     """
     global _history_cache, _last_fetch_time
-    
+
     now = time.time()
     if _history_cache is not None and (now - _last_fetch_time) < CACHE_TTL:
         return _history_cache
@@ -116,12 +116,12 @@ def fetch_recent_from_sheets(limit=20):
     try:
         sheet = client.open_by_key(spreadsheet_id).sheet1
         all_values = sheet.get_all_values()
-        
+
         if len(all_values) > 1:
             rows = all_values[1:] # Skip header
             recent_rows = rows[-limit:]
             recent_rows.reverse() # Newest first
-            
+
             # Map back to ThreatEntry dict
             history = []
             for r in recent_rows:
@@ -139,14 +139,14 @@ def fetch_recent_from_sheets(limit=20):
                             "reason": r[5],
                             "rule": r[6]
                         }
-                    
+
                     # Add back Anomaly data if columns exist
                     if len(r) >= 9:
                         item["is_anomaly"] = r[7].lower() == 'true' if isinstance(r[7], str) else bool(r[7])
                         item["anomaly_score"] = float(r[8]) if r[8] else 0.0
 
                     history.append(item)
-            
+
             _history_cache = history
             _last_fetch_time = now
             return history
@@ -154,7 +154,7 @@ def fetch_recent_from_sheets(limit=20):
             print("DEBUG: Sheet is empty, nothing to show in Live Feed.")
             _history_cache = []
             _last_fetch_time = now
-            
+
         return []
     except Exception as e:
         print(f"Sheets Fetch Error: {e}")

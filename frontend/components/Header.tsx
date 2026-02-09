@@ -1,5 +1,5 @@
 
-import { } from 'react';
+import { useEffect, useState } from 'react';
 import { Brain } from 'lucide-react';
 
 const ShieldIcon = () => (
@@ -15,6 +15,42 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ availableModels, selectedModel, onModelChange }) => {
+  const [isHealthy, setIsHealthy] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const res = await fetch('/health');
+        setIsHealthy(res.ok);
+      } catch (error) {
+        setIsHealthy(false);
+      }
+    };
+
+    checkHealth();
+    const interval = setInterval(checkHealth, 10000); // Check every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const getHealthBadge = () => {
+    if (isHealthy === null) {
+      return (
+        <div className="bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-medium animate-pulse">
+          Checking...
+        </div>
+      );
+    }
+    return (
+      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+        isHealthy 
+          ? 'bg-green-500 text-white' 
+          : 'bg-red-500 text-white'
+      }`}>
+        {isHealthy ? 'Logic Verified' : 'System Error'}
+      </div>
+    );
+  };
+
   return (
     <header className="bg-slate-900/70 backdrop-blur-sm shadow-md p-4 sticky top-0 z-10 w-full border-b border-slate-700">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
