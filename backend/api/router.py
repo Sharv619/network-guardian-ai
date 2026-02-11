@@ -18,6 +18,29 @@ router = APIRouter()
 # Mount the stats router
 router.include_router(stats_router, prefix="/api/stats", tags=["stats"])
 
+# Mount the main system intelligence endpoint
+@router.get("/system")
+async def get_system_intelligence():
+    """Get system intelligence data directly from system_intelligence.py"""
+    try:
+        from backend.api.stats import get_system_stats
+        
+        # Get system statistics from the original stats endpoint
+        stats = get_system_stats()
+        
+        # Add enhanced system intelligence data
+        enhanced_stats = {
+            **stats,
+            "system_status": "HEALTHY" if stats["autonomy_score"] >= 50 else "NEEDS ATTENTION" if stats["total_decisions"] == 0 else "WARMING UP",
+            "insights": "System is actively learning and optimizing threat detection. Local analysis handles most threats efficiently while maintaining high accuracy.",
+            "learning_progress": "Continuous improvement",
+            "decision_accuracy": "95%+ (seed patterns)"
+        }
+        
+        return enhanced_stats
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching system intelligence: {str(e)}")
+
 # Task 3: Just-In-Time (JIT) Context (FinOps Optimization)
 SYSTEM_DOCS = {
     "role": "Network Guardian AI",
@@ -362,24 +385,3 @@ def get_test_report():
         "details": "Automated testing is not configured"
     }
 
-@router.get("/system-intelligence")
-async def get_system_intelligence():
-    """Get system intelligence data directly from system_intelligence.py"""
-    try:
-        from backend.api.stats import get_system_stats
-        
-        # Get system statistics from the original stats endpoint
-        stats = get_system_stats()
-        
-        # Add enhanced system intelligence data
-        enhanced_stats = {
-            **stats,
-            "system_status": "HEALTHY" if stats["autonomy_score"] >= 50 else "NEEDS ATTENTION" if stats["total_decisions"] == 0 else "WARMING UP",
-            "insights": "System is actively learning and optimizing threat detection. Local analysis handles most threats efficiently while maintaining high accuracy.",
-            "learning_progress": "Continuous improvement",
-            "decision_accuracy": "95%+ (seed patterns)"
-        }
-        
-        return enhanced_stats
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching system intelligence: {str(e)}")
