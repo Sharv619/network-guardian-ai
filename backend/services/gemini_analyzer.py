@@ -219,17 +219,18 @@ def chat_with_ai(message: str, model_id: Optional[str] = None) -> str:
                 "engines remain 100% Active. I am still guarding your data—how can I help you with system logic?")
 
 def _heuristic_fallback(domain: str, error: str) -> dict:
+    """Fallback heuristic analysis when cloud APIs fail."""
     entropy = calculate_entropy(domain)
-    
-    # Task 2: Fix Category Mapping (The "Unknown" Badge Fix)
+
     is_privacy = any(kw in domain.lower() for kw in ['geo', 'location', 'gps', 'waa-pa'])
     category = "Privacy Risk" if is_privacy else ("Malicious Pattern" if entropy > 3.5 else "General Traffic")
-    
-    # Task 3: Upgrade Fallback Verbiage (The "Show" Fix)
+
     fallback_summary = "SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)"
-    
+
     return {
         "risk_score": "High" if entropy > 3.5 else "Low",
         "category": category,
-        "summary": fallback_summary
+        "summary": fallback_summary,
+        "is_anomaly": False,
+        "anomaly_score": 0.0,
     }

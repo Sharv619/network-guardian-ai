@@ -1,12 +1,15 @@
 import pytest
 from backend.logic.ml_heuristics import calculate_entropy, sanitize_domain
 
+
 def test_sanitize_domain():
     """Tests that sanitize_domain correctly strips prefixes and suffixes."""
     assert sanitize_domain("https://www.google.com/") == "google"
     assert sanitize_domain("http://malicious-site.net///") == "malicious-site"
     assert sanitize_domain("google.com") == "google"
-    assert sanitize_domain("www.sub.domain.co.uk") == "www"
+    # Multi-part TLDs: after removing www., "sub.domain.co.uk" splits to ["sub", "domain", "co", "uk"]
+    assert sanitize_domain("www.sub.domain.co.uk") == "sub"
+
 
 def test_entropy_logic():
     """Tests the entropy calculation for different types of domains."""
@@ -25,6 +28,7 @@ def test_entropy_logic():
     assert calculate_entropy("") == 0.0
     short_score = calculate_entropy("a.com")
     assert short_score < 4.0  # Simple domain, should have reasonable entropy
+
 
 def test_digit_ratio_penalty():
     """Tests that domains with digits have a higher entropy score."""
