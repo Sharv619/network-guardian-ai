@@ -21,6 +21,8 @@ interface HistoryItem {
         filter_id?: number;
         client?: string;
     };
+    analysis_source?: string;
+    entropy?: number;
 }
 
 interface SystemStats {
@@ -137,7 +139,7 @@ const LiveFeed: React.FC = () => {
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
-    const [domainStats, setDomainStats] = useState<any>(null);
+    const [selectedAnalysis, setSelectedAnalysis] = useState<HistoryItem | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const isPrivacyRisk = (domain: string) => {
@@ -170,21 +172,10 @@ const LiveFeed: React.FC = () => {
     if (loading && history.length === 0) return <LoadingSpinner />;
 
     // Handle domain click to show detailed analysis
-    const handleDomainClick = async (domain: string) => {
+    const handleDomainClick = (domain: string, analysis: HistoryItem) => {
         setSelectedDomain(domain);
+        setSelectedAnalysis(analysis);
         setIsModalOpen(true);
-        
-        try {
-            // Fetch system stats for the domain
-            const res = await fetch(`${API_BASE}/api/stats/system`);
-            if (res.ok) {
-                const data = await res.json();
-                setDomainStats(data);
-            }
-        } catch (e) {
-            console.error("Failed to fetch domain stats", e);
-            setDomainStats(null);
-        }
     };
 
     return (
@@ -192,8 +183,14 @@ const LiveFeed: React.FC = () => {
             {history.map((item, idx) => {
                 const geoRisk = isPrivacyRisk(item.domain);
                 const displayTime = item.timestamp && !isNaN(Date.parse(item.timestamp))
-                    ? new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-                    : "Just Now";
+                    ? new Date(item.timestamp).toLocaleString([], {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                      })
+                    : "Unknown";
 
                 const isBlocked = item.adguard_metadata && item.adguard_metadata.reason !== 'NotFilteredNotFound';
 
@@ -203,13 +200,13 @@ const LiveFeed: React.FC = () => {
                             <div className="flex items-center space-x-2">
                                 <h3 
                                     className="text-lg font-bold text-slate-100 font-mono break-all cursor-pointer hover:text-cyan-400 transition-colors"
-                                    onClick={() => handleDomainClick(item.domain)}
+                                    onClick={() => handleDomainClick(item.domain, item)}
                                     title="Click to view detailed backend analysis"
                                 >
                                     {item.domain}
                                 </h3>
                                 <button
-                                    onClick={() => handleDomainClick(item.domain)}
+                                    onClick={() => handleDomainClick(item.domain, item)}
                                     className="p-1 hover:bg-slate-700 rounded transition-colors opacity-0 group-hover:opacity-100"
                                     title="View detailed analysis"
                                 >
@@ -298,23 +295,7 @@ const LiveFeed: React.FC = () => {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 domain={selectedDomain || ''}
-                stats={domainStats || {
-                    autonomy_score: 0,
-                    local_decisions: 0,
-                    cloud_decisions: 0,
-                    classifier: { total_patterns: 0 },
-                    cache: {
-                        memory_cache_size: 0,
-                        valid_memory_entries: 0,
-                        disk_cache_exists: false,
-                        cache_file_size: 0
-                    },
-                    system_usage: {
-                        active_integrations: [],
-                        tracker_detection: { total_detected: 0, categories: {}, detection_methods: [] },
-                        learning_progress: { seed_patterns: 0, learned_patterns: 0, learning_rate: '', next_milestone: '' }
-                    }
-                }}
+                analysis={selectedAnalysis}
             />
         </div>
     );
@@ -423,8 +404,13 @@ const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel }) => {
                 <div className="space-y-3">
                     {sessionHistory.map((item, idx) => {
                         const displayTime = item.timestamp && !isNaN(Date.parse(item.timestamp))
-                            ? new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-                            : "Just Now";
+                            ? new Date(item.timestamp).toLocaleString([], {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : "Unknown";
                         return (
                             <div key={idx} className="bg-slate-800/50 p-3 rounded border-l-2 border-slate-600 flex justify-between items-center hover:bg-slate-800 transition-colors">
                                 <div>
@@ -597,6 +583,7 @@ const SystemIntelligence: React.FC = () => {
     const [stats, setStats] = useState<SystemStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [alertBox, setAlertBox] = useState<{title: string; message: string; type: 'info' | 'success' | 'warning'} | null>(null);
 
     const fetchStats = async () => {
         try {
@@ -632,52 +619,72 @@ const SystemIntelligence: React.FC = () => {
         <div className="space-y-6 h-full overflow-y-auto pr-2 custom-scrollbar pb-10">
             {/* Top Row: Key Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <StatCard 
-                    label="Autonomy Score" 
-                    value={`${stats.autonomy_score}%`} 
-                    icon={<Brain className="text-purple-400" />} 
-                    subtext="Local Decision Rate"
-                />
-                <StatCard 
-                    label="Learned Patterns" 
-                    value={stats.patterns_learned} 
-                    icon={<Zap className="text-yellow-400" />} 
-                    subtext={`${stats.seed_patterns} Seed + ${stats.learned_patterns} New`}
-                />
-                <StatCard 
-                    label="Total Decisions" 
-                    value={stats.total_decisions} 
-                    icon={<ShieldCheck className="text-green-400" />} 
-                    subtext="Local + Cloud Analysis"
-                />
-                <StatCard 
-                    label="Cache Efficiency" 
-                    value={`${stats.cache.valid_memory_entries}`} 
-                    icon={<Database className="text-cyan-400" />} 
-                    subtext="Active Memory Entries"
-                />
+                <button 
+                    onClick={() => setAlertBox({ title: 'Autonomy Score', message: `Local Analysis Rate: ${stats.autonomy_score}%\n\nThis shows how much of the threat detection is done locally using ML heuristics vs cloud Gemini API calls. Higher = more cost-effective.`, type: 'info' })}
+                    className="bg-slate-800/50 border border-purple-500/20 hover:border-purple-500/40 p-4 rounded-lg text-left transition-all hover:scale-[1.02]"
+                >
+                    <div className="text-slate-400 text-xs">Autonomy Score</div>
+                    <div className="text-2xl font-bold text-purple-400">{stats.autonomy_score}%</div>
+                    <div className="text-slate-500 text-xs mt-1">Local Decision Rate</div>
+                </button>
+                <button 
+                    onClick={() => setAlertBox({ title: 'Learned Patterns', message: `Seed Patterns: ${stats.seed_patterns}\nLearned Patterns: ${stats.learned_patterns}\n\nThe system learns from analyzed domains to improve detection accuracy over time.`, type: 'success' })}
+                    className="bg-slate-800/50 border border-yellow-500/20 hover:border-yellow-500/40 p-4 rounded-lg text-left transition-all hover:scale-[1.02]"
+                >
+                    <div className="text-slate-400 text-xs">Learned Patterns</div>
+                    <div className="text-2xl font-bold text-yellow-400">{stats.patterns_learned}</div>
+                    <div className="text-slate-500 text-xs mt-1">{stats.seed_patterns} Seed + {stats.learned_patterns} New</div>
+                </button>
+                <button 
+                    onClick={() => setAlertBox({ title: 'Total Decisions', message: `Local: ${stats.local_decisions}\nCloud: ${stats.cloud_decisions}\nTotal: ${stats.total_decisions}\n\nLocal = entropy/metadata analysis\nCloud = Gemini AI analysis`, type: 'info' })}
+                    className="bg-slate-800/50 border border-green-500/20 hover:border-green-500/40 p-4 rounded-lg text-left transition-all hover:scale-[1.02]"
+                >
+                    <div className="text-slate-400 text-xs">Total Decisions</div>
+                    <div className="text-2xl font-bold text-green-400">{stats.total_decisions}</div>
+                    <div className="text-slate-500 text-xs mt-1">Local + Cloud Analysis</div>
+                </button>
+                <button 
+                    onClick={() => setAlertBox({ title: 'Cache Efficiency', message: `Memory Entries: ${stats.cache.valid_memory_entries}\nCache Size: ${stats.cache.memory_cache_size}\nDisk Cache: ${stats.cache.disk_cache_exists ? 'Active' : 'Inactive'}\nFile Size: ${(stats.cache.cache_file_size / 1024).toFixed(2)} KB`, type: 'warning' })}
+                    className="bg-slate-800/50 border border-cyan-500/20 hover:border-cyan-500/40 p-4 rounded-lg text-left transition-all hover:scale-[1.02]"
+                >
+                    <div className="text-slate-400 text-xs">Cache Efficiency</div>
+                    <div className="text-2xl font-bold text-cyan-400">{stats.cache.valid_memory_entries}</div>
+                    <div className="text-slate-500 text-xs mt-1">Active Memory Entries</div>
+                </button>
             </div>
 
-            {/* Middle Section: Optimization & Benefits */}
-            <div className="bg-slate-800/50 border border-cyan-500/20 rounded-lg p-6">
-                <div className="flex items-start space-x-4">
-                    <div className="bg-cyan-500/20 p-3 rounded-lg">
-                        <TrendingUp className="text-cyan-400 w-6 h-6" />
-                    </div>
-                    <div className="flex-grow">
-                        <h3 className="text-xl font-bold text-white mb-2 font-mono">Smart Routing Optimization</h3>
-                        <p className="text-slate-400 mb-4">{stats.optimization.description}</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {stats.optimization.benefits.map((benefit, i) => (
-                                <div key={i} className="flex items-center space-x-2 text-sm text-slate-300 bg-slate-900/50 p-2 rounded">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                                    <span>{benefit}</span>
-                                </div>
-                            ))}
+            {/* Alert Box Modal */}
+            {alertBox && (
+                <div 
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                    onClick={() => setAlertBox(null)}
+                >
+                    <div 
+                        className={`max-w-md w-full rounded-2xl p-6 border ${
+                            alertBox.type === 'info' ? 'bg-blue-900/90 border-blue-500/50' :
+                            alertBox.type === 'success' ? 'bg-green-900/90 border-green-500/50' :
+                            'bg-amber-900/90 border-amber-500/50'
+                        }`}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold text-white">{alertBox.title}</h3>
+                            <button onClick={() => setAlertBox(null)} className="text-white/60 hover:text-white text-2xl">×</button>
                         </div>
+                        <p className="text-white/80 whitespace-pre-line">{alertBox.message}</p>
+                        <button 
+                            onClick={() => setAlertBox(null)}
+                            className={`mt-6 w-full py-2 rounded-lg font-medium ${
+                                alertBox.type === 'info' ? 'bg-blue-600 hover:bg-blue-500' :
+                                alertBox.type === 'success' ? 'bg-green-600 hover:bg-green-500' :
+                                'bg-amber-600 hover:bg-amber-500'
+                            } text-white transition-colors`}
+                        >
+                            Close
+                        </button>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Bottom Section: Classifier & Cache Breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

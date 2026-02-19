@@ -1,42 +1,62 @@
-
-from pydantic_settings import BaseSettings
-from pydantic import Field, ValidationError
 from typing import Optional
-import os
+
+from pydantic import Field, ValidationError
+from pydantic_settings import BaseSettings, SettingsConfigDict
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
+
+class ConfigurationError(Exception):
+    """Raised when required configuration is missing."""
+    pass
+
+
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+    )
+
     GEMINI_API_KEY: str = Field(..., description="Google Gemini API Key")
     NOTION_TOKEN: Optional[str] = Field(None, description="Notion API Token (optional)")
     NOTION_DATABASE_ID: Optional[str] = Field(None, description="Notion Database ID (optional)")
-    
+
     # AdGuard is now optional
     ADGUARD_URL: Optional[str] = Field(None, description="AdGuard Home URL")
     ADGUARD_USER: Optional[str] = Field(None, description="AdGuard Home Username")
     ADGUARD_PASS: Optional[str] = Field(None, description="AdGuard Home Password")
-    
+
     POLL_INTERVAL: int = Field(30, ge=5, description="Polling interval in seconds")
     GOOGLE_SHEETS_CREDENTIALS: str = Field(..., description="Google Sheets Service Account Credentials (JSON)")
     GOOGLE_SHEET_ID: str = Field(..., description="Google Sheet ID for logging")
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    # CORS configuration
+    ALLOWED_ORIGINS: str = Field(
+        "http://localhost:3000,http://localhost:8000",
+        description="Comma-separated list of allowed CORS origins"
+    )
 
     @property
     def is_valid(self) -> bool:
-        # Minimum requirement is Gemini API Key and Google Sheets credentials
+        """Check if minimum required configuration is present."""
         return bool(self.GEMINI_API_KEY) and bool(self.GOOGLE_SHEETS_CREDENTIALS) and bool(self.GOOGLE_SHEET_ID)
-    
+
     @property
     def has_adguard(self) -> bool:
+        """Check if AdGuard is fully configured."""
         return all([self.ADGUARD_URL, self.ADGUARD_USER, self.ADGUARD_PASS])
+
+    @property
+    def allowed_origins_list(self) -> list[str]:
+        """Parse ALLOWED_ORIGINS into a list."""
+        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
+
 
 try:
     settings = Settings()
     logger.info("Configuration loaded successfully")
 except ValidationError as e:
     logger.critical(f"Configuration validation failed: {e}")
-    raise SystemExit(1)
+    raise ConfigurationError(f"Missing required environment variables: {e}")

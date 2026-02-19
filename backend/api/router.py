@@ -199,22 +199,25 @@ def api_analyze(req: AnalysisRequest):
         "pattern_match": pattern_match,
         "analysis_source": analysis_source
     }
-    
+
+    # Add timestamp to response
+    enhanced_analysis["timestamp"] = get_iso_timestamp()
+
     # Push manual scans to Sheets (Ecosystem Optimization)
     log_threat_to_sheet(req.domain, enhanced_analysis)
-    
+
     # Update Live Memory - Single Source of Truth for Research
     new_entry = {
         "domain": req.domain,
         "risk_score": enhanced_analysis.get("risk_score"),
         "category": enhanced_analysis.get("category"),
         "summary": enhanced_analysis.get("summary"),
-        "timestamp": get_iso_timestamp()
+        "timestamp": enhanced_analysis["timestamp"]
     }
     manual_scans.insert(0, new_entry)
-    if len(manual_scans) > 50: 
+    if len(manual_scans) > 50:
         manual_scans.pop()
-    
+
     return enhanced_analysis
 
 @router.post("/chat")
@@ -354,7 +357,7 @@ def api_history():
     # SRE Pattern: Read-Through Cache
     # Return Live Memory (Fast) + Database History (Slow)
     history = fetch_recent_from_sheets()
-    
+
     # Ensure all timestamps are properly formatted
     for item in automated_threats:
         if "timestamp" in item and item["timestamp"]:
@@ -364,9 +367,26 @@ def api_history():
         else:
             # Fallback to current time if missing
             item["timestamp"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    
-    # Simple merge: Live events first, then DB events
-    return automated_threats + history
+
+    # Deduplicate by domain - keep the first occurrence (most recent from automated_threats)
+    seen_domains: set = set()
+    deduplicated: List[ThreatEntry] = []
+
+    # First add automated threats (these are more recent)
+    for item in automated_threats:
+        domain = item.get("domain", "").lower()
+        if domain not in seen_domains:
+            seen_domains.add(domain)
+            deduplicated.append(ThreatEntry(**item))
+
+    # Then add history items, skipping duplicates
+    for item in history:
+        domain = item.get("domain", "").lower()
+        if domain not in seen_domains:
+            seen_domains.add(domain)
+            deduplicated.append(ThreatEntry(**item))
+
+    return deduplicated
 
 @router.get("/manual-history", response_model=List[ThreatEntry])
 def api_manual_history():
