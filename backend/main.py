@@ -2,6 +2,7 @@ import json
 import os
 import threading
 import time
+import atexit
 
 import uvicorn
 from contextlib import asynccontextmanager
@@ -14,7 +15,17 @@ from backend.core.config import settings
 from backend.services.adguard_poller import poll_adguard
 from backend.api.router import router
 from backend.system_intelligence import display_system_intelligence
+from backend.scripts.knowledge_persistence import save_knowledge_base, load_knowledge_base
 from typing import Dict
+
+# Register shutdown handler for knowledge base persistence
+def shutdown_handler():
+    """Handle application shutdown to save knowledge base"""
+    print("Saving knowledge base on shutdown...")
+    save_knowledge_base()
+
+# Register the shutdown handler
+atexit.register(shutdown_handler)
 
 # Rate Limiter Implementation
 class RateLimiter:
@@ -27,10 +38,10 @@ class RateLimiter:
         now = time.time()
         if key not in self.requests:
             self.requests[key] = []
-        
+
         # Remove requests outside the time window
         self.requests[key] = [req_time for req_time in self.requests[key] if now - req_time < self.window]
-        
+
         if len(self.requests[key]) < self.limit:
             self.requests[key].append(now)
             return True
@@ -55,6 +66,10 @@ async def lifespan(app: FastAPI):
     display_system_intelligence()
     print("="*80 + "\n")
     
+    # Load knowledge base on startup
+    print("Loading knowledge base...")
+    load_knowledge_base()
+    
     # Start background poller only if configured
     if settings.has_adguard:
         print("AdGuard configured. Starting poller...")
@@ -63,6 +78,10 @@ async def lifespan(app: FastAPI):
     else:
         print("AdGuard NOT configured. Poller disabled.")
     yield
+    
+    # Save knowledge base on shutdown
+    print("Saving knowledge base...")
+    save_knowledge_base()
 
 app = FastAPI(title="Network Guardian AI Backend", lifespan=lifespan)
 
@@ -81,6 +100,10 @@ app.add_middleware(
 # Include Routes - MUST be at the top to avoid shadowing
 app.include_router(router)
 
+# Include Stats Routes
+from backend.api.stats import router as stats_router
+app.include_router(stats_router, prefix="/api/stats")
+
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
@@ -91,7 +114,6 @@ def api_list_models():
     from backend.services.gemini_analyzer import get_available_models
     return get_available_models()
 
-
 # Serve Frontend Static Files from Vite build output
 # Support both Docker (/app/backend/static) and local development (frontend/dist) paths
 backend_dir = os.path.dirname(__file__)
@@ -99,9 +121,9 @@ possible_paths = [
     os.path.join(backend_dir, "static"),           # Docker path
     os.path.join(backend_dir, "..", "frontend", "dist"),  # Local dev path
 ]
-frontend_dist: str | None = None
+frontend_dist = None
 for path in possible_paths:
-    if os.path.exists(path):
+    if path and os.path.exists(path):
         frontend_dist = path
         break
 
@@ -113,18 +135,19 @@ if frontend_dist:
 
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
-        # Serve static files if they exist directly
-        file_path = os.path.join(frontend_dist, full_path)
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return FileResponse(file_path)
-
         # Don't serve API routes - let them return 404 if not found
-        api_routes = ["api/", "system-chat", "analyze", "chat", "history", "manual-history", "test-report", "health", "models"]
+        api_routes = ["api/", "alerts/", "system-chat", "analyze", "chat", "history", "manual-history", "test-report", "health", "models"]
         if any(full_path.startswith(route) for route in api_routes):
             return {"error": "API route not found"}
 
+        # Serve static files if they exist directly
+        file_path = os.path.join(frontend_dist, full_path) if frontend_dist else full_path
+        if file_path and os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+
         # Fallback to index.html for React Router (only for non-API paths)
-        return FileResponse(os.path.join(frontend_dist, "index.html"))
+        index_path = os.path.join(frontend_dist, "index.html") if frontend_dist else "index.html"
+        return FileResponse(index_path)
 else:
     print(f"WARNING: Frontend dist directory not found. Checked paths: {possible_paths}. Frontend will not be served.")
 

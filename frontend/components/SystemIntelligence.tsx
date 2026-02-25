@@ -80,7 +80,43 @@ const SystemIntelligence: React.FC<SystemIntelligenceProps> = ({ selectedModel }
       const response = await fetch('/api/stats/system');
       if (!response.ok) throw new Error('Failed to fetch system stats');
       const data = await response.json();
-      setStats(data);
+      
+      // Ensure all required fields exist with defaults
+      const statsWithDefaults = {
+        autonomy_score: data.autonomy_score || 0,
+        local_decisions: data.local_decisions || 0,
+        cloud_decisions: data.cloud_decisions || 0,
+        total_decisions: data.total_decisions || 0,
+        patterns_learned: data.patterns_learned || 0,
+        seed_patterns: data.seed_patterns || 0,
+        learned_patterns: data.learned_patterns || 0,
+        classifier: data.classifier || {
+          total_patterns: 0,
+          category_distribution: {},
+          confidence_distribution: {}
+        },
+        cache: data.cache || {
+          memory_cache_size: 0,
+          valid_memory_entries: 0,
+          disk_cache_exists: false,
+          source_distribution: {},
+          cache_file_size: 0
+        },
+        optimization: data.optimization || {
+          description: "System optimization status",
+          benefits: []
+        },
+        system_usage: data.system_usage || {
+          active_integrations: [],
+          tracker_detection: {
+            total_detected: 0,
+            categories: {},
+            detection_methods: []
+          }
+        }
+      };
+      
+      setStats(statsWithDefaults);
       setError(null);
     } catch (err) {
       console.error('Error fetching system stats:', err);

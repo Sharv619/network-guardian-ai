@@ -13,12 +13,17 @@ def sanitize_domain(domain: str) -> str:
 
 def calculate_entropy(domain: str) -> float:
     main_part = sanitize_domain(domain)
-    if not main_part: return 0.0
+    if not main_part: 
+        return 0.0
+    
+    # Prevent division by zero
+    if len(main_part) == 0:
+        return 0.0
     
     probs = [float(main_part.count(c)) / len(main_part) for c in set(main_part)]
-    entropy = -sum(p * math.log2(p) for p in probs)
+    entropy = -sum(p * math.log2(p) for p in probs if p > 0)  # Skip zero probabilities
     
-    digit_ratio = sum(c.isdigit() for c in main_part) / len(main_part)
+    digit_ratio = sum(c.isdigit() for c in main_part) / len(main_part) if len(main_part) > 0 else 0.0
     final_score = entropy + (digit_ratio * 2)
     return round(final_score, 2)
 

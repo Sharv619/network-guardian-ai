@@ -3,10 +3,13 @@ from google.genai import types
 import json
 import os
 import re
+import logging
+from ..core.config import settings
 from typing import Dict, Any, Optional, List
 from ..core.config import settings
 from ..logic.ml_heuristics import calculate_entropy
 from pydantic import BaseModel
+from ..core.alerting import alert_manager, AlertType, AlertSeverity
 
 # SRE Update: Switch to modern google-genai SDK
 client = None
@@ -14,88 +17,104 @@ if settings.GEMINI_API_KEY:
     try:
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
     except Exception as e:
-        print(f"⚠️ SDK Init Error: {e}")
+        import logging
+logging.exception("SDK Init Error")
+
 
 class ThreatVerdict(BaseModel):
-    risk_score: str # "Low" | "Medium" | "High"
+    risk_score: str  # "Low" | "Medium" | "High"
     category: str
     summary: str
+
 
 # Task 1: Strip System Instructions (FinOps Optimization)
 SYSTEM_INSTRUCTION = "You are a senior SOC Analyst. Analyze the provided network metadata and return a structured security verdict."
 
+
 def get_available_models() -> List[str]:
     """SRE Feature: Model Discovery Endpoint."""
     # Use hardcoded "Confirmed Hackathon Models" for reliability
-    confirmed_models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
-    
+    confirmed_models = settings.GEMINI_CONFIRMED_MODELS
+
+    # Use hardcoded "Confirmed Hackathon Models" for reliability
+
     if not client:
         return confirmed_models
-    
+
     try:
         models = []
         all_models = list(client.models.list())
         print(f"DEBUG: Found {len(all_models)} total models via SDK.")
-        
+
         for model in all_models:
             # Debug: print each model to see its structure
             print(f"DEBUG Model Found: {model.name}")
-            
+
             # Handle SDK attribute differences (v1.0 vs others)
-            supported = getattr(model, 'supported_generation_methods', []) or getattr(model, 'supported_methods', [])
-            if 'generateContent' in supported:
+            supported = getattr(model, "supported_generation_methods", []) or getattr(
+                model, "supported_methods", []
+            )
+            if "generateContent" in supported:
                 # Remove "models/" prefix for UI consistency if present, but keep full name internally if needed
-                name = model.name.replace('models/', '') if model.name else model.name
+                name = model.name.replace("models/", "") if model.name else model.name
                 models.append(name)
-                
+
         print(f"DEBUG: {len(models)} models support generateContent.")
-        
+
         available_models = []
         for model in confirmed_models:
             if model in models:
                 available_models.append(model)
-        
+
         # Add any additional discovered models not in confirmed list
         for model in models:
             if model not in confirmed_models and model not in available_models:
                 available_models.append(model)
-                
+
         # If no confirmed models found, fall back to all discovered models
         return available_models if available_models else models
     except Exception as e:
-        print(f"Model Discovery Failed: {e}")
+        logging.exception("Model Discovery Failed")
         return confirmed_models
 
-def analyze_domain(domain: str, context: Optional[Dict[str, Any]] = None, model_id: Optional[str] = None, is_anomaly: bool = False, anomaly_score: float = 0.0, priority: bool = False) -> dict:
+
+def analyze_domain(
+    domain: str,
+    context: Optional[Dict[str, Any]] = None,
+    model_id: Optional[str] = None,
+    is_anomaly: bool = False,
+    anomaly_score: float = 0.0,
+    priority: bool = False,
+) -> dict:
     # Task 2: Implement Metadata Enrichment (Fact Gathering)
     entropy = calculate_entropy(domain)
     # Aspirational: Domain age mock
-    domain_age_days = 42 if entropy > 3.0 else 1200 
-    
+    domain_age_days = 42 if entropy > 3.0 else 1200
+
     facts = f"Facts: Entropy is {entropy:.2f}. Estimated domain age is {domain_age_days} days. Source: AdGuard Interceptor via Network Guardian AI Stack."
-    
+
     # ML Anomaly Context (Phase 2 Bridge)
     anomaly_context = ""
     if is_anomaly:
         anomaly_context = f"\n\nWARNING: Our local Isolation Forest ML model has flagged this domain as a statistical outlier (Anomaly Score: {anomaly_score:.4f}). The character distribution (Entropy/Digit Ratio) is unusual. Please prioritize this in your risk assessment and explain the structural suspicion."
 
-    # Task 3: Refine Gemini Context 
+    # Task 3: Refine Gemini Context
     firewall_context = ""
     if context and context.get("reason"):
         reason = context.get("reason")
         rule = context.get("rule", "Unknown Rule")
         firewall_context = f"\n\n[SECURITY DATA]: This domain was blocked by the network firewall for the following reason: {reason} and rule: {rule}. Incorporate this into your risk assessment."
-    
+
     # Task 2: Privacy Audit Override
     if context and context.get("privacy_audit"):
         prompt = f"SECURITY AUDIT: This is a background tracking packet to {domain}. Analyze it for location-exfiltration risks. VERDICT: High Risk/Privacy Violation. {facts}{anomaly_context}{firewall_context}"
     else:
         prompt = f"{facts}{anomaly_context}\n\nAnalyze this domain for security risks: {domain}.{firewall_context}"
-    
+
     # SRE Requirement: Default stable model
     # Use 'gemini-2.0-flash' as it is available in the current environment
-    target_model = model_id if model_id else 'gemini-2.0-flash'
-    
+    target_model = model_id if model_id else "gemini-2.0-flash"
+
     if not client:
         return _heuristic_fallback(domain, "SDK Not Initialized")
 
@@ -103,15 +122,15 @@ def analyze_domain(domain: str, context: Optional[Dict[str, Any]] = None, model_
         # Use Dynamic Model Selection
         # Try without prefix first, then with prefix if needed
         model_variants = [target_model]
-        if not target_model.startswith('models/'):
-            model_variants.append(f'models/{target_model}')
-        
+        if not target_model.startswith("models/"):
+            model_variants.append(f"models/{target_model}")
+
         # Add stable fallback variants (auto-discovered from environment)
-        fallback_models = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']
+        fallback_models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"]
         for fm in fallback_models:
             if fm != target_model:
                 model_variants.append(fm)
-        
+
         last_error = None
         for model_name in model_variants:
             try:
@@ -121,109 +140,190 @@ def analyze_domain(domain: str, context: Optional[Dict[str, Any]] = None, model_
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         system_instruction=SYSTEM_INSTRUCTION,
-                        response_mime_type='application/json',
+                        response_mime_type="application/json",
                         response_schema=ThreatVerdict,
-                    )
+                    ),
                 )
                 # Convert response to dict for consistency
                 if isinstance(response.parsed, dict):
-                    return response.parsed
-                elif hasattr(response.parsed, '__dict__'):
-                    return response.parsed.__dict__
+                    return dict(response.parsed)
+                elif hasattr(response.parsed, "__dict__"):
+                    # Convert MappingProxyType to regular dict
+                    parsed_dict = response.parsed.__dict__
+                    try:
+                        # Try to convert MappingProxyType directly
+                        if hasattr(parsed_dict, "copy"):
+                            return dict(parsed_dict.copy())
+                        else:
+                            # Handle as MappingProxyType by iterating
+                            result = {}
+                            for key in parsed_dict:
+                                result[key] = parsed_dict[key]
+                            return result
+                    except:
+                        # Fallback: create dict from attributes
+                        result = {}
+                        for attr_name in dir(response.parsed):
+                            if not attr_name.startswith("_"):
+                                try:
+                                    attr_value = getattr(response.parsed, attr_name)
+                                    if not callable(attr_value):
+                                        result[attr_name] = attr_value
+                                except:
+                                    continue
+                        return result
                 else:
                     return {}
             except Exception as e:
                 error_str = str(e)
                 print(f"Gemini Analysis Failed ({model_name}): {error_str}")
-                
+
                 # Priority mode: retry once on 429 errors
                 if priority and "429" in error_str:
                     print(f"PRIORITY RETRY: Rate limit hit for {model_name}, attempting retry...")
                     try:
                         # Small delay before retry
                         import time
+
                         time.sleep(1)
                         response = client.models.generate_content(
                             model=model_name,
                             contents=prompt,
                             config=types.GenerateContentConfig(
                                 system_instruction=SYSTEM_INSTRUCTION,
-                                response_mime_type='application/json',
+                                response_mime_type="application/json",
                                 response_schema=ThreatVerdict,
-                            )
+                            ),
                         )
                         print(f"PRIORITY RETRY SUCCESS: {model_name}")
                         # Convert response to dict for consistency
                         if isinstance(response.parsed, dict):
-                            return response.parsed
-                        elif hasattr(response.parsed, '__dict__'):
-                            return response.parsed.__dict__
+                            return dict(response.parsed)
+                        elif hasattr(response.parsed, "__dict__"):
+                            # Handle MappingProxyType by converting to regular dict
+                            parsed_obj = response.parsed.__dict__
+                            if hasattr(parsed_obj, "items"):
+                                return {k: v for k, v in parsed_obj.items()}
+                            else:
+                                # For MappingProxyType, convert using vars() or iteration
+                                try:
+                                    return dict(**parsed_obj)
+                                except:
+                                    # Final fallback: iterate through keys
+                                    result = {}
+                                    for key in dir(response.parsed):
+                                        if not key.startswith("_"):
+                                            try:
+                                                value = getattr(response.parsed, key)
+                                                if not callable(value):
+                                                    result[key] = value
+                                            except:
+                                                continue
+                                    return result
                         else:
                             return {}
                     except Exception as retry_e:
                         print(f"PRIORITY RETRY FAILED: {retry_e}")
-                
+
                 last_error = e
                 continue
-        
+
         print(f"All Gemini models failed. Last error: {last_error}")
+
+        # Trigger alert for API failure
+        try:
+            alert_manager.create_alert_sync(
+                alert_type=AlertType.API_FAILURE,
+                severity=AlertSeverity.HIGH,
+                message=f"Gemini API failure for domain {domain}: {str(last_error)}",
+                details={
+                    "domain": domain,
+                    "error": str(last_error),
+                    "analysis_source": "gemini_analyzer",
+                    "attempted_models": model_variants,
+                },
+            )
+        except Exception as alert_e:
+            print(f"Alert creation failed: {alert_e}")
+
         return _heuristic_fallback(domain, str(last_error))
     except Exception as e:
-        print(f"Gemini Analysis Critical Failure: {e}")
+        logging.exception(f"Gemini Analysis Critical Failure")
+
+        # Trigger alert for critical failure
+        import asyncio
+
+        try:
+            asyncio.create_task(
+                alert_manager.create_alert(
+                    alert_type=AlertType.API_FAILURE,
+                    severity=AlertSeverity.CRITICAL,
+                    message=f"Gemini API critical failure: {str(e)}",
+                    details={
+                        "domain": domain,
+                        "error": str(e),
+                        "analysis_source": "gemini_analyzer",
+                        "context": context,
+                    },
+                )
+            )
+        except Exception as alert_e:
+            print(f"Alert creation failed: {alert_e}")
+
         return _heuristic_fallback(domain, str(e))
+
 
 def chat_with_ai(message: str, model_id: Optional[str] = None) -> str:
     if not client:
         return "Network Guardian AI: Engine not initialized. Please check your API keys."
-    
+
     # SRE Requirement: Default stable model
-    target_model = model_id if model_id else 'gemini-2.0-flash'
-    
+    target_model = model_id if model_id else "gemini-2.0-flash"
+
     # Load system prompt from metadata.json for proper chat behavior
     system_prompt = "You are a Network Security Analyst. Answer concisely."
     try:
-        with open('metadata.json', 'r') as f:
+        with open("metadata.json", "r") as f:
             metadata = json.load(f)
-            if 'description' in metadata:
-                system_prompt = metadata['description']
+            if "description" in metadata:
+                system_prompt = metadata["description"]
     except:
         pass  # Use fallback prompt if metadata.json not available
-    
+
     try:
         response = client.models.generate_content(
             model=target_model,
             contents=message,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt
-            )
+            config=types.GenerateContentConfig(system_instruction=system_prompt),
         )
         return response.text or "Network Guardian AI: Response unavailable."
     except Exception as e:
         print(f"Chat API Failed ({target_model}): {e}")
         # Final fallback for chat
-        if target_model != 'gemini-1.5-flash':
+        if target_model != "gemini-1.5-flash":
             try:
                 response = client.models.generate_content(
-                    model='gemini-1.5-flash',
+                    model="gemini-1.5-flash",
                     contents=message,
-                    config=types.GenerateContentConfig(
-                        system_instruction=system_prompt
-                    )
+                    config=types.GenerateContentConfig(system_instruction=system_prompt),
                 )
                 return response.text or "Network Guardian AI: Response unavailable."
             except:
                 pass
-        # Enhanced fallback message with architecture info
-        return ("Network Guardian AI: Currently operating in Autonomous SOC Mode due to cloud analysis throttling. "
-                "While conversational processing is temporarily degraded, my network interceptor and local heuristic "
-                "engines remain 100% Active. I am still guarding your data—how can I help you with system logic?")
+        # Enhanced fallback message with architecture info - return a simple message for graceful degradation
+        return "Network Guardian AI: Chat service temporarily unavailable. Analysis services remain active."
+
 
 def _heuristic_fallback(domain: str, error: str) -> dict:
     """Fallback heuristic analysis when cloud APIs fail."""
     entropy = calculate_entropy(domain)
 
-    is_privacy = any(kw in domain.lower() for kw in ['geo', 'location', 'gps', 'waa-pa'])
-    category = "Privacy Risk" if is_privacy else ("Malicious Pattern" if entropy > 3.5 else "General Traffic")
+    is_privacy = any(kw in domain.lower() for kw in ["geo", "location", "gps", "waa-pa"])
+    category = (
+        "Privacy Risk"
+        if is_privacy
+        else ("Malicious Pattern" if entropy > 3.5 else "General Traffic")
+    )
 
     fallback_summary = "SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)"
 

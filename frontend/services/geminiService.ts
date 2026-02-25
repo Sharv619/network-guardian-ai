@@ -55,18 +55,84 @@ export const analyzeDomain = async (domain: string, whoisData?: any, modelId?: s
  */
 export const sendChatMessage = async (message: string, modelId?: string): Promise<string> => {
     try {
-        const res = await fetch(`${API_BASE}/chat`, {
+        // Use the advanced chat endpoint with enhanced RAG functionality
+        const res = await fetch(`${API_BASE}/chat/advanced`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message, model_id: modelId })
+            body: JSON.stringify({ 
+                message, 
+                model_id: modelId,
+                include_context: true,
+                search_radius: 5,
+                min_similarity: 0.7
+            })
         });
 
         if (!res.ok) throw new Error('Backend chat failed');
 
         const data = await res.json();
-        return data.text;
+        return data.text || data.response || "No response received";
     } catch (error) {
         console.error("BFF Chat Error:", error);
         return "Sorry, I'm having trouble connecting to the Guardian Brain.";
+    }
+};
+
+/**
+ * Enhanced chat with context and insights
+ */
+export const sendAdvancedChatMessage = async (message: string, options: {
+    include_context?: boolean;
+    search_radius?: number;
+    min_similarity?: number;
+    modelId?: string;
+} = {}): Promise<any> => {
+    try {
+        const res = await fetch(`${API_BASE}/chat/advanced`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                message, 
+                model_id: options.modelId,
+                include_context: options.include_context ?? true,
+                search_radius: options.search_radius ?? 5,
+                min_similarity: options.min_similarity ?? 0.7
+            })
+        });
+
+        if (!res.ok) throw new Error('Advanced backend chat failed');
+
+        const data = await res.json();
+        return data;
+    } catch (error) {
+        console.error("Advanced BFF Chat Error:", error);
+        throw error;
+    }
+};
+
+/**
+ * Search functionality with context
+ */
+export const searchChatHistory = async (query: string, options: {
+    k?: number;
+    min_similarity?: number;
+    include_context?: boolean;
+} = {}): Promise<any> => {
+    try {
+        const params = new URLSearchParams({
+            k: (options.k ?? 5).toString(),
+            min_similarity: (options.min_similarity ?? 0.7).toString(),
+            include_context: (options.include_context ?? true).toString()
+        });
+        
+        const res = await fetch(`${API_BASE}/chat/enhanced-search/${encodeURIComponent(query)}?${params}`);
+        
+        if (!res.ok) throw new Error('Chat search failed');
+
+        const data = await res.json();
+        return data;
+    } catch (error) {
+        console.error("Chat Search Error:", error);
+        throw error;
     }
 };
