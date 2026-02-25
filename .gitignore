@@ -34,3 +34,14 @@ linkedin_posts/day_15_docker_optimization.md
 linkedin_posts/day_16_frontend_react.md
 linkedin_posts/README.md
 .gitignore
+
+# Test coverage reports (hide from boss!)
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+

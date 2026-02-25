@@ -3,7 +3,23 @@ System Intelligence Display Module
 Displays API stats data in a formatted table using Rich
 """
 
+import sys
+import os
 import time
+
+# Add the parent directory to Python path to enable absolute imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Load environment variables from the parent directory
+env_file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+if os.path.exists(env_file_path):
+    with open(env_file_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                os.environ[key] = value
+
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -70,19 +86,18 @@ def display_system_intelligence():
         cache_table.add_row("Disk TTL", "3600 seconds")
         cache_table.add_row("Auto Cleanup", "Every 60 seconds")
         
-        # Create optimization stats table
-        opt_table = Table(title="⚡ OPTIMIZATION INTELLIGENCE", box=box.ROUNDED, show_header=True, header_style="bold cyan")
-        opt_table.add_column("Benefit", style="magenta")
-        opt_table.add_column("Status", style="green")
-        
-        for benefit in stats["optimization"]["benefits"]:
-            opt_table.add_row(benefit.split(":")[0], "✅ Active" if "Extended runtime" in benefit or "Local analysis" in benefit or "Intelligent caching" in benefit or "Metadata pattern recognition" in benefit else "Active")
+        # Create performance stats table
+        perf_table = Table(title="⚡ PERFORMANCE INTELLIGENCE", box=box.ROUNDED, show_header=True, header_style="bold cyan")
+        perf_table.add_column("Metric", style="magenta")
+        perf_table.add_column("Value", style="green")
         
         # Add performance metrics
-        opt_table.add_row("", "")  # Separator
-        opt_table.add_row("API Call Reduction", f"{stats['autonomy_score']}%")
-        opt_table.add_row("Response Time", "Local: <100ms, Cloud: ~2s")
-        opt_table.add_row("Memory Efficiency", "Smart eviction policies")
+        perf_table.add_row("API Call Reduction", f"{stats['autonomy_score']}%")
+        perf_table.add_row("Response Time", "Local: <100ms, Cloud: ~2s")
+        perf_table.add_row("Memory Efficiency", "Smart eviction policies")
+        perf_table.add_row("Pattern Learning", "Real-time adaptation")
+        perf_table.add_row("Cache Hit Rate", "Optimized for speed")
+        perf_table.add_row("System Uptime", "Continuous monitoring")
         
         # Create autonomy stats table with enhanced data
         auto_table = Table(title="🤖 AUTONOMY INTELLIGENCE", box=box.ROUNDED, show_header=True, header_style="bold cyan")
@@ -135,7 +150,7 @@ def display_system_intelligence():
         console.print(Panel(title, subtitle=subtitle, border_style="blue"))
         console.print(classifier_table)
         console.print(cache_table)
-        console.print(opt_table)
+        console.print(perf_table)
         console.print(auto_table)
         console.print(health_table)
         

@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
+
+import { 
+  LocateFixed, 
+  ShieldAlert, 
+  Eye as EyeIcon
+} from 'lucide-react';
+
 import LoadingSpinner from './LoadingSpinner';
 import CodeBlock from './CodeBlock';
-import { ThreatReport } from '../types';
 import ChatPanel from './ChatPanel';
 import AnalysisModal from './AnalysisModal';
-import { Eye as EyeIcon } from 'lucide-react';
+import StatsPanel from './StatsPanel';
+import SystemIntelligence from './SystemIntelligence';
+import { analyzeDomain } from '../services/geminiService';
 
 // --- Interfaces ---
 interface HistoryItem {
@@ -58,7 +66,7 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ selectedModel }) => {
-    const [activeTab, setActiveTab] = useState<'live' | 'manual' | 'chat' | 'intelligence'>('live');
+    const [activeTab, setActiveTab] = useState<'live' | 'manual' | 'chat' | 'stats' | 'intelligence'>('live');
 
     return (
         <div className="h-full flex flex-col space-y-6">
@@ -91,13 +99,13 @@ const Dashboard: React.FC<DashboardProps> = ({ selectedModel }) => {
                     SYSTEM CHAT
                 </button>
                 <button
-                    onClick={() => setActiveTab('intelligence')}
-                    className={`pb-2 px-4 font-mono font-bold transition-colors ${activeTab === 'intelligence'
+                    onClick={() => setActiveTab('stats')}
+                    className={`pb-2 px-4 font-mono font-bold transition-colors ${activeTab === 'stats'
                         ? 'text-cyan-400 border-b-2 border-cyan-400'
                         : 'text-slate-500 hover:text-slate-300'
                         }`}
                 >
-                    SYSTEM INTELLIGENCE 🟢 (Live)
+                    STATS PANEL
                 </button>
             </div>
 
@@ -105,35 +113,12 @@ const Dashboard: React.FC<DashboardProps> = ({ selectedModel }) => {
                 {activeTab === 'live' && <LiveFeed />}
                 {activeTab === 'manual' && <ManualAnalysis selectedModel={selectedModel} />}
                 {activeTab === 'chat' && <ChatPanel selectedModel={selectedModel} />}
-                {activeTab === 'intelligence' && <SystemIntelligence />}
+                {activeTab === 'stats' && <StatsPanel selectedModel={selectedModel} />}
+                {activeTab === 'intelligence' && <SystemIntelligence selectedModel={selectedModel} />}
             </div>
         </div>
     );
 };
-
-import { 
-  LocateFixed, 
-  ShieldAlert, 
-  ShieldCheck, 
-  Brain,
-  BarChart3,
-  PieChart,
-  TrendingUp,
-  Activity,
-  Database,
-  Globe,
-  Wifi,
-  Cpu,
-  AlertTriangle,
-  Shield,
-  Network,
-  Zap,
-  Target,
-  Lock,
-  FileText,
-  Code,
-  CheckCircle2
-} from 'lucide-react';
 
 const LiveFeed: React.FC = () => {
     const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -141,6 +126,7 @@ const LiveFeed: React.FC = () => {
     const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
     const [selectedAnalysis, setSelectedAnalysis] = useState<HistoryItem | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [riskFilter, setRiskFilter] = useState<'all' | 'high'>('high'); // Default to HIGH only
 
     const isPrivacyRisk = (domain: string) => {
         const keywords = ['geo', 'location', 'gps', 'telemetry', 'waa-pa'];
@@ -171,6 +157,14 @@ const LiveFeed: React.FC = () => {
 
     if (loading && history.length === 0) return <LoadingSpinner />;
 
+    // Filter history based on risk level
+    const filteredHistory = riskFilter === 'high' 
+        ? history.filter(item => {
+            const score = item.risk_score?.toLowerCase() || '';
+            return score.includes('high') || score === 'critical';
+        })
+        : history;
+
     // Handle domain click to show detailed analysis
     const handleDomainClick = (domain: string, analysis: HistoryItem) => {
         setSelectedDomain(domain);
@@ -180,7 +174,33 @@ const LiveFeed: React.FC = () => {
 
     return (
         <div className="space-y-3 h-full overflow-y-auto pr-2 custom-scrollbar">
-            {history.map((item, idx) => {
+            {/* Risk Filter Buttons */}
+            <div className="flex gap-2 mb-4">
+                <button
+                    onClick={() => setRiskFilter('high')}
+                    className={`px-3 py-1 rounded text-sm font-mono transition-colors ${
+                        riskFilter === 'high' 
+                        ? 'bg-red-600 text-white' 
+                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                    }`}
+                >
+                    🔴 HIGH RISK ONLY
+                </button>
+                <button
+                    onClick={() => setRiskFilter('all')}
+                    className={`px-3 py-1 rounded text-sm font-mono transition-colors ${
+                        riskFilter === 'all' 
+                        ? 'bg-cyan-600 text-white' 
+                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                    }`}
+                >
+                    📋 ALL THREATS
+                </button>
+                <span className="ml-auto text-slate-500 text-sm font-mono">
+                    Showing {filteredHistory.length} of {history.length}
+                </span>
+            </div>
+            {filteredHistory.map((item, idx) => {
                 const geoRisk = isPrivacyRisk(item.domain);
                 const displayTime = item.timestamp && !isNaN(Date.parse(item.timestamp))
                     ? new Date(item.timestamp).toLocaleString([], {
@@ -240,11 +260,7 @@ const LiveFeed: React.FC = () => {
                                     GEOLOCATION ATTEMPT
                                 </span>
                             )}
-                            {item.summary.includes("SOC GUARD ACTIVE") && (
-                                <span className="px-2 py-0.5 bg-purple-900 text-purple-200 border border-purple-700 rounded text-xs font-mono uppercase tracking-wide">
-                                    Heuristic Mode
-                                </span>
-                            )}
+                            {/* Remove the SOC GUARD ACTIVE tag as requested */}
                         </div>
 
                         {item.adguard_metadata && item.adguard_metadata.reason !== 'NotFilteredNotFound' && (
@@ -300,8 +316,6 @@ const LiveFeed: React.FC = () => {
         </div>
     );
 };
-
-import { analyzeDomain } from '../services/geminiService';
 
 interface ManualAnalysisProps {
     selectedModel: string;
@@ -495,7 +509,6 @@ const SourceDistributionPieChart: React.FC<{ sourceDistribution: any }> = ({ sou
           {data.map((item, index) => {
             const sliceAngle = (item.value / total) * 360;
             const transform = `rotate(${cumulativeAngle}deg)`;
-            const currentCumulative = cumulativeAngle;
             cumulativeAngle += sliceAngle;
             
             return (
@@ -539,222 +552,8 @@ const SourceDistributionPieChart: React.FC<{ sourceDistribution: any }> = ({ sou
           </div>
         ))}
       </div>
-      <div className="text-xs text-slate-400 text-center">Data source distribution</div>
     </div>
   );
 };
-
-const PatternLearningChart: React.FC<{ classifierStats: any }> = ({ classifierStats }) => {
-  const data = [
-    { label: 'Patterns Learned', value: classifierStats?.patterns_learned || 1234, color: 'bg-gradient-to-r from-blue-500 to-cyan-500', max: 2000 },
-    { label: 'Accuracy', value: classifierStats?.accuracy || 92.5, color: 'bg-gradient-to-r from-green-500 to-emerald-500', max: 100 },
-    { label: 'False Positives', value: classifierStats?.false_positives || 3.2, color: 'bg-gradient-to-r from-red-500 to-orange-500', max: 10 }
-  ];
-
-  return (
-    <div className="space-y-6">
-      {data.map((item, index) => {
-        const percentage = item.value > item.max ? 100 : (item.value / item.max) * 100;
-        return (
-          <div key={index} className="space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-300 font-mono">{item.label}</span>
-              <span className="font-bold text-white font-mono">{item.value}</span>
-            </div>
-            <div className="w-full bg-slate-700 rounded-full h-3 border border-slate-600/50">
-              <div 
-                className={`${item.color} h-3 rounded-full transition-all duration-1000 ease-out shadow-lg`}
-                style={{ width: `${percentage}%` }}
-              ></div>
-            </div>
-            <div className="flex justify-between text-xs text-slate-500 font-mono">
-              <span>0</span>
-              <span>{item.max}</span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-// --- NEW COMPONENT: System Intelligence ---
-const SystemIntelligence: React.FC = () => {
-    const [stats, setStats] = useState<SystemStats | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [alertBox, setAlertBox] = useState<{title: string; message: string; type: 'info' | 'success' | 'warning'} | null>(null);
-
-    const fetchStats = async () => {
-        try {
-            const res = await fetch(`${API_BASE}/api/stats/system`);
-            if (res.ok) {
-                const data = await res.json();
-                console.log("System Intelligence Data Received:", data);
-                console.log("🟢 TRACER BULLET: Successfully connected to backend /api/stats/system");
-                setStats(data);
-                setError(null);
-            } else {
-                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-            }
-        } catch (e) {
-            console.error("Failed to fetch system stats", e);
-            setError("Failed to connect to backend system intelligence");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchStats();
-        const interval = setInterval(fetchStats, 5000); // Update every 5s
-        return () => clearInterval(interval);
-    }, []);
-
-    if (loading && !stats) return <LoadingSpinner />;
-    if (error) return <div className="text-red-500 font-mono p-10">{error}</div>;
-    if (!stats) return <div className="text-slate-500 font-mono p-10">Waiting for backend telemetry...</div>;
-
-    return (
-        <div className="space-y-6 h-full overflow-y-auto pr-2 custom-scrollbar pb-10">
-            {/* Top Row: Key Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <button 
-                    onClick={() => setAlertBox({ title: 'Autonomy Score', message: `Local Analysis Rate: ${stats.autonomy_score}%\n\nThis shows how much of the threat detection is done locally using ML heuristics vs cloud Gemini API calls. Higher = more cost-effective.`, type: 'info' })}
-                    className="bg-slate-800/50 border border-purple-500/20 hover:border-purple-500/40 p-4 rounded-lg text-left transition-all hover:scale-[1.02]"
-                >
-                    <div className="text-slate-400 text-xs">Autonomy Score</div>
-                    <div className="text-2xl font-bold text-purple-400">{stats.autonomy_score}%</div>
-                    <div className="text-slate-500 text-xs mt-1">Local Decision Rate</div>
-                </button>
-                <button 
-                    onClick={() => setAlertBox({ title: 'Learned Patterns', message: `Seed Patterns: ${stats.seed_patterns}\nLearned Patterns: ${stats.learned_patterns}\n\nThe system learns from analyzed domains to improve detection accuracy over time.`, type: 'success' })}
-                    className="bg-slate-800/50 border border-yellow-500/20 hover:border-yellow-500/40 p-4 rounded-lg text-left transition-all hover:scale-[1.02]"
-                >
-                    <div className="text-slate-400 text-xs">Learned Patterns</div>
-                    <div className="text-2xl font-bold text-yellow-400">{stats.patterns_learned}</div>
-                    <div className="text-slate-500 text-xs mt-1">{stats.seed_patterns} Seed + {stats.learned_patterns} New</div>
-                </button>
-                <button 
-                    onClick={() => setAlertBox({ title: 'Total Decisions', message: `Local: ${stats.local_decisions}\nCloud: ${stats.cloud_decisions}\nTotal: ${stats.total_decisions}\n\nLocal = entropy/metadata analysis\nCloud = Gemini AI analysis`, type: 'info' })}
-                    className="bg-slate-800/50 border border-green-500/20 hover:border-green-500/40 p-4 rounded-lg text-left transition-all hover:scale-[1.02]"
-                >
-                    <div className="text-slate-400 text-xs">Total Decisions</div>
-                    <div className="text-2xl font-bold text-green-400">{stats.total_decisions}</div>
-                    <div className="text-slate-500 text-xs mt-1">Local + Cloud Analysis</div>
-                </button>
-                <button 
-                    onClick={() => setAlertBox({ title: 'Cache Efficiency', message: `Memory Entries: ${stats.cache.valid_memory_entries}\nCache Size: ${stats.cache.memory_cache_size}\nDisk Cache: ${stats.cache.disk_cache_exists ? 'Active' : 'Inactive'}\nFile Size: ${(stats.cache.cache_file_size / 1024).toFixed(2)} KB`, type: 'warning' })}
-                    className="bg-slate-800/50 border border-cyan-500/20 hover:border-cyan-500/40 p-4 rounded-lg text-left transition-all hover:scale-[1.02]"
-                >
-                    <div className="text-slate-400 text-xs">Cache Efficiency</div>
-                    <div className="text-2xl font-bold text-cyan-400">{stats.cache.valid_memory_entries}</div>
-                    <div className="text-slate-500 text-xs mt-1">Active Memory Entries</div>
-                </button>
-            </div>
-
-            {/* Alert Box Modal */}
-            {alertBox && (
-                <div 
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                    onClick={() => setAlertBox(null)}
-                >
-                    <div 
-                        className={`max-w-md w-full rounded-2xl p-6 border ${
-                            alertBox.type === 'info' ? 'bg-blue-900/90 border-blue-500/50' :
-                            alertBox.type === 'success' ? 'bg-green-900/90 border-green-500/50' :
-                            'bg-amber-900/90 border-amber-500/50'
-                        }`}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xl font-bold text-white">{alertBox.title}</h3>
-                            <button onClick={() => setAlertBox(null)} className="text-white/60 hover:text-white text-2xl">×</button>
-                        </div>
-                        <p className="text-white/80 whitespace-pre-line">{alertBox.message}</p>
-                        <button 
-                            onClick={() => setAlertBox(null)}
-                            className={`mt-6 w-full py-2 rounded-lg font-medium ${
-                                alertBox.type === 'info' ? 'bg-blue-600 hover:bg-blue-500' :
-                                alertBox.type === 'success' ? 'bg-green-600 hover:bg-green-500' :
-                                'bg-amber-600 hover:bg-amber-500'
-                            } text-white transition-colors`}
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Bottom Section: Classifier & Cache Breakdown */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-slate-800 p-5 rounded-lg border border-slate-700">
-                    <h4 className="text-sm font-mono text-slate-400 uppercase mb-4 flex items-center">
-                        <Target className="w-4 h-4 mr-2" /> Classifier Distribution
-                    </h4>
-                    <div className="space-y-4">
-                        {Object.entries(stats.classifier.category_distribution).map(([cat, count]) => (
-                            <div key={cat} className="space-y-1">
-                                <div className="flex justify-between text-xs font-mono text-slate-300">
-                                    <span>{cat}</span>
-                                    <span>{count} patterns</span>
-                                </div>
-                                <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden">
-                                    <div 
-                                        className="bg-cyan-500 h-full" 
-                                        style={{ width: `${(count / stats.classifier.total_patterns) * 100}%` }}
-                                    />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="bg-slate-800 p-5 rounded-lg border border-slate-700">
-                    <h4 className="text-sm font-mono text-slate-400 uppercase mb-4 flex items-center">
-                        <Database className="w-4 h-4 mr-2" /> Cache Intelligence
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-3 bg-slate-900 rounded border border-slate-700/50">
-                            <span className="text-[10px] text-slate-500 block">MEMORY SIZE</span>
-                            <span className="text-cyan-400 font-bold font-mono">{stats.cache.memory_cache_size}</span>
-                        </div>
-                        <div className="p-3 bg-slate-900 rounded border border-slate-700/50">
-                            <span className="text-[10px] text-slate-500 block">FILE SIZE</span>
-                            <span className="text-cyan-400 font-mono font-bold">
-                                {(stats.cache.cache_file_size / 1024).toFixed(2)} KB
-                            </span>
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                         <span className="text-[10px] text-slate-500 block mb-2 uppercase">Decision Sources</span>
-                         <div className="flex items-center h-4 w-full bg-slate-900 rounded-full overflow-hidden">
-                            <div className="bg-emerald-500 h-full" style={{width: '60%'}} title="Local" />
-                            <div className="bg-purple-500 h-full" style={{width: '30%'}} title="Cloud" />
-                            <div className="bg-slate-700 h-full" style={{width: '10%'}} title="Cached" />
-                         </div>
-                         <div className="flex justify-between mt-2 text-[10px] font-mono text-slate-500 uppercase">
-                            <span>Local: {stats.local_decisions}</span>
-                            <span>Cloud: {stats.cloud_decisions}</span>
-                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// Helper Stat Card
-const StatCard: React.FC<{ label: string, value: any, icon: any, subtext: string }> = ({ label, value, icon, subtext }) => (
-    <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 hover:border-cyan-500 transition-colors">
-        <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">{label}</span>
-            {icon}
-        </div>
-        <div className="text-2xl font-bold text-white font-mono">{value}</div>
-        <div className="text-[10px] text-slate-400 mt-1 font-mono">{subtext}</div>
-    </div>
-);
-
 
 export default Dashboard;

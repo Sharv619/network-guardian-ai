@@ -1,0 +1,19 @@
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+exclude = ["backend/tests/", "venv/"]
+plugins = ["pydantic.mypy"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4"]
+exclude = ["backend/tests/"]
+ignore = ["B008", "E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]

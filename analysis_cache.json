@@ -1,0 +1,52 @@
+{
+  "059cfc6393b259b01ef999f8d8f3bbcb": {
+    "domain": "cleanup0.com",
+    "metadata_signature": "059cfc6393b259b01ef999f8d8f3bbcb",
+    "result": {
+      "risk_score": "Low"
+    },
+    "source": "test",
+    "timestamp": "2026-02-24T19:12:44Z",
+    "ttl": 1
+  },
+  "d1a5f5a54e33109c5eeedc3eca66951f": {
+    "domain": "cleanup1.com",
+    "metadata_signature": "d1a5f5a54e33109c5eeedc3eca66951f",
+    "result": {
+      "risk_score": "Low"
+    },
+    "source": "test",
+    "timestamp": "2026-02-24T19:12:44Z",
+    "ttl": 1
+  },
+  "0c51d0b5d518c008e3fea09d1780d34f": {
+    "domain": "cleanup2.com",
+    "metadata_signature": "0c51d0b5d518c008e3fea09d1780d34f",
+    "result": {
+      "risk_score": "Low"
+    },
+    "source": "test",
+    "timestamp": "2026-02-24T19:12:44Z",
+    "ttl": 1
+  },
+  "b51306ee30326b15f53d8d02ff4fc348": {
+    "domain": "cleanup3.com",
+    "metadata_signature": "b51306ee30326b15f53d8d02ff4fc348",
+    "result": {
+      "risk_score": "Low"
+    },
+    "source": "test",
+    "timestamp": "2026-02-24T19:12:44Z",
+    "ttl": 1
+  },
+  "5b60b51f3f6a5d17189740a5380bb1fd": {
+    "domain": "cleanup4.com",
+    "metadata_signature": "5b60b51f3f6a5d17189740a5380bb1fd",
+    "result": {
+      "risk_score": "Low"
+    },
+    "source": "test",
+    "timestamp": "2026-02-24T19:12:44Z",
+    "ttl": 1
+  }
+}
