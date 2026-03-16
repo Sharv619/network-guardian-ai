@@ -1,36 +1,35 @@
 """
 Authentication and Authorization API routes.
 """
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from backend.api.models_auth import (
-    LoginRequest,
-    TokenResponse,
-    Token,
-    UserCredentials,
     APIKeyCreate,
-    APIKeyResponse,
     APIKeyListResponse,
-    UserCreate,
-    UserResponse,
-    UserProfile,
+    APIKeyResponse,
     AuthStatus,
+    LoginRequest,
+    Token,
+    TokenResponse,
+    UserCreate,
+    UserCredentials,
+    UserProfile,
+    UserResponse,
 )
 from backend.core.auth import (
-    auth_credentials,
-    JWTManager,
     APIKeyManager,
-    UserRole,
     AuthConfig,
+    JWTManager,
+    UserRole,
+    auth_credentials,
 )
 from backend.core.deps import (
     AuthenticatedUser,
-    require_authentication,
-    require_admin,
     get_current_user,
+    require_admin,
+    require_authentication,
 )
-
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -39,28 +38,28 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 async def login(credentials: UserCredentials):
     """
     Login with username and password to get a JWT token.
-    
+
     Accepts UserCredentials and returns a simplified Token response.
     """
     user = auth_credentials.validate_user(
         credentials.username,
         credentials.password
     )
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     token_data = {
         "sub": user["username"],
         "role": user["role"]
     }
-    
+
     access_token = JWTManager.create_access_token(token_data)
-    
+
     return Token(access_token=access_token)
 
 
@@ -68,29 +67,29 @@ async def login(credentials: UserCredentials):
 async def login_full(login_request: LoginRequest):
     """
     Login with username and password to get JWT tokens (full response).
-    
+
     Returns access_token, refresh_token, and expiry information.
     """
     user = auth_credentials.validate_user(
         login_request.username,
         login_request.password
     )
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     token_data = {
         "sub": user["username"],
         "role": user["role"]
     }
-    
+
     access_token = JWTManager.create_access_token(token_data)
     refresh_token = JWTManager.create_refresh_token(token_data)
-    
+
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -104,22 +103,22 @@ async def refresh_token(refresh_token: str):
     Refresh access token using refresh token.
     """
     payload = JWTManager.decode_access_token(refresh_token)
-    
+
     if not payload or payload.get("type") != "refresh_token":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     token_data = {
         "sub": payload["sub"],
         "role": payload["role"]
     }
-    
+
     new_access_token = JWTManager.create_access_token(token_data)
     new_refresh_token = JWTManager.create_refresh_token(token_data)
-    
+
     return TokenResponse(
         access_token=new_access_token,
         refresh_token=new_refresh_token,
@@ -133,7 +132,7 @@ async def get_auth_status(
 ):
     """
     Get current authentication status.
-    
+
     Returns user information if authenticated.
     """
     if current_user:
@@ -146,7 +145,7 @@ async def get_auth_status(
                 permissions=current_user.permissions
             )
         )
-    
+
     return AuthStatus(is_authenticated=False)
 
 
@@ -156,7 +155,7 @@ async def get_current_user_profile(
 ):
     """
     Get current user profile.
-    
+
     Requires authentication.
     """
     return UserProfile(
@@ -174,7 +173,7 @@ async def create_api_key(
 ):
     """
     Create a new API key.
-    
+
     Requires admin role.
     """
     if api_key_request.role not in UserRole.ALL_ROLES:
@@ -182,16 +181,16 @@ async def create_api_key(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid role. Must be one of: {UserRole.ALL_ROLES}"
         )
-    
+
     api_key = APIKeyManager.generate_api_key()
-    
+
     key_data = auth_credentials.add_api_key(
         api_key=api_key,
         role=api_key_request.role,
         name=api_key_request.name,
         created_by=current_user.identity
     )
-    
+
     return APIKeyResponse(
         api_key=api_key,
         name=key_data["name"],
@@ -206,11 +205,11 @@ async def list_api_keys(
 ):
     """
     List all API keys.
-    
+
     Requires admin role.
     """
     keys = auth_credentials.list_api_keys()
-    
+
     return [
         APIKeyListResponse(
             name=key["name"],
@@ -229,23 +228,23 @@ async def revoke_api_key(
 ):
     """
     Revoke an API key by name.
-    
+
     Requires admin role.
     """
     keys = auth_credentials.list_api_keys()
     key_to_revoke = None
-    
+
     for key in keys:
         if key["name"] == key_name:
             key_to_revoke = key
             break
-    
+
     if not key_to_revoke:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="API key not found"
         )
-    
+
     return None
 
 
@@ -255,11 +254,11 @@ async def list_keys(
 ):
     """
     List all API keys (alias for /auth/api-keys).
-    
+
     Requires admin role.
     """
     keys = auth_credentials.list_api_keys()
-    
+
     return [
         APIKeyListResponse(
             name=key["name"],
@@ -284,10 +283,10 @@ async def generate_key(
 ):
     """
     Generate a new API key.
-    
+
     **SENSITIVE:** Returns the plaintext API key. This is the only time
     the key will be shown - copy it immediately!
-    
+
     Requires admin role.
     """
     if key_request.role not in UserRole.ALL_ROLES:
@@ -295,16 +294,16 @@ async def generate_key(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid role. Must be one of: {UserRole.ALL_ROLES}"
         )
-    
+
     api_key = APIKeyManager.generate_api_key()
-    
+
     key_data = auth_credentials.add_api_key(
         api_key=api_key,
         role=key_request.role,
         name=key_request.name,
         created_by=current_user.identity
     )
-    
+
     return APIKeyResponse(
         api_key=api_key,
         name=key_data["name"],
@@ -320,7 +319,7 @@ async def create_user(
 ):
     """
     Create a new user.
-    
+
     Requires admin role.
     """
     if user_request.role not in UserRole.ALL_ROLES:
@@ -328,14 +327,14 @@ async def create_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid role. Must be one of: {UserRole.ALL_ROLES}"
         )
-    
+
     user_data = auth_credentials.add_user(
         username=user_request.username,
         password=user_request.password,
         role=user_request.role,
         created_by=current_user.identity
     )
-    
+
     return UserResponse(
         username=user_data["username"],
         role=user_data["role"],
@@ -350,11 +349,11 @@ async def list_users(
 ):
     """
     List all users.
-    
+
     Requires admin role.
     """
     users = auth_credentials.list_users()
-    
+
     return [
         UserResponse(
             username=user["username"],
@@ -373,7 +372,7 @@ async def deactivate_user(
 ):
     """
     Deactivate a user account.
-    
+
     Requires admin role.
     """
     if not auth_credentials.deactivate_user(username):
@@ -381,5 +380,5 @@ async def deactivate_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
+
     return None

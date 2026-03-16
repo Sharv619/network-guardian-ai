@@ -1,6 +1,6 @@
 import math
 import re
-from collections import Counter
+
 
 def sanitize_domain(domain: str) -> str:
     if not domain: return ""
@@ -13,16 +13,16 @@ def sanitize_domain(domain: str) -> str:
 
 def calculate_entropy(domain: str) -> float:
     main_part = sanitize_domain(domain)
-    if not main_part: 
+    if not main_part:
         return 0.0
-    
+
     # Prevent division by zero
     if len(main_part) == 0:
         return 0.0
-    
+
     probs = [float(main_part.count(c)) / len(main_part) for c in set(main_part)]
     entropy = -sum(p * math.log2(p) for p in probs if p > 0)  # Skip zero probabilities
-    
+
     digit_ratio = sum(c.isdigit() for c in main_part) / len(main_part) if len(main_part) > 0 else 0.0
     final_score = entropy + (digit_ratio * 2)
     return round(final_score, 2)
@@ -34,13 +34,13 @@ def extract_domain_features(domain: str) -> list:
     main_part = sanitize_domain(domain)
     if not main_part:
         return [0.0, 0, 0.0, 0.0, 0]
-    
+
     length = len(main_part)
     entropy = calculate_entropy(domain)
     digit_ratio = sum(c.isdigit() for c in main_part) / length
     vowel_ratio = sum(c.lower() in 'aeiou' for c in main_part) / length
     non_alphanumeric_count = sum(not c.isalnum() for c in main_part)
-    
+
     return [entropy, length, digit_ratio, vowel_ratio, non_alphanumeric_count]
 
 def is_valid_domain(domain: str) -> bool:

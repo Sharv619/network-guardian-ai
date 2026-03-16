@@ -1,0 +1,75 @@
+services:
+  # Development version with volume mounts for live code reloading
+  network-guardian-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: network-guardian-dev
+    restart: unless-stopped
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - NOTION_TOKEN=${NOTION_TOKEN}
+      - NOTION_DATABASE_ID=${NOTION_DATABASE_ID}
+      - POLL_INTERVAL=${POLL_INTERVAL:-30}
+      - GOOGLE_SHEET_ID=${GOOGLE_SHEET_ID}
+      - GOOGLE_SHEETS_CREDENTIALS=${GOOGLE_SHEETS_CREDENTIALS}
+      - ADGUARD_URL=${ADGUARD_URL}
+      - ADGUARD_USER=${ADGUARD_USER}
+      - ADGUARD_PASS=${ADGUARD_PASS}
+      - PYTHONPATH=/app
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # For debugpy debugger
+    volumes:
+      # Mount source code for live development
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
+      # Mount data directories
+      - ./data:/app/data
+      # Mount Python cache for faster imports
+      - python-cache:/root/.cache/pip
+    networks:
+      - network-guardian-net
+    depends_on:
+      adguard:
+        condition: service_healthy
+    # Development healthcheck (more frequent)
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5).read()\""]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    # Development command with reload
+    command: >
+      sh -c "uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/backend"
+
+  # AdGuard Home (same as production)
+  adguard:
+    image: adguard/adguardhome:latest
+    container_name: adguard
+    restart: always
+    ports:
+      - "8080:80/tcp"
+      - "53:53/tcp"
+      - "53:53/udp"
+    volumes:
+      - adguard_work:/opt/adguardhome/work
+      - adguard_conf:/opt/adguardhome/conf
+    networks:
+      - network-guardian-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  adguard_work:
+  adguard_conf:
+  python-cache:
+
+networks:
+  network-guardian-net:
+    driver: bridge

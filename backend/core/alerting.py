@@ -1,8 +1,8 @@
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Any, Optional
+from datetime import UTC, datetime
+from enum import StrEnum
+from typing import Any
 
 import httpx
 
@@ -11,14 +11,14 @@ from backend.core.logging_config import get_logger
 logger = get_logger(__name__)
 
 
-class AlertSeverity(str, Enum):
+class AlertSeverity(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
 
 
-class AlertType(str, Enum):
+class AlertType(StrEnum):
     HIGH_THREAT_RATE = "high_threat_rate"
     ANOMALY_SPIKE = "anomaly_spike"
     API_FAILURE = "api_failure"
@@ -34,10 +34,10 @@ class Alert:
     severity: AlertSeverity
     message: str
     details: dict[str, Any] = field(default_factory=dict)
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     acknowledged: bool = False
-    acknowledged_at: Optional[datetime] = None
-    acknowledged_by: Optional[str] = None
+    acknowledged_at: datetime | None = None
+    acknowledged_by: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -56,7 +56,7 @@ class Alert:
 async def _broadcast_alert(alert: Alert) -> None:
     """Broadcast alert to WebSocket clients (non-blocking)."""
     try:
-        from backend.core.websocket_manager import ws_manager, EventType
+        from backend.core.websocket_manager import EventType, ws_manager
 
         await ws_manager.broadcast(
             event_type=EventType.ALERT_CREATED,
@@ -70,7 +70,7 @@ async def _broadcast_alert(alert: Alert) -> None:
 async def _broadcast_acknowledgement(alert: Alert) -> None:
     """Broadcast alert acknowledgement to WebSocket clients."""
     try:
-        from backend.core.websocket_manager import ws_manager, EventType
+        from backend.core.websocket_manager import EventType, ws_manager
 
         await ws_manager.broadcast(
             event_type=EventType.ALERT_ACKNOWLEDGED,
@@ -86,7 +86,7 @@ class AlertManager:
 
     def __init__(
         self,
-        webhook_url: Optional[str] = None,
+        webhook_url: str | None = None,
         high_threat_rate_threshold: float = 10.0,
         anomaly_spike_threshold: float = 5.0,
         api_failure_rate_threshold: float = 0.1,
@@ -107,7 +107,7 @@ class AlertManager:
         self._anomaly_timestamps: list[float] = []
         self._api_calls: list[tuple[float, bool]] = []
 
-        self._http_client: Optional[httpx.AsyncClient] = None
+        self._http_client: httpx.AsyncClient | None = None
 
     async def init_client(self) -> None:
         """Initialize HTTP client for webhook calls."""
@@ -211,7 +211,7 @@ class AlertManager:
         alert_type: AlertType,
         severity: AlertSeverity,
         message: str,
-        details: Optional[dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> Alert:
         """Create and store a new alert."""
         alert = Alert(
@@ -244,7 +244,7 @@ class AlertManager:
         alert_type: AlertType,
         severity: AlertSeverity,
         message: str,
-        details: Optional[dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> Alert:
         """Create and store a new alert (sync version)."""
         # Handle string inputs for backward compatibility
@@ -252,7 +252,7 @@ class AlertManager:
             alert_type = AlertType(alert_type)
         if isinstance(severity, str):
             severity = AlertSeverity(severity)
-            
+
         alert = Alert(
             id=self._generate_alert_id(),
             alert_type=alert_type,
@@ -274,7 +274,7 @@ class AlertManager:
 
         # Use sync webhook version
         self._send_webhook_sync(alert)
-        
+
         # Note: WebSocket broadcasting and notifications are async-only
         # In sync contexts, we skip these for simplicity
 
@@ -379,13 +379,13 @@ class AlertManager:
         return alerts
 
     def acknowledge_alert(
-        self, alert_id: str, acknowledged_by: Optional[str] = None
-    ) -> Optional[Alert]:
+        self, alert_id: str, acknowledged_by: str | None = None
+    ) -> Alert | None:
         """Acknowledge an alert."""
         for alert in self.alerts:
             if alert.id == alert_id:
                 alert.acknowledged = True
-                alert.acknowledged_at = datetime.now(timezone.utc)
+                alert.acknowledged_at = datetime.now(UTC)
                 alert.acknowledged_by = acknowledged_by
                 logger.info(
                     "Alert acknowledged",
@@ -403,9 +403,9 @@ class AlertManager:
 
     def get_alerts(
         self,
-        severity: Optional[AlertSeverity] = None,
-        alert_type: Optional[AlertType] = None,
-        acknowledged: Optional[bool] = None,
+        severity: AlertSeverity | None = None,
+        alert_type: AlertType | None = None,
+        acknowledged: bool | None = None,
         limit: int = 100,
     ) -> list[Alert]:
         """Get alerts with optional filtering."""

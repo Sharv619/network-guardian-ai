@@ -54,8 +54,7 @@ const SystemAwarenessChat: React.FC = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    message: input,
-                    model_id: "gemini-1.5-flash"
+                    message: input
                 })
             });
 

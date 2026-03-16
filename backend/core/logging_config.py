@@ -1,9 +1,8 @@
 import logging
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Optional
 
 from pythonjsonlogger import jsonlogger
 
@@ -13,7 +12,7 @@ class CustomJsonFormatter(jsonlogger.JsonFormatter):
 
     def add_fields(self, log_record: dict, record: logging.LogRecord, message_dict: dict) -> None:
         super().add_fields(log_record, record, message_dict)
-        log_record["timestamp"] = datetime.now(timezone.utc).isoformat()
+        log_record["timestamp"] = datetime.now(UTC).isoformat()
         log_record["level"] = record.levelname
         log_record["logger"] = record.name
         log_record["module"] = record.module
@@ -30,11 +29,11 @@ class CustomJsonFormatter(jsonlogger.JsonFormatter):
 class CorrelationIdFilter(logging.Filter):
     """Filter to add correlation ID to log records."""
 
-    def __init__(self, correlation_id: Optional[str] = None):
+    def __init__(self, correlation_id: str | None = None):
         super().__init__()
         self._correlation_id = correlation_id
 
-    def set_correlation_id(self, correlation_id: Optional[str]) -> None:
+    def set_correlation_id(self, correlation_id: str | None) -> None:
         self._correlation_id = correlation_id
 
     def filter(self, record: logging.LogRecord) -> bool:
@@ -54,7 +53,7 @@ def get_correlation_filter() -> CorrelationIdFilter:
 def setup_logging(
     level: str = "INFO",
     log_format: str = "json",
-    log_file: Optional[str] = None,
+    log_file: str | None = None,
     max_bytes: int = 10 * 1024 * 1024,
     backup_count: int = 5,
 ) -> None:

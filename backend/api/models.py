@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional, List
 
 from pydantic import BaseModel, Field
 
@@ -7,16 +6,16 @@ from pydantic import BaseModel, Field
 class AnalysisRequest(BaseModel):
     model_config = {'protected_namespaces': ()}
     domain: str
-    registrar: Optional[str] = None
-    age: Optional[str] = None
-    organization: Optional[str] = None
-    model_id: Optional[str] = None
+    registrar: str | None = None
+    age: str | None = None
+    organization: str | None = None
+    model_id: str | None = None
 
 
 class ChatRequest(BaseModel):
     model_config = {'protected_namespaces': ()}
     message: str
-    model_id: Optional[str] = None
+    model_id: str | None = None
 
 
 class ThreatEntry(BaseModel):

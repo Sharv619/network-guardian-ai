@@ -1,8 +1,8 @@
-from typing import Tuple, List
+
 import numpy as np
 from sklearn.ensemble import IsolationForest
-from ..core.alerting import alert_manager, AlertType, AlertSeverity
 
+from ..core.alerting import AlertSeverity, AlertType, alert_manager
 
 MAX_HISTORY_SIZE = 10000
 
@@ -10,13 +10,13 @@ MAX_HISTORY_SIZE = 10000
 class AnomalyEngine:
     def __init__(self, contamination: float = 0.05, max_history: int = MAX_HISTORY_SIZE):
         self.model = IsolationForest(contamination=contamination, random_state=42)
-        self.history: List[List[float]] = []
+        self.history: list[list[float]] = []
         self.is_trained = False
         self.min_samples = 5
         self.max_history = max_history
         self.contamination = contamination
 
-    def predict_anomaly(self, features: List[float]) -> Tuple[bool, float]:
+    def predict_anomaly(self, features: list[float]) -> tuple[bool, float]:
         # Add to history for future learning
         self.history.append(features)
 
@@ -110,7 +110,7 @@ class AnomalyEngine:
 engine = AnomalyEngine()
 
 
-def predict_anomaly(features: List[float]) -> Tuple[bool, float]:
+def predict_anomaly(features: list[float]) -> tuple[bool, float]:
     return engine.predict_anomaly(features)
 
 

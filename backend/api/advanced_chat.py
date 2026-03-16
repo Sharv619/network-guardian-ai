@@ -1,18 +1,15 @@
-from collections import defaultdict
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
-
 import json
 import re
-from pydantic import BaseModel
+from collections import defaultdict
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
-from ..core.config import settings
 from ..core.state import automated_threats, manual_scans
 from ..core.validators import is_valid_domain
 from ..logic.analysis_cache import get_cached_analysis
-from ..logic.ml_heuristics import calculate_entropy
 from ..logic.vector_store import vector_memory
 from ..services.gemini_analyzer import analyze_domain, chat_with_ai
 from ..services.sheets_logger import log_threat_to_sheet
@@ -22,7 +19,7 @@ router = APIRouter()
 
 class AdvancedChatMessage(BaseModel):
     message: str
-    context: Optional[dict[str, Any]] = None
+    context: dict[str, Any] | None = None
     include_context: bool = True
     search_radius: int = 5
     min_similarity: float = 0.7
@@ -35,7 +32,7 @@ class AdvancedChatResponse(BaseModel):
     context: dict[str, Any]
 
 
-def extract_domain_from_query(query: str) -> Optional[str]:
+def extract_domain_from_query(query: str) -> str | None:
     """Extract domain name from user query."""
     # Look for domain patterns in the query
     domain_pattern = r"\b(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}\b"
@@ -79,18 +76,18 @@ def search_vector_memory(
     return []
 
 
-def search_analysis_cache(domain: str) -> Optional[Dict[str, Any]]:
+def search_analysis_cache(domain: str) -> dict[str, Any] | None:
     """Search analysis cache for domain analysis."""
     # Try to find cached analysis for the domain
     # We'll search with empty metadata to find general domain analysis
-    metadata = {}
+    metadata: dict[str, Any] = {}
     cached_result = get_cached_analysis(domain, metadata)
     return cached_result
 
 
-def get_temporal_context(domain: str) -> Dict[str, Any]:
+def get_temporal_context(domain: str) -> dict[str, Any]:
     """Get temporal context for a domain (time-based patterns)."""
-    context = {
+    context: dict[str, Any] = {
         "first_seen": None,
         "last_seen": None,
         "frequency": 0,
@@ -124,7 +121,7 @@ def get_temporal_context(domain: str) -> Dict[str, Any]:
                     and r.get("timestamp") is not None
                     and (
                         datetime.fromisoformat(r["timestamp"].replace("Z", "+00:00"))
-                        > datetime.now(timezone.utc) - timedelta(hours=24)
+                        > datetime.now(UTC) - timedelta(hours=24)
                     )
                 ]
                 context["recent_activity"] = recent_records
@@ -137,7 +134,7 @@ def get_temporal_context(domain: str) -> Dict[str, Any]:
     return context
 
 
-def get_behavioral_context(domain: str) -> Dict[str, Any]:
+def get_behavioral_context(domain: str) -> dict[str, Any]:
     """Get behavioral context for a domain (risk patterns)."""
     context = {
         "risk_trend": "stable",  # increasing, decreasing, stable
@@ -152,7 +149,7 @@ def get_behavioral_context(domain: str) -> Dict[str, Any]:
 
     if domain_records:
         risk_scores = []
-        categories = defaultdict(int)
+        categories: dict[str, int] = defaultdict(int)
 
         for record in domain_records:
             risk_score = record.get("risk_score", "Low")
@@ -189,7 +186,7 @@ def get_behavioral_context(domain: str) -> Dict[str, Any]:
 
 def generate_advanced_rag_response(
     query: str, include_context: bool = True, search_radius: int = 5, min_similarity: float = 0.7
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Generate advanced RAG response with comprehensive context from multiple sources."""
     response_parts = []
     sources = []
@@ -209,7 +206,7 @@ def generate_advanced_rag_response(
             response_parts.append(
                 f"🔍 Found {len(threat_history)} historical records for domain '{domain}':"
             )
-            for i, threat in enumerate(threat_history[:3]):  # Show top 3
+            for _i, threat in enumerate(threat_history[:3]):  # Show top 3
                 response_parts.append(
                     f"  • {threat.get('category', 'Unknown')}: {threat.get('risk_score', 'Unknown')} risk - {threat.get('summary', '')}"
                 )
@@ -220,7 +217,7 @@ def generate_advanced_rag_response(
     vector_results = search_vector_memory(query, k=search_radius, min_similarity=min_similarity)
     if vector_results:
         response_parts.append(f"🧠 Found {len(vector_results)} similar threat patterns:")
-        for i, result in enumerate(vector_results[:3]):  # Show top 3
+        for _i, result in enumerate(vector_results[:3]):  # Show top 3
             similarity = result.get("_similarity_score", 0)
             response_parts.append(
                 f"  • Similar to {result.get('domain', 'Unknown')} (similarity: {similarity:.2f})"
@@ -276,7 +273,7 @@ def generate_advanced_rag_response(
                 # Cache the new analysis
                 cache_metadata = {
                     "query": query,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
                 from ..logic.analysis_cache import cache_analysis_result
 
@@ -317,7 +314,7 @@ def generate_advanced_rag_response(
     }
 
 
-def format_advanced_chat_response(result: Dict[str, Any]) -> str:
+def format_advanced_chat_response(result: dict[str, Any]) -> str:
     """Format the advanced chat response for better readability."""
     response = result["response"]
 
@@ -361,7 +358,7 @@ async def advanced_chat_endpoint(chat_request: AdvancedChatMessage):
             "sources": rag_result["sources"],
             "confidence": rag_result["confidence"],
             "context": rag_result["context"],
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         # Log to sheets if configured
@@ -405,7 +402,7 @@ async def enhanced_search_chat(
     # Extract potential domain from query
     domain = extract_domain_from_query(query)
 
-    results = {
+    results: dict[str, Any] = {
         "query": query,
         "domain_extracted": domain,
         "threat_history": [],
@@ -414,7 +411,7 @@ async def enhanced_search_chat(
         "temporal_context": {},
         "behavioral_context": {},
         "total_matches": 0,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     # Search threat history if domain found
@@ -474,7 +471,7 @@ async def contextual_analyze_endpoint(chat_request: AdvancedChatMessage):
             analysis = analyze_domain(domain)
 
             # Cache the result
-            cache_metadata = {"query": message, "timestamp": datetime.now(timezone.utc).isoformat()}
+            cache_metadata = {"query": message, "timestamp": datetime.now(UTC).isoformat()}
             from ..logic.analysis_cache import cache_analysis_result
 
             cache_analysis_result(domain, cache_metadata, analysis, "contextual_analysis")
@@ -491,7 +488,7 @@ async def contextual_analyze_endpoint(chat_request: AdvancedChatMessage):
             "cached": bool(cached_result),
             "temporal_context": temporal_context,
             "behavioral_context": behavioral_context,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
     except Exception as e:
@@ -506,14 +503,14 @@ async def get_vector_insights(query: str, k: int = 10):
 
     vector_results = search_vector_memory(query, k=k, min_similarity=0.5)
 
-    insights = {
+    insights: dict[str, Any] = {
         "query": query,
         "total_matches": len(vector_results),
         "categories": defaultdict(int),
         "risk_distribution": defaultdict(int),
         "similar_domains": [],
         "common_patterns": [],
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     for result in vector_results:

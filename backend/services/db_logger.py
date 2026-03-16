@@ -1,9 +1,9 @@
 import sqlite3
 import threading
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from ..core.utils import get_iso_timestamp
 from ..core.logging_config import get_logger
+from ..core.utils import get_iso_timestamp
 
 logger = get_logger(__name__)
 
@@ -62,7 +62,7 @@ class DBLogger:
 
             self.connection.commit()
 
-    def log_threat(self, analysis_result: Dict[str, Any]) -> Optional[int]:
+    def log_threat(self, analysis_result: dict[str, Any]) -> int | None:
         with self.lock:
             cursor = self.connection.cursor()
 
@@ -91,7 +91,7 @@ class DBLogger:
             try:
                 cursor.execute(
                     """
-                    INSERT OR IGNORE INTO domains 
+                    INSERT OR IGNORE INTO domains
                     (domain, entropy, risk_score, category, summary, is_anomaly, anomaly_score, analysis_source, timestamp)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
@@ -129,7 +129,7 @@ class DBLogger:
                 logger.error("Database error", extra={"error": str(e), "domain": domain})
                 return None
 
-    def get_domain(self, domain: str) -> Optional[Dict[str, Any]]:
+    def get_domain(self, domain: str) -> dict[str, Any] | None:
         with self.lock:
             cursor = self.connection.cursor()
             cursor.execute(
@@ -148,7 +148,7 @@ class DBLogger:
                 return dict(row)
             return None
 
-    def get_recent_domains(self, limit: int = 20) -> List[Dict[str, Any]]:
+    def get_recent_domains(self, limit: int = 20) -> list[dict[str, Any]]:
         with self.lock:
             cursor = self.connection.cursor()
             cursor.execute(
@@ -164,7 +164,7 @@ class DBLogger:
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
 
-    def get_all_domains(self) -> List[Dict[str, Any]]:
+    def get_all_domains(self) -> list[dict[str, Any]]:
         with self.lock:
             cursor = self.connection.cursor()
             cursor.execute(
@@ -177,7 +177,7 @@ class DBLogger:
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
 
-    def get_all_domain_features(self) -> List[List[float]]:
+    def get_all_domain_features(self) -> list[list[float]]:
         with self.lock:
             cursor = self.connection.cursor()
             cursor.execute(
@@ -191,7 +191,7 @@ class DBLogger:
             rows = cursor.fetchall()
             return [[float(x) for x in row] for row in rows if all(x is not None for x in row)]
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         with self.lock:
             cursor = self.connection.cursor()
 

@@ -1,22 +1,26 @@
+import atexit
 import json
 import os
 import threading
 import time
-import atexit
+from contextlib import asynccontextmanager
 
 import uvicorn
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend.core.config import settings
-from backend.services.adguard_poller import poll_adguard
 from backend.api.router import router
+from backend.api.auth_router import router as auth_router
+from backend.core.config import settings
+from backend.scripts.knowledge_persistence import load_knowledge_base, save_knowledge_base
+from backend.services.adguard_poller import poll_adguard
 from backend.system_intelligence import display_system_intelligence
-from backend.scripts.knowledge_persistence import save_knowledge_base, load_knowledge_base
-from typing import Dict
+from backend.db.database import init_db, close_db
+
+from .core.websocket_manager import ws_manager
+
 
 # Register shutdown handler for knowledge base persistence
 def shutdown_handler():
@@ -24,15 +28,17 @@ def shutdown_handler():
     print("Saving knowledge base on shutdown...")
     save_knowledge_base()
 
+
 # Register the shutdown handler
 atexit.register(shutdown_handler)
+
 
 # Rate Limiter Implementation
 class RateLimiter:
     def __init__(self, limit: int = 10, window: int = 60):
         self.limit = limit
         self.window = window
-        self.requests: Dict[str, list] = {}
+        self.requests: dict[str, list] = {}
 
     def is_allowed(self, key: str) -> bool:
         now = time.time()
@@ -40,14 +46,18 @@ class RateLimiter:
             self.requests[key] = []
 
         # Remove requests outside the time window
-        self.requests[key] = [req_time for req_time in self.requests[key] if now - req_time < self.window]
+        self.requests[key] = [
+            req_time for req_time in self.requests[key] if now - req_time < self.window
+        ]
 
         if len(self.requests[key]) < self.limit:
             self.requests[key].append(now)
             return True
         return False
 
+
 rate_limiter = RateLimiter(limit=100, window=60)
+
 
 async def rate_limit_middleware(request: Request, call_next):
     client_ip = request.client.host if request.client else "unknown"
@@ -55,21 +65,30 @@ async def rate_limit_middleware(request: Request, call_next):
         return Response(
             status_code=429,
             content=json.dumps({"detail": "Rate limit exceeded. Try again later."}),
-            media_type="application/json"
+            media_type="application/json",
         )
     return await call_next(request)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Initialize database on startup
+    print("Initializing database...")
+    await init_db()
+
     # Display system intelligence on startup
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     display_system_intelligence()
-    print("="*80 + "\n")
-    
+    print("=" * 80 + "\n")
+
     # Load knowledge base on startup
     print("Loading knowledge base...")
     load_knowledge_base()
-    
+
+    # Start WebSocket manager
+    print("Starting WebSocket manager...")
+    await ws_manager.start()
+
     # Start background poller only if configured
     if settings.has_adguard:
         print("AdGuard configured. Starting poller...")
@@ -78,10 +97,19 @@ async def lifespan(app: FastAPI):
     else:
         print("AdGuard NOT configured. Poller disabled.")
     yield
-    
+
+    # Stop WebSocket manager on shutdown
+    print("Stopping WebSocket manager...")
+    await ws_manager.stop()
+
+    # Close database connections
+    print("Closing database connections...")
+    await close_db()
+
     # Save knowledge base on shutdown
     print("Saving knowledge base...")
     save_knowledge_base()
+
 
 app = FastAPI(title="Network Guardian AI Backend", lifespan=lifespan)
 
@@ -100,25 +128,38 @@ app.add_middleware(
 # Include Routes - MUST be at the top to avoid shadowing
 app.include_router(router)
 
+# Include Auth Routes
+app.include_router(auth_router)
+
 # Include Stats Routes
 from backend.api.stats import router as stats_router
+
 app.include_router(stats_router, prefix="/api/stats")
+
+# Include WebSocket Routes
+from .api.ws_router import router as ws_router
+
+app.include_router(ws_router, prefix="")
+
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
 
+
 @app.get("/models")
 def api_list_models():
     """SRE Discovery: List available Gemini models."""
     from backend.services.gemini_analyzer import get_available_models
+
     return get_available_models()
+
 
 # Serve Frontend Static Files from Vite build output
 # Support both Docker (/app/backend/static) and local development (frontend/dist) paths
 backend_dir = os.path.dirname(__file__)
 possible_paths = [
-    os.path.join(backend_dir, "static"),           # Docker path
+    os.path.join(backend_dir, "static"),  # Docker path
     os.path.join(backend_dir, "..", "frontend", "dist"),  # Local dev path
 ]
 frontend_dist = None
@@ -136,7 +177,18 @@ if frontend_dist:
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
         # Don't serve API routes - let them return 404 if not found
-        api_routes = ["api/", "alerts/", "system-chat", "analyze", "chat", "history", "manual-history", "test-report", "health", "models"]
+        api_routes = [
+            "api/",
+            "alerts/",
+            "system-chat",
+            "analyze",
+            "chat",
+            "history",
+            "manual-history",
+            "test-report",
+            "health",
+            "models",
+        ]
         if any(full_path.startswith(route) for route in api_routes):
             return {"error": "API route not found"}
 
@@ -149,7 +201,9 @@ if frontend_dist:
         index_path = os.path.join(frontend_dist, "index.html") if frontend_dist else "index.html"
         return FileResponse(index_path)
 else:
-    print(f"WARNING: Frontend dist directory not found. Checked paths: {possible_paths}. Frontend will not be served.")
+    print(
+        f"WARNING: Frontend dist directory not found. Checked paths: {possible_paths}. Frontend will not be served."
+    )
 
 if __name__ == "__main__":
     if not settings.is_valid:

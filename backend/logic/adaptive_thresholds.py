@@ -7,7 +7,7 @@ This module provides:
 - Statistical threshold adjustment
 - Threshold history tracking for dashboard visualization
 """
-import math
+import json
 import time
 from collections import deque
 from dataclasses import dataclass, field
@@ -15,9 +15,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import json
-
-from backend.core.config import settings
 from backend.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -288,7 +285,7 @@ class AdaptiveThresholds:
             if not path.exists():
                 return
 
-            with open(path, "r") as f:
+            with open(path) as f:
                 data = json.load(f)
 
             self.entropy_threshold = data.get("entropy_threshold", DEFAULT_ENTROPY_THRESHOLD)

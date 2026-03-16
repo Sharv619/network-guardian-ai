@@ -16,9 +16,10 @@ Integration in backend/main.py:
         app.add_middleware(HTTPSRedirectMiddleware, enabled=True)
 """
 
+from collections.abc import Callable
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-from typing import Callable
 
 from backend.core.config import settings
 

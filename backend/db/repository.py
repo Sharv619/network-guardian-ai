@@ -1,12 +1,12 @@
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import select, func, and_
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.logging_config import get_logger
 from .database import get_session_factory
-from .models import Domain, DomainMetadata, DomainFeatures
+from .models import Domain, DomainFeatures, DomainMetadata
 
 logger = get_logger(__name__)
 
@@ -18,16 +18,16 @@ class DomainRepository:
     async def create_domain(
         self,
         domain: str,
-        entropy: Optional[float] = None,
+        entropy: float | None = None,
         risk_score: str = "Unknown",
         category: str = "Unknown",
-        summary: Optional[str] = None,
+        summary: str | None = None,
         is_anomaly: bool = False,
         anomaly_score: float = 0.0,
         analysis_source: str = "unknown",
-        timestamp: Optional[datetime] = None,
-        metadata: Optional[dict[str, Any]] = None,
-        features: Optional[dict[str, Any]] = None,
+        timestamp: datetime | None = None,
+        metadata: dict[str, Any] | None = None,
+        features: dict[str, Any] | None = None,
     ) -> Domain:
         domain_obj = Domain(
             domain=domain.lower().strip(),
@@ -38,12 +38,12 @@ class DomainRepository:
             is_anomaly=is_anomaly,
             anomaly_score=anomaly_score,
             analysis_source=analysis_source,
-            timestamp=timestamp or datetime.now(timezone.utc),
+            timestamp=timestamp or datetime.now(UTC),
         )
-        
+
         self.session.add(domain_obj)
         await self.session.flush()
-        
+
         if metadata:
             metadata_obj = DomainMetadata(
                 domain_id=domain_obj.id,
@@ -53,7 +53,7 @@ class DomainRepository:
                 client=metadata.get("client"),
             )
             self.session.add(metadata_obj)
-        
+
         if features:
             features_obj = DomainFeatures(
                 domain_id=domain_obj.id,
@@ -63,28 +63,28 @@ class DomainRepository:
                 non_alphanumeric=features.get("non_alphanumeric", 0),
             )
             self.session.add(features_obj)
-        
+
         await self.session.refresh(domain_obj)
-        
+
         logger.debug(
             "Domain created",
             extra={"domain": domain, "risk_score": risk_score, "category": category},
         )
-        
+
         return domain_obj
 
-    async def create_domain_from_analysis(self, analysis_result: dict[str, Any]) -> Optional[Domain]:
+    async def create_domain_from_analysis(self, analysis_result: dict[str, Any]) -> Domain | None:
         domain = analysis_result.get("domain", "")
-        
+
         if not domain:
             logger.warning("Cannot create domain: missing domain name")
             return None
-        
+
         existing = await self.get_domain(domain)
         if existing:
             logger.debug("Domain already exists, skipping", extra={"domain": domain})
             return existing
-        
+
         return await self.create_domain(
             domain=domain,
             entropy=analysis_result.get("entropy"),
@@ -99,7 +99,7 @@ class DomainRepository:
             features=analysis_result.get("features"),
         )
 
-    def _parse_timestamp(self, timestamp: Any) -> Optional[datetime]:
+    def _parse_timestamp(self, timestamp: Any) -> datetime | None:
         if timestamp is None:
             return None
         if isinstance(timestamp, datetime):
@@ -113,13 +113,13 @@ class DomainRepository:
                 return None
         return None
 
-    async def get_domain(self, domain: str) -> Optional[Domain]:
+    async def get_domain(self, domain: str) -> Domain | None:
         result = await self.session.execute(
             select(Domain).where(Domain.domain == domain.lower().strip())
         )
         return result.scalar_one_or_none()
 
-    async def get_domain_by_id(self, domain_id: int) -> Optional[Domain]:
+    async def get_domain_by_id(self, domain_id: int) -> Domain | None:
         result = await self.session.execute(
             select(Domain).where(Domain.id == domain_id)
         )
@@ -155,24 +155,24 @@ class DomainRepository:
     async def get_stats(self) -> dict[str, Any]:
         total_result = await self.session.execute(select(func.count(Domain.id)))
         total = total_result.scalar() or 0
-        
+
         anomaly_result = await self.session.execute(
             select(func.count(Domain.id)).where(Domain.is_anomaly.is_(True))
         )
         anomalies = anomaly_result.scalar() or 0
-        
+
         category_result = await self.session.execute(
             select(Domain.category, func.count(Domain.id))
             .group_by(Domain.category)
         )
         categories = {row[0]: row[1] for row in category_result.all()}
-        
+
         source_result = await self.session.execute(
             select(Domain.analysis_source, func.count(Domain.id))
             .group_by(Domain.analysis_source)
         )
         sources = {row[0]: row[1] for row in source_result.all()}
-        
+
         return {
             "total_domains": total,
             "total_anomalies": anomalies,
@@ -191,7 +191,7 @@ class DomainRepository:
         domain_obj = await self.get_domain(domain)
         if not domain_obj:
             return False
-        
+
         await self.session.delete(domain_obj)
         return True
 

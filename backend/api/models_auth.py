@@ -2,7 +2,6 @@
 Pydantic models for authentication and authorization.
 """
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -88,4 +87,4 @@ class UserProfile(BaseModel):
 class AuthStatus(BaseModel):
     """Authentication status response."""
     is_authenticated: bool
-    user: Optional[UserProfile] = None
+    user: UserProfile | None = None

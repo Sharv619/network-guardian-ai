@@ -171,10 +171,10 @@ class TemporalPattern(Base):
 
 class ThreatEntry:
     """Simple data class for API responses - not a database model"""
-    
+
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
-    
+
     def dict(self):
         return {key: value for key, value in self.__dict__.items() if not key.startswith('_')}

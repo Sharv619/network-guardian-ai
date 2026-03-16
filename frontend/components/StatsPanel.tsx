@@ -18,6 +18,7 @@ import {
 } from 'recharts';
 import { SystemStats, AlertStats, MLDashboard } from '../types';
 import LoadingSpinner from './LoadingSpinner';
+import SkeletonLoader from './SkeletonLoader';
 import {
   Activity,
   Shield,
@@ -35,6 +36,8 @@ import {
   Key,
   Info,
 } from 'lucide-react';
+import { useWebSocket } from '../src/services/websocketService';
+import { WebSocketMessage } from '../src/services/websocketService';
 
 const API_BASE = '';
 
@@ -59,18 +62,20 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
   const [mlDashboard, setMlDashboard] = useState<MLDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<any[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
   const fetchAllData = async () => {
     try {
       const [statsRes, alertsRes, mlRes, historyRes] = await Promise.all([
         fetch(`${API_BASE}/api/stats/system`),
-        fetch(`${API_BASE}/alerts/stats`),
-        fetch(`${API_BASE}/ml/dashboard`),  // Changed from /api/stats/ml/dashboard to /ml/dashboard
+        fetch(`${API_BASE}/api/stats/alerts/stats`),
+        fetch(`${API_BASE}/api/stats/ml/dashboard`),
         fetch(`${API_BASE}/history`),
       ]);
 
       if (statsRes.ok) {
         const statsData = await statsRes.json();
+        console.log('System Stats Data:', statsData);
         // Ensure all required fields exist with defaults
         setSystemStats({
           autonomy_score: statsData.autonomy_score || 0,
@@ -85,12 +90,16 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
           realtime_stats: statsData.realtime_stats || { autonomy_score: 0, local_decisions: 0, cloud_decisions: 0, total_decisions: 0, patterns_learned: 0, seed_patterns: 0, learned_patterns: 0 },
           entropy: statsData.entropy || { total_analyzed: 0, avg_entropy: 0, high_entropy_count: 0, low_entropy_count: 0, max_entropy: 0, min_entropy: 0 },
           anomaly: statsData.anomaly || { is_trained: false, total_samples: 0, min_samples_required: 0, anomalies_detected: 0, anomaly_rate: 0, recent_scores: [] },
-          system_usage: statsData.system_usage || { active_integrations: [], tracker_detection: { total_detected: 0, categories: {}, detection_methods: [] } }
+          system_usage: statsData.system_usage || { active_integrations: [], tracker_detection: { total_detected: 0, categories: {}, detection_methods: [] } },
+          vector_memory: statsData.vector_memory,
+          anomaly_engine: statsData.anomaly_engine,
+          adaptive_thresholds: statsData.adaptive_thresholds
         });
       }
       
       if (alertsRes.ok) {
         const alertsData = await alertsRes.json();
+        console.log('Alert Stats Data:', alertsData);
         setAlertStats({
           total_alerts: alertsData.total_alerts || 0,
           critical_alerts: alertsData.critical_alerts || 0,
@@ -110,6 +119,7 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
       
       if (mlRes.ok) {
         const mlData = await mlRes.json();
+        console.log('ML Dashboard Data:', mlData);
         setMlDashboard({
           overview: {
             overall_accuracy: mlData.overview?.overall_accuracy || 0,
@@ -147,26 +157,101 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
     }
   };
 
+  // WebSocket integration for real-time updates
+  const wsConfig = {
+    url: `ws://${window.location.hostname}:8000/ws/public`,
+    onConnect: () => {
+      setConnectionStatus('connected');
+      // Subscribe to system stats updates
+      webSocketService?.subscribe('system_status', (data) => {
+        setSystemStats(prev => ({
+          ...(prev || {}),
+          ...data
+        }));
+      });
+      // Subscribe to alert updates
+      webSocketService?.subscribe('alert_created', (data) => {
+        setAlertStats(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            total_alerts: prev.total_alerts + 1,
+            pending_alerts: prev.pending_alerts + 1,
+            [`level_${data.severity.toLowerCase() as 'high' | 'medium' | 'low'}` as keyof AlertStats]: 
+              ((prev[`level_${data.severity.toLowerCase() as 'high' | 'medium' | 'low'}` as keyof AlertStats] as number) || 0) + 1
+          };
+        });
+      });
+      // Subscribe to ML updates
+      webSocketService?.subscribe('classifier_update', (data) => {
+        setMlDashboard(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            overview: {
+              ...prev.overview,
+              ...data
+            }
+          };
+        });
+      });
+      // Initial data load
+      fetchAllData();
+    },
+    onDisconnect: () => {
+      setConnectionStatus('disconnected');
+    },
+    onMessage: (message: WebSocketMessage) => {
+      // Handle heartbeat and other messages
+      if (message.event_type === 'heartbeat') {
+        setConnectionStatus('connected');
+      }
+    },
+    onError: (error) => {
+      console.error('WebSocket error:', error);
+      setConnectionStatus('error');
+    }
+  };
+
+  const { webSocketService } = useWebSocket(wsConfig);
+
   useEffect(() => {
-    fetchAllData();
-    const interval = setInterval(fetchAllData, 5000);
-    return () => clearInterval(interval);
+    // Only use WebSocket for real-time updates, initial data loaded via WebSocket connect
   }, []);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) {
+    return (
+      <div className="space-y-6 p-4">
+        <SkeletonLoader variant="card" count={4} className="w-full" />
+        <SkeletonLoader variant="card" className="h-64" />
+        <SkeletonLoader variant="card" className="h-64" />
+      </div>
+    );
+  }
 
   // Prepare chart data
   const categoryData = systemStats?.classifier?.category_distribution
     ? Object.entries(systemStats.classifier.category_distribution).map(([name, value]) => ({
         name,
-        value,
+        value: Number(value) || 0,
       }))
     : [];
 
   const alertSeverityData = alertStats?.by_severity
     ? Object.entries(alertStats.by_severity).map(([name, value]) => ({
         name: name.toUpperCase(),
-        value,
+        value: Number(value) || 0,
+      }))
+    : [];
+
+  // Prepare detection sources data
+  const detectionSourcesData = systemStats?.cache?.source_distribution
+    ? Object.entries(systemStats.cache.source_distribution).map(([source, count]) => ({
+        source,
+        count: Number(count) || 0,
+        percentage: systemStats.total_decisions > 0 
+          ? (Number(count) / systemStats.total_decisions) * 100 
+          : 0,
       }))
     : [];
 
@@ -224,21 +309,21 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
         <MetricCard
           icon={<Database className="w-6 h-6" />}
           label="Vector Embeddings"
-          value={systemStats?.vector_memory?.total_embeddings || 0}
+          value={systemStats?.vector_memory?.total_embeddings || systemStats?.total_decisions || 0}
           subtext="Threat embeddings stored"
           color="blue"
         />
         <MetricCard
           icon={<Target className="w-6 h-6" />}
           label="Anomaly Model"
-          value={systemStats?.anomaly_engine?.is_trained ? 'Trained' : 'Training'}
-          subtext={`${systemStats?.anomaly_engine?.training_samples || 0} samples`}
-          color={systemStats?.anomaly_engine?.is_trained ? 'green' : 'yellow'}
+          value={systemStats?.anomaly?.is_trained ? 'Trained' : 'Training'}
+          subtext={`${systemStats?.anomaly?.total_samples || 0} samples`}
+          color={systemStats?.anomaly?.is_trained ? 'green' : 'yellow'}
         />
         <MetricCard
           icon={<Activity className="w-6 h-6" />}
           label="Entropy Threshold"
-          value={(systemStats?.adaptive_thresholds?.entropy_threshold || 0).toFixed(2)}
+          value={(systemStats?.adaptive_thresholds?.entropy_threshold || systemStats?.entropy?.avg_entropy || 0).toFixed(2)}
           subtext="Dynamic threshold"
           color="yellow"
         />
@@ -398,20 +483,24 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
         <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
           <h4 className="text-sm font-mono text-slate-400 uppercase mb-4">Detection Sources</h4>
           <div className="space-y-4">
-            {Object.entries(systemStats?.cache?.source_distribution || {}).map(([source, count]: [string, any]) => (
-              <div key={source} className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-300 capitalize">{source}</span>
-                  <span className="font-bold text-white">{count}</span>
+            {detectionSourcesData.length > 0 ? (
+              detectionSourcesData.map((item, index) => (
+                <div key={item.source} className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-300 capitalize">{item.source}</span>
+                    <span className="font-bold text-white">{item.count}</span>
+                  </div>
+                  <div className="w-full bg-slate-700 rounded-full h-2">
+                    <div
+                      className="bg-cyan-500 h-2 rounded-full"
+                      style={{ width: `${item.percentage}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-slate-700 rounded-full h-2">
-                  <div
-                    className="bg-cyan-500 h-2 rounded-full"
-                    style={{ width: `${(count / (systemStats?.total_decisions || 1)) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="text-slate-500 text-sm">No detection source data available</div>
+            )}
           </div>
         </div>
       </div>
@@ -463,7 +552,12 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
             <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
             <Bar dataKey="value" radius={[4, 4, 0, 0]}>
               {alertSeverityData.map((entry, index) => {
-                const colors: Record<string, string> = { HIGH: COLORS.danger, MEDIUM: COLORS.warning, LOW: COLORS.info, CRITICAL: COLORS.danger };
+                const colors: Record<string, string> = { 
+                  HIGH: COLORS.danger, 
+                  MEDIUM: COLORS.warning, 
+                  LOW: COLORS.info, 
+                  CRITICAL: COLORS.danger
+                };
                 return <Cell key={`cell-${index}`} fill={colors[entry.name] || COLORS.slate} />;
               })}
             </Bar>
@@ -475,46 +569,35 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
 
   const renderSettings = () => (
     <div className="space-y-6">
-      {/* API Keys Section */}
-      <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
-        <h4 className="text-sm font-mono text-slate-400 uppercase mb-4 flex items-center">
-          <Key className="w-4 h-4 mr-2" /> API Keys Management
-        </h4>
-        <div className="space-y-4">
-          <p className="text-slate-400 text-sm">
-            Manage API keys for authentication. Keys are created by admins.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-3 bg-slate-900 rounded border border-slate-700">
-              <div className="text-xs text-slate-500 uppercase mb-1">Your API Key</div>
-              <div className="flex items-center space-x-2">
-                <code className="text-cyan-400 font-mono text-sm flex-grow">
-                  {localStorage.getItem('api_key') || 'Not set'}
-                </code>
-                <button
-                  onClick={() => {
-                    const key = prompt('Enter API key:');
-                    if (key) {
-                      localStorage.setItem('api_key', key);
-                    }
-                  }}
-                  className="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-slate-300"
-                >
-                  Update
-                </button>
-              </div>
-            </div>
-            <div className="p-3 bg-slate-900 rounded border border-slate-700">
-              <div className="text-xs text-slate-500 uppercase mb-1">JWT Token</div>
-              <div className="flex items-center space-x-2">
-                <code className="text-purple-400 font-mono text-sm flex-grow truncate">
-                  {localStorage.getItem('token') ? localStorage.getItem('token')?.substring(0, 20) + '...' : 'Not set'}
-                </code>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+       {/* API Keys Section */}
+       <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+         <h4 className="text-sm font-mono text-slate-400 uppercase mb-4 flex items-center">
+           <Key className="w-4 h-4 mr-2" /> API Keys Management
+         </h4>
+         <div className="space-y-4">
+           <p className="text-slate-400 text-sm">
+             API keys are managed securely on the backend. Please contact your administrator for API key management.
+           </p>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div className="p-3 bg-slate-900 rounded border border-slate-700">
+               <div className="text-xs text-slate-500 uppercase mb-1">Your API Key</div>
+               <div className="flex items-center space-x-2">
+                 <code className="text-cyan-400 font-mono text-sm flex-grow">
+                   Managed on backend
+                 </code>
+               </div>
+             </div>
+             <div className="p-3 bg-slate-900 rounded border border-slate-700">
+               <div className="text-xs text-slate-500 uppercase mb-1">JWT Token</div>
+               <div className="flex items-center space-x-2">
+                 <code className="text-purple-400 font-mono text-sm flex-grow truncate">
+                   {localStorage.getItem('token') ? localStorage.getItem('token')?.substring(0, 20) + '...' : 'Not set'}
+                 </code>
+               </div>
+             </div>
+           </div>
+         </div>
+       </div>
 
       {/* Notification Settings */}
       <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">

@@ -1,22 +1,21 @@
+import json
+import logging
+from typing import Any
+
 from google import genai
 from google.genai import types
-import json
-import os
-import re
-import logging
-from ..core.config import settings
-from typing import Dict, Any, Optional, List
+from pydantic import BaseModel
+
+from ..core.alerting import AlertSeverity, AlertType, alert_manager
 from ..core.config import settings
 from ..logic.ml_heuristics import calculate_entropy
-from pydantic import BaseModel
-from ..core.alerting import alert_manager, AlertType, AlertSeverity
 
 # SRE Update: Switch to modern google-genai SDK
 client = None
 if settings.GEMINI_API_KEY:
     try:
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
-    except Exception as e:
+    except Exception:
         import logging
 logging.exception("SDK Init Error")
 
@@ -31,7 +30,7 @@ class ThreatVerdict(BaseModel):
 SYSTEM_INSTRUCTION = "You are a senior SOC Analyst. Analyze the provided network metadata and return a structured security verdict."
 
 
-def get_available_models() -> List[str]:
+def get_available_models() -> list[str]:
     """SRE Feature: Model Discovery Endpoint."""
     # Use hardcoded "Confirmed Hackathon Models" for reliability
     confirmed_models = settings.GEMINI_CONFIRMED_MODELS
@@ -73,15 +72,15 @@ def get_available_models() -> List[str]:
 
         # If no confirmed models found, fall back to all discovered models
         return available_models if available_models else models
-    except Exception as e:
+    except Exception:
         logging.exception("Model Discovery Failed")
         return confirmed_models
 
 
 def analyze_domain(
     domain: str,
-    context: Optional[Dict[str, Any]] = None,
-    model_id: Optional[str] = None,
+    context: dict[str, Any] | None = None,
+    model_id: str | None = None,
     is_anomaly: bool = False,
     anomaly_score: float = 0.0,
     priority: bool = False,
@@ -203,7 +202,7 @@ def analyze_domain(
                             # Handle MappingProxyType by converting to regular dict
                             parsed_obj = response.parsed.__dict__
                             if hasattr(parsed_obj, "items"):
-                                return {k: v for k, v in parsed_obj.items()}
+                                return dict(parsed_obj.items())
                             else:
                                 # For MappingProxyType, convert using vars() or iteration
                                 try:
@@ -248,7 +247,7 @@ def analyze_domain(
 
         return _heuristic_fallback(domain, str(last_error))
     except Exception as e:
-        logging.exception(f"Gemini Analysis Critical Failure")
+        logging.exception("Gemini Analysis Critical Failure")
 
         # Trigger alert for critical failure
         import asyncio
@@ -273,7 +272,7 @@ def analyze_domain(
         return _heuristic_fallback(domain, str(e))
 
 
-def chat_with_ai(message: str, model_id: Optional[str] = None) -> str:
+def chat_with_ai(message: str, model_id: str | None = None) -> str:
     if not client:
         return "Network Guardian AI: Engine not initialized. Please check your API keys."
 
@@ -283,7 +282,7 @@ def chat_with_ai(message: str, model_id: Optional[str] = None) -> str:
     # Load system prompt from metadata.json for proper chat behavior
     system_prompt = "You are a Network Security Analyst. Answer concisely."
     try:
-        with open("metadata.json", "r") as f:
+        with open("metadata.json") as f:
             metadata = json.load(f)
             if "description" in metadata:
                 system_prompt = metadata["description"]

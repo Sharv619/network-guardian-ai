@@ -8,6 +8,7 @@ This module provides:
 - Authentication for WebSocket connections
 - Role-based broadcast filtering
 """
+
 import asyncio
 import json
 import time
@@ -49,12 +50,14 @@ class WebSocketMessage:
     correlation_id: str | None = None
 
     def to_json(self) -> str:
-        return json.dumps({
-            "event_type": self.event_type.value,
-            "data": self.data,
-            "timestamp": self.timestamp,
-            "correlation_id": self.correlation_id,
-        })
+        return json.dumps(
+            {
+                "event_type": self.event_type.value,
+                "data": self.data,
+                "timestamp": self.timestamp,
+                "correlation_id": self.correlation_id,
+            }
+        )
 
 
 @dataclass
@@ -108,6 +111,7 @@ class WebSocketManager:
         self._running = False
         self._heartbeat_task: asyncio.Task | None = None
         self._broadcast_task: asyncio.Task | None = None
+        self._event_loop: asyncio.AbstractEventLoop | None = None
 
     async def start(self) -> None:
         """Start the WebSocket manager background tasks."""
@@ -115,8 +119,32 @@ class WebSocketManager:
             return
 
         self._running = True
+        self._event_loop = asyncio.get_event_loop()
         self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
         self._broadcast_task = asyncio.create_task(self._process_broadcast_queue())
+
+        # Register threat callback with state module for real-time updates
+        # Only register once to avoid duplicates
+        try:
+            from backend.core.state import register_threat_callback, threat_callbacks
+
+            # Check if callback is already registered
+            if not any(cb.__name__ == "threat_callback" for cb in threat_callbacks):
+
+                def threat_callback(threat_data: dict[str, Any]) -> None:
+                    """Callback for threat detection events from poller."""
+                    # Schedule broadcast in the main event loop from a thread-safe context
+                    if self._event_loop:
+                        asyncio.run_coroutine_threadsafe(
+                            self.broadcast(EventType.THREAT_DETECTED, threat_data, channel="all"),
+                            self._event_loop,
+                        )
+
+                register_threat_callback(threat_callback)
+                logger.info("Threat detection callback registered")
+        except Exception as e:
+            logger.warning(f"Could not register threat callback: {e}")
+
         logger.info("WebSocket manager started")
 
     async def stop(self) -> None:
@@ -168,7 +196,7 @@ class WebSocketManager:
             if len(self._connections) >= self.max_connections:
                 logger.warning(
                     "WebSocket connection rejected - max connections reached",
-                    extra={"client_id": client_id, "max_connections": self.max_connections}
+                    extra={"client_id": client_id, "max_connections": self.max_connections},
                 )
                 await websocket.close(code=1013, reason="Max connections reached")
                 return False
@@ -189,7 +217,7 @@ class WebSocketManager:
                 "user_role": conn_info.user_role,
                 "username": conn_info.username,
                 "total_connections": len(self._connections),
-            }
+            },
         )
 
         ack_message = WebSocketMessage(
@@ -218,7 +246,7 @@ class WebSocketManager:
                         "client_id": client_id,
                         "connection_duration": conn_info.connection_duration,
                         "remaining_connections": len(self._connections),
-                    }
+                    },
                 )
 
     async def subscribe(self, client_id: str, channels: list[str]) -> bool:
@@ -231,7 +259,7 @@ class WebSocketManager:
             conn_info.subscriptions.update(channels)
             logger.debug(
                 "Client subscribed to channels",
-                extra={"client_id": client_id, "channels": channels}
+                extra={"client_id": client_id, "channels": channels},
             )
             return True
 
@@ -289,7 +317,7 @@ class WebSocketManager:
                     except Exception as e:
                         logger.warning(
                             "Failed to send message to client",
-                            extra={"client_id": client_id, "error": str(e)}
+                            extra={"client_id": client_id, "error": str(e)},
                         )
 
         logger.debug(
@@ -299,7 +327,7 @@ class WebSocketManager:
                 "channel": channel,
                 "delivered_count": delivered_count,
                 "min_role": min_role,
-            }
+            },
         )
         return delivered_count
 
@@ -311,10 +339,7 @@ class WebSocketManager:
         """Process queued broadcast messages."""
         while self._running:
             try:
-                event_type, data = await asyncio.wait_for(
-                    self._broadcast_queue.get(),
-                    timeout=1.0
-                )
+                event_type, data = await asyncio.wait_for(self._broadcast_queue.get(), timeout=1.0)
                 await self.broadcast(event_type, data)
             except TimeoutError:
                 continue
@@ -335,8 +360,7 @@ class WebSocketManager:
                 return True
             except Exception as e:
                 logger.warning(
-                    "Failed to send message",
-                    extra={"client_id": client_id, "error": str(e)}
+                    "Failed to send message", extra={"client_id": client_id, "error": str(e)}
                 )
                 return False
 
@@ -351,7 +375,7 @@ class WebSocketManager:
 
                 heartbeat_message = WebSocketMessage(
                     event_type=EventType.HEARTBEAT,
-                    data={"timestamp": datetime.now(UTC).isoformat()}
+                    data={"timestamp": datetime.now(UTC).isoformat()},
                 )
 
                 stale_clients = []
@@ -419,9 +443,7 @@ class WebSocketManager:
                     "client_id": conn.client_id,
                     "user_role": conn.user_role,
                     "username": conn.username,
-                    "connected_at": datetime.fromtimestamp(
-                        conn.connected_at, tz=UTC
-                    ).isoformat(),
+                    "connected_at": datetime.fromtimestamp(conn.connected_at, tz=UTC).isoformat(),
                     "connection_duration": round(conn.connection_duration, 2),
                     "subscriptions": list(conn.subscriptions),
                 }

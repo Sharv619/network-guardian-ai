@@ -3,14 +3,13 @@ Metadata Pattern Recognition System
 Leverages AdGuard metadata to classify threats without Gemini API calls
 """
 
+import hashlib
 import json
 import os
-from typing import Dict, List, Optional, Tuple
-from collections import defaultdict, Counter
-from dataclasses import dataclass, asdict
-from datetime import datetime, timezone
+from collections import Counter
+from dataclasses import asdict, dataclass
+
 from ..core.utils import get_iso_timestamp
-import hashlib
 
 
 @dataclass
@@ -18,7 +17,7 @@ class MetadataPattern:
     """Represents a learned pattern from AdGuard metadata"""
 
     reason: str
-    filter_id: Optional[int]
+    filter_id: int | None
     rule_pattern: str
     client_pattern: str
     category: str
@@ -34,15 +33,15 @@ class ClassificationResult:
     category: str
     confidence: float
     source: str  # "metadata_pattern", "heuristic", or "unknown"
-    pattern_id: Optional[str] = None
+    pattern_id: str | None = None
 
 
 class MetadataClassifier:
     def __init__(self, pattern_db_path: str = "metadata_patterns.json"):
         self.pattern_db_path = pattern_db_path
-        self.patterns: Dict[str, MetadataPattern] = {}
+        self.patterns: dict[str, MetadataPattern] = {}
         self.seed_patterns_count = 0  # Track seed patterns separately
-        self.pattern_counter = Counter()
+        self.pattern_counter: Counter = Counter()
         self.min_support = 3  # Minimum occurrences to create a pattern
         self.confidence_threshold = 0.8  # Minimum confidence for classification
 
@@ -137,7 +136,7 @@ class MetadataClassifier:
         """Load learned patterns from disk"""
         if os.path.exists(self.pattern_db_path):
             try:
-                with open(self.pattern_db_path, "r") as f:
+                with open(self.pattern_db_path) as f:
                     data = json.load(f)
                     for pattern_data in data:
                         pattern = MetadataPattern(**pattern_data)
@@ -163,7 +162,7 @@ class MetadataClassifier:
         )
         return hashlib.md5(pattern_str.encode()).hexdigest()[:8]
 
-    def _extract_rule_pattern(self, rule: Optional[str]) -> str:
+    def _extract_rule_pattern(self, rule: str | None) -> str:
         """Extract meaningful pattern from AdGuard rule"""
         if not rule:
             return "NO_RULE"
@@ -190,7 +189,7 @@ class MetadataClassifier:
             # Use first part of rule as pattern
             return rule.split()[0][:20] if rule else "GENERIC"
 
-    def _extract_client_pattern(self, client: Optional[str]) -> str:
+    def _extract_client_pattern(self, client: str | None) -> str:
         """Extract meaningful pattern from client info"""
         if not client:
             return "UNKNOWN_CLIENT"
@@ -206,7 +205,7 @@ class MetadataClassifier:
             return "OTHER_DEVICE"
 
     def learn_from_analysis(
-        self, domain: str, metadata: Dict, category: str, system_used: str = "gemini"
+        self, domain: str, metadata: dict, category: str, system_used: str = "gemini"
     ):
         """Learn from a completed analysis to build patterns"""
         # Only learn from high-confidence analyses
@@ -256,7 +255,7 @@ class MetadataClassifier:
             if len(self.patterns) % 5 == 0:  # Save more frequently
                 self.save_patterns()
 
-    def classify(self, metadata: Dict) -> ClassificationResult:
+    def classify(self, metadata: dict) -> ClassificationResult:
         """Classify a domain based on metadata patterns"""
         reason = metadata.get("reason", "Unknown")
         filter_id = metadata.get("filter_id")
@@ -264,10 +263,10 @@ class MetadataClassifier:
         client_pattern = self._extract_client_pattern(metadata.get("client"))
 
         # Try to find matching patterns
-        best_match = None
-        best_confidence = 0
+        best_match: MetadataPattern | None = None
+        best_confidence = 0.0
 
-        for pattern_id, pattern in self.patterns.items():
+        for _pattern_id, pattern in self.patterns.items():
             # Check for pattern match
             if (
                 pattern.reason == reason
@@ -295,7 +294,7 @@ class MetadataClassifier:
         # Fallback to heuristic classification
         return self._heuristic_fallback(metadata)
 
-    def _heuristic_fallback(self, metadata: Dict) -> ClassificationResult:
+    def _heuristic_fallback(self, metadata: dict) -> ClassificationResult:
         """Fallback classification using metadata heuristics"""
         reason = metadata.get("reason", "")
         rule = metadata.get("rule", "").lower()
@@ -316,9 +315,9 @@ class MetadataClassifier:
         else:
             return ClassificationResult(category="Unknown", confidence=0.0, source="unknown")
 
-    def get_pattern_stats(self) -> Dict:
+    def get_pattern_stats(self) -> dict:
         """Get statistics about learned patterns"""
-        category_counts = Counter()
+        category_counts: Counter = Counter()
         for pattern in self.patterns.values():
             category_counts[pattern.category] += 1
 
@@ -345,10 +344,10 @@ class MetadataClassifier:
         """Track when a new pattern is learned"""
         self.total_patterns_learned += 1
 
-    def get_realtime_stats(self) -> Dict:
+    def get_realtime_stats(self) -> dict:
         """Get real-time metrics for the dashboard"""
         total_decisions = self.local_decisions_count + self.cloud_decisions_count
-        autonomy_score = 0
+        autonomy_score = 0.0
         if total_decisions > 0:
             autonomy_score = (self.local_decisions_count / total_decisions) * 100
 
@@ -371,16 +370,16 @@ class MetadataClassifier:
 classifier = MetadataClassifier()
 
 
-def classify_domain_metadata(metadata: Dict) -> ClassificationResult:
+def classify_domain_metadata(metadata: dict) -> ClassificationResult:
     """Public function to classify domain using metadata patterns"""
     return classifier.classify(metadata)
 
 
-def learn_from_completed_analysis(domain: str, metadata: Dict, category: str):
+def learn_from_completed_analysis(domain: str, metadata: dict, category: str):
     """Public function to learn from completed analysis"""
     classifier.learn_from_analysis(domain, metadata, category)
 
 
-def get_classifier_stats() -> Dict:
+def get_classifier_stats() -> dict:
     """Public function to get classifier statistics"""
     return classifier.get_pattern_stats()

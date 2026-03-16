@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "network-guardian-ai": {
+      "command": "python",
+      "args": ["/home/lade/Hackathons/network-guardian-ai/mcp_server.py"],
+      "cwd": "/home/lade/Hackathons/network-guardian-ai",
+      "env": {
+        "PYTHONPATH": "/home/lade/Hackathons/network-guardian-ai"
+      }
+    }
+  }
+}

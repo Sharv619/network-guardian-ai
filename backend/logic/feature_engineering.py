@@ -316,7 +316,7 @@ class FeatureEngine:
 
     def get_tld_report(self) -> dict[str, Any]:
         """Get report on TLD statistics."""
-        report = {
+        report: dict[str, Any] = {
             "tracked_tlds": len(self._tld_stats),
             "high_risk": [],
             "low_risk": [],

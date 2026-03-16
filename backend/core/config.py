@@ -1,9 +1,7 @@
-from typing import Optional
+import logging
 
 from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
-import logging
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +20,13 @@ class Settings(BaseSettings):
     )
 
     GEMINI_API_KEY: str = Field("", description="Google Gemini API Key")
-    NOTION_TOKEN: Optional[str] = Field(None, description="Notion API Token (optional)")
-    NOTION_DATABASE_ID: Optional[str] = Field(None, description="Notion Database ID (optional)")
+    NOTION_TOKEN: str | None = Field(None, description="Notion API Token (optional)")
+    NOTION_DATABASE_ID: str | None = Field(None, description="Notion Database ID (optional)")
 
     # AdGuard is now optional
-    ADGUARD_URL: Optional[str] = Field(None, description="AdGuard Home URL")
-    ADGUARD_USER: Optional[str] = Field(None, description="AdGuard Home Username")
-    ADGUARD_PASS: Optional[str] = Field(None, description="AdGuard Home Password")
+    ADGUARD_URL: str | None = Field(None, description="AdGuard Home URL")
+    ADGUARD_USER: str | None = Field(None, description="AdGuard Home Username")
+    ADGUARD_PASS: str | None = Field(None, description="AdGuard Home Password")
 
     POLL_INTERVAL: int = Field(30, ge=5, description="Polling interval in seconds")
     GOOGLE_SHEETS_CREDENTIALS: str = Field(
@@ -56,19 +54,8 @@ class Settings(BaseSettings):
         description="Confirmed Gemini models for analysis",
     )
 
-    # Gemini model configuration
-    GEMINI_CONFIRMED_MODELS: list[str] = Field(
-        ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"],
-        description="Confirmed Gemini models for analysis",
-    )
-
-    # Gemini model configuration
-    GEMINI_CONFIRMED_MODELS: list[str] = Field(
-        ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"],
-        description="Confirmed Gemini models for analysis",
-    )
-
     # Security configuration
+    JWT_SECRET_KEY: str = Field("", description="JWT Secret Key for token generation")
     ENABLE_SECURITY_HEADERS: bool = Field(True, description="Enable security headers middleware")
     ENABLE_HTTPS_REDIRECT: bool = Field(False, description="Enable HTTPS redirect middleware")
 

@@ -3,35 +3,25 @@ import React, { useState, useEffect } from 'react';
 import { 
   LocateFixed, 
   ShieldAlert, 
-  Eye as EyeIcon
+  Eye as EyeIcon,
+  Wifi,
+  WifiOff,
+  Target,
+  Activity
 } from 'lucide-react';
 
 import LoadingSpinner from './LoadingSpinner';
 import CodeBlock from './CodeBlock';
-import ChatPanel from './ChatPanel';
+import ChatPanel from './SystemAwarenessChat';
 import AnalysisModal from './AnalysisModal';
 import StatsPanel from './StatsPanel';
 import SystemIntelligence from './SystemIntelligence';
+import SkeletonLoader from './SkeletonLoader';
 import { analyzeDomain } from '../services/geminiService';
+import { useWebSocket } from '../src/services/websocketService';
+import { HistoryItem } from '../types';
 
-// --- Interfaces ---
-interface HistoryItem {
-    domain: string;
-    risk_score: string;
-    category: string;
-    summary: string;
-    timestamp: string;
-    is_anomaly?: boolean;
-    anomaly_score?: number;
-    adguard_metadata?: {
-        reason: string;
-        rule?: string;
-        filter_id?: number;
-        client?: string;
-    };
-    analysis_source?: string;
-    entropy?: number;
-}
+
 
 interface SystemStats {
     classifier: {
@@ -67,12 +57,17 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ selectedModel }) => {
     const [activeTab, setActiveTab] = useState<'live' | 'manual' | 'chat' | 'stats' | 'intelligence'>('live');
+    const [selectedDomainFromLiveFeed, setSelectedDomainFromLiveFeed] = useState<any>(null);
 
     return (
         <div className="h-full flex flex-col space-y-6">
             <div className="flex space-x-4 border-b border-slate-700 pb-2 overflow-x-auto whitespace-nowrap">
                 <button
-                    onClick={() => setActiveTab('live')}
+                    onClick={() => {
+                        setActiveTab('live');
+                        // Clear the selected domain when switching to live feed
+                        setSelectedDomainFromLiveFeed(null);
+                    }}
                     className={`pb-2 px-4 font-mono font-bold transition-colors ${activeTab === 'live'
                         ? 'text-cyan-400 border-b-2 border-cyan-400'
                         : 'text-slate-500 hover:text-slate-300'
@@ -81,7 +76,10 @@ const Dashboard: React.FC<DashboardProps> = ({ selectedModel }) => {
                     LIVE FEED
                 </button>
                 <button
-                    onClick={() => setActiveTab('manual')}
+                    onClick={() => {
+                        setActiveTab('manual');
+                        // Keep the selected domain when switching to manual
+                    }}
                     className={`pb-2 px-4 font-mono font-bold transition-colors ${activeTab === 'manual'
                         ? 'text-cyan-400 border-b-2 border-cyan-400'
                         : 'text-slate-500 hover:text-slate-300'
@@ -110,9 +108,20 @@ const Dashboard: React.FC<DashboardProps> = ({ selectedModel }) => {
             </div>
 
             <div className="flex-grow overflow-hidden">
-                {activeTab === 'live' && <LiveFeed />}
-                {activeTab === 'manual' && <ManualAnalysis selectedModel={selectedModel} />}
-                {activeTab === 'chat' && <ChatPanel selectedModel={selectedModel} />}
+                {activeTab === 'live' && (
+                    <LiveFeed 
+                        onDomainSelect={(domain) => {
+                            setSelectedDomainFromLiveFeed(domain);
+                        }}
+                    />
+                )}
+                {activeTab === 'manual' && (
+                    <ManualAnalysis 
+                        selectedModel={selectedModel} 
+                        selectedDomainFromLiveFeed={selectedDomainFromLiveFeed}
+                    />
+                )}
+                {activeTab === 'chat' && <ChatPanel />}
                 {activeTab === 'stats' && <StatsPanel selectedModel={selectedModel} />}
                 {activeTab === 'intelligence' && <SystemIntelligence selectedModel={selectedModel} />}
             </div>
@@ -120,42 +129,96 @@ const Dashboard: React.FC<DashboardProps> = ({ selectedModel }) => {
     );
 };
 
-const LiveFeed: React.FC = () => {
+interface LiveFeedProps {
+    onDomainSelect?: (domain: any) => void;
+}
+
+const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
     const [selectedAnalysis, setSelectedAnalysis] = useState<HistoryItem | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [riskFilter, setRiskFilter] = useState<'all' | 'high'>('high'); // Default to HIGH only
+    const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
     const isPrivacyRisk = (domain: string) => {
         const keywords = ['geo', 'location', 'gps', 'telemetry', 'waa-pa'];
         return keywords.some(k => domain.toLowerCase().includes(k));
     };
 
+    // Store subscriptions in ref to avoid re-creating on every render
+    const wsConfig = {
+        url: `ws://${window.location.hostname}:8000/ws/public`,
+        onConnect: () => {
+            setConnectionStatus('connected');
+            // Only fetch history once on initial load
+            if (history.length === 0) {
+                fetchHistory();
+            }
+        },
+        onDisconnect: () => {
+            setConnectionStatus('disconnected');
+        },
+        onMessage: (message) => {
+            // Handle heartbeat and other messages
+            if (message.event_type === 'heartbeat') {
+                setConnectionStatus('connected');
+            }
+            // Handle threat detection messages
+            if (message.event_type === 'threat_detected') {
+                console.log('threat_detected received:', message.data);
+                setHistory(prev => {
+                    // Check for duplicates by domain and timestamp
+                    const isDuplicate = prev.some(item => 
+                        item.domain === message.data.domain && 
+                        Math.abs(new Date(item.timestamp).getTime() - new Date(message.data.timestamp).getTime()) < 1000
+                    );
+                    if (isDuplicate) {
+                        console.log('Skipping duplicate threat:', message.data.domain);
+                        return prev;
+                    }
+                    return [message.data, ...prev.slice(0, 99)]; // Keep only latest 100 items
+                });
+            }
+            // Handle anomaly detection messages
+            if (message.event_type === 'anomaly_detected') {
+                console.log('anomaly_detected received:', message.data);
+                setHistory(prev => {
+                    const isDuplicate = prev.some(item => 
+                        item.domain === message.data.domain && 
+                        Math.abs(new Date(item.timestamp).getTime() - new Date(message.data.timestamp).getTime()) < 1000
+                    );
+                    if (isDuplicate) {
+                        console.log('Skipping duplicate anomaly:', message.data.domain);
+                        return prev;
+                    }
+                    return [message.data, ...prev.slice(0, 99)];
+                });
+            }
+        },
+        onError: (error) => {
+            console.error('WebSocket error:', error);
+            setConnectionStatus('error');
+        }
+    };
+
+    const { webSocketService } = useWebSocket(wsConfig);
+
     const fetchHistory = async () => {
         try {
-            // Direct backend call as requested in Chaos Mode
             const res = await fetch(`${API_BASE}/history`);
             if (res.ok) {
                 const data = await res.json();
                 console.log("Backend Data Received:", data);
                 setHistory(data);
+                setLoading(false);
             }
         } catch (e) {
             console.error("Failed to fetch history", e);
-        } finally {
             setLoading(false);
         }
     };
-
-    useEffect(() => {
-        fetchHistory();
-        const interval = setInterval(fetchHistory, 30000); // Poll every 30s to respect Google Sheets Quota
-        return () => clearInterval(interval);
-    }, []);
-
-    if (loading && history.length === 0) return <LoadingSpinner />;
 
     // Filter history based on risk level
     const filteredHistory = riskFilter === 'high' 
@@ -171,35 +234,81 @@ const LiveFeed: React.FC = () => {
         setSelectedAnalysis(analysis);
         setIsModalOpen(true);
     };
+    
+    // Handle domain selection for manual analysis
+    const handleDomainSelectForManual = (domain: string, analysis: HistoryItem) => {
+        if (onDomainSelect) {
+            // Pass the full analysis data to the manual analysis component
+            onDomainSelect(analysis);
+        }
+    };
+
+    if (loading && history.length === 0) {
+      return (
+        <div className="space-y-3 h-full overflow-y-auto pr-2 custom-scrollbar p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center bg-yellow-500/20 px-2 py-1 rounded-full text-xs font-medium">
+                <Wifi className="w-3 h-3 text-yellow-400 mr-1 animate-pulse" />
+                <span className="text-yellow-400">INITIALIZING</span>
+              </div>
+              <span className="text-slate-500 text-sm font-mono">• Connecting...</span>
+            </div>
+          </div>
+          <SkeletonLoader variant="list-item" count={5} className="w-full" />
+        </div>
+      );
+    }
 
     return (
         <div className="space-y-3 h-full overflow-y-auto pr-2 custom-scrollbar">
-            {/* Risk Filter Buttons */}
-            <div className="flex gap-2 mb-4">
-                <button
-                    onClick={() => setRiskFilter('high')}
-                    className={`px-3 py-1 rounded text-sm font-mono transition-colors ${
-                        riskFilter === 'high' 
-                        ? 'bg-red-600 text-white' 
-                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                    }`}
-                >
-                    🔴 HIGH RISK ONLY
-                </button>
-                <button
-                    onClick={() => setRiskFilter('all')}
-                    className={`px-3 py-1 rounded text-sm font-mono transition-colors ${
-                        riskFilter === 'all' 
-                        ? 'bg-cyan-600 text-white' 
-                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                    }`}
-                >
-                    📋 ALL THREATS
-                </button>
-                <span className="ml-auto text-slate-500 text-sm font-mono">
-                    Showing {filteredHistory.length} of {history.length}
-                </span>
+            {/* Connection Status Indicator */}
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                    {connectionStatus === 'connected' ? (
+                        <>
+                            <Wifi className="w-4 h-4 text-green-500" />
+                            <span className="text-green-500 text-sm font-mono">LIVE</span>
+                        </>
+                    ) : connectionStatus === 'connecting' ? (
+                        <>
+                            <Wifi className="w-4 h-4 text-yellow-500 animate-pulse" />
+                            <span className="text-yellow-500 text-sm font-mono">CONNECTING</span>
+                        </>
+                    ) : (
+                        <>
+                            <WifiOff className="w-4 h-4 text-red-500" />
+                            <span className="text-red-500 text-sm font-mono">DISCONNECTED</span>
+                        </>
+                    )}
+                    <span className="text-slate-500 text-sm font-mono">• {history.length} records</span>
+                </div>
+                
+                {/* Risk Filter Buttons */}
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setRiskFilter('high')}
+                        className={`px-3 py-1 rounded text-sm font-mono transition-colors ${
+                            riskFilter === 'high' 
+                            ? 'bg-red-600 text-white' 
+                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                        }`}
+                    >
+                        🔴 HIGH RISK ONLY
+                    </button>
+                    <button
+                        onClick={() => setRiskFilter('all')}
+                        className={`px-3 py-1 rounded text-sm font-mono transition-colors ${
+                            riskFilter === 'all' 
+                            ? 'bg-cyan-600 text-white' 
+                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                        }`}
+                    >
+                        📋 ALL THREATS
+                    </button>
+                </div>
             </div>
+            
             {filteredHistory.map((item, idx) => {
                 const geoRisk = isPrivacyRisk(item.domain);
                 const displayTime = item.timestamp && !isNaN(Date.parse(item.timestamp))
@@ -215,7 +324,7 @@ const LiveFeed: React.FC = () => {
                 const isBlocked = item.adguard_metadata && item.adguard_metadata.reason !== 'NotFilteredNotFound';
 
                 return (
-                    <div key={idx} className={`bg-slate-800 p-4 rounded border-l-4 ${item.is_anomaly ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)] animate-[pulse_3s_infinite]' : geoRisk ? 'border-red-500 bg-red-900/10' : isBlocked ? 'border-orange-500 bg-orange-950/5' : 'border-slate-600'} hover:border-cyan-500 transition-all shadow-md relative overflow-hidden group`}>
+                    <div key={item.timestamp + idx} className={`bg-slate-800 p-4 rounded border-l-4 ${item.is_anomaly ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)] animate-[pulse_3s_infinite]' : geoRisk ? 'border-red-500 bg-red-900/10' : isBlocked ? 'border-orange-500 bg-orange-950/5' : 'border-slate-600'} hover:border-cyan-500 transition-all shadow-md relative overflow-hidden group`}>
                         <div className="flex justify-between items-start mb-2">
                             <div className="flex items-center space-x-2">
                                 <h3 
@@ -231,6 +340,13 @@ const LiveFeed: React.FC = () => {
                                     title="View detailed analysis"
                                 >
                                     <EyeIcon className="w-4 h-4 text-cyan-400" />
+                                </button>
+                                <button
+                                    onClick={() => handleDomainSelectForManual(item.domain, item)}
+                                    className="p-1 hover:bg-slate-700 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                    title="Copy to Manual Analysis"
+                                >
+                                    <Target className="w-4 h-4 text-blue-400" />
                                 </button>
                                 {geoRisk && (
                                     <LocateFixed className="w-5 h-5 text-red-500 animate-pulse" />
@@ -319,9 +435,10 @@ const LiveFeed: React.FC = () => {
 
 interface ManualAnalysisProps {
     selectedModel: string;
+    selectedDomainFromLiveFeed?: any;
 }
 
-const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel }) => {
+const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel, selectedDomainFromLiveFeed }) => {
     const [domain, setDomain] = useState('');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
@@ -368,6 +485,79 @@ const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel }) => {
         }
     };
 
+    // When a domain is selected from live feed, update the form
+    useEffect(() => {
+        if (selectedDomainFromLiveFeed) {
+            setDomain(selectedDomainFromLiveFeed.domain || '');
+            setResult({
+                domain: selectedDomainFromLiveFeed.domain,
+                risk_score: selectedDomainFromLiveFeed.risk_score,
+                category: selectedDomainFromLiveFeed.category,
+                summary: selectedDomainFromLiveFeed.summary,
+                is_anomaly: selectedDomainFromLiveFeed.is_anomaly,
+                anomaly_score: selectedDomainFromLiveFeed.anomaly_score,
+                entropy: selectedDomainFromLiveFeed.entropy,
+                adguard_metadata: selectedDomainFromLiveFeed.adguard_metadata,
+                analysis_source: selectedDomainFromLiveFeed.analysis_source
+            });
+        }
+    }, [selectedDomainFromLiveFeed]);
+
+    // Vector Embedding Visualization Component
+    const VectorEmbeddingVisualizer = ({ result }: { result: any }) => {
+        if (!result) return null;
+        
+        // Convert entropy and other numeric values to binary representation
+        const entropyBinary = (result.entropy || 0).toString(2).replace('.', '');
+        const anomalyScoreBinary = (result.anomaly_score || 0).toString(2).replace('.', '');
+        
+        return (
+            <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-semibold text-white">Vector Embedding Data</h4>
+                    <Activity className="w-5 h-5 text-cyan-400" />
+                </div>
+                
+                <div className="space-y-4">
+                    <div>
+                        <div className="flex justify-between text-sm mb-2">
+                            <span className="text-slate-400">Entropy Binary Representation</span>
+                            <span className="text-slate-400">Length: {entropyBinary.length}</span>
+                        </div>
+                        <div className="bg-slate-900 p-3 rounded border border-slate-600 font-mono text-sm overflow-x-auto">
+                            {entropyBinary.substring(0, 64)}{entropyBinary.length > 64 ? '...' : ''}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div className="flex justify-between text-sm mb-2">
+                            <span className="text-slate-400">Anomaly Score Binary</span>
+                            <span className="text-slate-400">Length: {anomalyScoreBinary.length}</span>
+                        </div>
+                        <div className="bg-slate-900 p-3 rounded border border-slate-600 font-mono text-sm overflow-x-auto">
+                            {anomalyScoreBinary.substring(0, 64)}{anomalyScoreBinary.length > 64 ? '...' : ''}
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div className="bg-slate-900 p-3 rounded border border-slate-600">
+                            <div className="text-xs text-slate-400 mb-1">Similarity Match</div>
+                            <div className="text-lg font-bold text-cyan-400">
+                                {result.has_similarity_match ? 'YES' : 'NO'}
+                            </div>
+                        </div>
+                        <div className="bg-slate-900 p-3 rounded border border-slate-600">
+                            <div className="text-xs text-slate-400 mb-1">Embedding Size</div>
+                            <div className="text-lg font-bold text-cyan-400">
+                                {result.entropy ? Math.floor((result.entropy || 0) * 100) : 0} bits
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="flex flex-col h-full overflow-y-auto pr-2 custom-scrollbar">
             <form onSubmit={handleAnalyze} className="bg-slate-800 p-5 rounded-lg border border-slate-700 mb-6 shadow-lg">
@@ -397,6 +587,9 @@ const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel }) => {
                         <RiskBadge score={result.risk_score} />
                     </div>
 
+                    {/* Vector Embedding Data Section */}
+                    <VectorEmbeddingVisualizer result={result} />
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
                             <p className="text-xs text-slate-500 uppercase font-mono mb-1">Category</p>
@@ -406,6 +599,26 @@ const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel }) => {
                             <p className="text-xs text-slate-500 uppercase font-mono mb-1">Verdict</p>
                             <p className="text-lg text-slate-200">{result.summary}</p>
                         </div>
+                        
+                        {/* Additional forensic data from live feed */}
+                        {result.entropy !== undefined && (
+                            <div>
+                                <p className="text-xs text-slate-500 uppercase font-mono mb-1">Entropy Score</p>
+                                <p className="text-lg text-white font-mono">{result.entropy?.toFixed(2)}</p>
+                            </div>
+                        )}
+                        {result.is_anomaly !== undefined && (
+                            <div>
+                                <p className="text-xs text-slate-500 uppercase font-mono mb-1">Anomaly Score</p>
+                                <p className="text-lg text-white font-mono">{result.anomaly_score?.toFixed(4)}</p>
+                            </div>
+                        )}
+                        {result.analysis_source && (
+                            <div>
+                                <p className="text-xs text-slate-500 uppercase font-mono mb-1">Analysis Source</p>
+                                <p className="text-lg text-white font-mono capitalize">{result.analysis_source}</p>
+                            </div>
+                        )}
                     </div>
 
                     <CodeBlock code={JSON.stringify(result, null, 2)} />
@@ -445,6 +658,9 @@ const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel }) => {
         </div>
     );
 };
+
+// Import Activity icon if not already available
+
 
 const RiskBadge: React.FC<{ score: string }> = ({ score }) => {
     let color = 'bg-slate-600 text-slate-200';

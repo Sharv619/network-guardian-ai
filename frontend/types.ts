@@ -38,16 +38,17 @@ export interface SystemStats {
   seed_patterns: number;
   learned_patterns: number;
   classifier: {
-    total_domains: number;
+    total_patterns: number;
     category_distribution: Record<string, number>;
-    accuracy: number;
-    confidence: number;
+    confidence_distribution: Record<string, number>;
+    seed_patterns: number;
   };
   cache: {
-    total_cached: number;
-    hit_rate: number;
-    memory_usage: number;
+    memory_cache_size: number;
+    valid_memory_entries: number;
+    disk_cache_exists: boolean;
     source_distribution: Record<string, number>;
+    cache_file_size: number;
   };
   realtime_stats: {
     autonomy_score: number;

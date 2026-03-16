@@ -1,8 +1,7 @@
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Optional
+from datetime import UTC, datetime, timedelta
 
 from ..core.logging_config import get_logger
 
@@ -13,13 +12,13 @@ logger = get_logger(__name__)
 class RateLimitEntry:
     """Tracks rate limit state for a single key."""
     timestamps: list[float] = field(default_factory=list)
-    blocked_until: Optional[float] = None
+    blocked_until: float | None = None
 
 
 class RateLimiter:
     """
     Rate limiter with support for per-endpoint limits and burst allowance.
-    
+
     Uses sliding window algorithm for accurate rate limiting.
     """
 
@@ -34,7 +33,7 @@ class RateLimiter:
         self.window = window
         self.burst = burst
         self.prefix = prefix
-        self.requests: Dict[str, RateLimitEntry] = defaultdict(RateLimitEntry)
+        self.requests: dict[str, RateLimitEntry] = defaultdict(RateLimitEntry)
 
     def _get_key(self, identifier: str) -> str:
         """Construct the full rate limit key."""
@@ -45,10 +44,10 @@ class RateLimiter:
     def is_allowed(self, identifier: str) -> bool:
         """
         Check if a request is allowed for the given identifier.
-        
+
         Args:
             identifier: The client identifier (e.g., IP address or user ID)
-            
+
         Returns:
             True if allowed, False if rate limited
         """
@@ -68,7 +67,7 @@ class RateLimiter:
         ]
 
         effective_limit = self.limit + self.burst
-        
+
         if len(entry.timestamps) >= effective_limit:
             logger.warning(
                 "Rate limit exceeded",
@@ -82,7 +81,7 @@ class RateLimiter:
     def block(self, identifier: str, duration_seconds: int) -> None:
         """
         Block an identifier for a specified duration.
-        
+
         Args:
             identifier: The client identifier to block
             duration_seconds: How long to block in seconds
@@ -90,7 +89,7 @@ class RateLimiter:
         key = self._get_key(identifier)
         entry = self.requests[key]
         entry.blocked_until = time.time() + duration_seconds
-        
+
         logger.warning(
             "Identifier blocked",
             extra={"key": key, "duration_seconds": duration_seconds},
@@ -99,10 +98,10 @@ class RateLimiter:
     def get_remaining(self, identifier: str) -> int:
         """
         Get remaining requests for an identifier.
-        
+
         Args:
             identifier: The client identifier
-            
+
         Returns:
             Number of remaining requests in the current window
         """
@@ -117,28 +116,28 @@ class RateLimiter:
         effective_limit = self.limit + self.burst
         return max(0, effective_limit - len(entry.timestamps))
 
-    def get_reset_time(self, identifier: str) -> Optional[float]:
+    def get_reset_time(self, identifier: str) -> float | None:
         """
         Get the time when the rate limit will reset for an identifier.
-        
+
         Args:
             identifier: The client identifier
-            
+
         Returns:
             Unix timestamp when the limit resets, or None if not limited
         """
         key = self._get_key(identifier)
         entry = self.requests[key]
-        
+
         if not entry.timestamps:
             return None
 
         return min(entry.timestamps) + self.window
 
-    def clear(self, identifier: Optional[str] = None) -> None:
+    def clear(self, identifier: str | None = None) -> None:
         """
         Clear rate limit state.
-        
+
         Args:
             identifier: If provided, clear only this identifier. Otherwise clear all.
         """
@@ -152,17 +151,17 @@ class RateLimiter:
     def cleanup(self) -> int:
         """
         Remove expired entries to free memory.
-        
+
         Returns:
             Number of entries removed
         """
         now = time.time()
         initial_count = len(self.requests)
-        
+
         keys_to_remove = []
         for key, entry in self.requests.items():
             entry.timestamps = [ts for ts in entry.timestamps if now - ts < self.window]
-            
+
             if not entry.timestamps and (not entry.blocked_until or entry.blocked_until < now):
                 keys_to_remove.append(key)
 
@@ -172,7 +171,7 @@ class RateLimiter:
         removed = initial_count - len(self.requests)
         if removed > 0:
             logger.debug("Cleaned up rate limit entries", extra={"removed": removed})
-        
+
         return removed
 
 
@@ -182,7 +181,7 @@ class MultiRateLimiter:
     """
 
     def __init__(self):
-        self.limiters: Dict[str, RateLimiter] = {}
+        self.limiters: dict[str, RateLimiter] = {}
 
     def register(
         self,
@@ -205,10 +204,10 @@ class MultiRateLimiter:
         if limiter_name not in self.limiters:
             logger.warning("Unknown rate limiter", extra={"limiter_name": limiter_name})
             return True
-        
+
         return self.limiters[limiter_name].is_allowed(identifier)
 
-    def get_limiter(self, name: str) -> Optional[RateLimiter]:
+    def get_limiter(self, name: str) -> RateLimiter | None:
         """Get a specific rate limiter."""
         return self.limiters.get(name)
 
@@ -224,8 +223,8 @@ class MultiRateLimiter:
 class IPReputationEntry:
     """Tracks reputation for a single IP address."""
     score: int = 0
-    first_seen: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    last_updated: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    first_seen: datetime = field(default_factory=lambda: datetime.now(UTC))
+    last_updated: datetime = field(default_factory=lambda: datetime.now(UTC))
     violations: int = 0
     blocked: bool = False
 
@@ -233,7 +232,7 @@ class IPReputationEntry:
 class IPReputationTracker:
     """
     Tracks IP reputation based on behavior.
-    
+
     Positive actions (successful requests) increase score.
     Negative actions (rate limit violations, blocked requests) decrease score.
     """
@@ -247,11 +246,11 @@ class IPReputationTracker:
         self.decay_hours = decay_hours
         self.block_threshold = block_threshold
         self.initial_score = initial_score
-        self.reputations: Dict[str, IPReputationEntry] = {}
+        self.reputations: dict[str, IPReputationEntry] = {}
 
     def _apply_decay(self, entry: IPReputationEntry) -> None:
         """Apply time-based decay to reputation score."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         hours_elapsed = (now - entry.last_updated).total_seconds() / 3600
 
         if hours_elapsed >= 1:
@@ -266,17 +265,17 @@ class IPReputationTracker:
                     self.initial_score,
                     entry.score - int(5 * decay_factor),
                 )
-            
+
             entry.last_updated = now
 
     def record_request(self, ip: str, success: bool = True) -> int:
         """
         Record a request and update reputation.
-        
+
         Args:
             ip: The IP address
             success: Whether the request was successful
-            
+
         Returns:
             The new reputation score
         """
@@ -308,11 +307,11 @@ class IPReputationTracker:
     def record_malicious_activity(self, ip: str, severity: int = 10) -> int:
         """
         Record malicious activity.
-        
+
         Args:
             ip: The IP address
             severity: Severity of the activity (higher = more severe)
-            
+
         Returns:
             The new reputation score
         """
@@ -337,7 +336,7 @@ class IPReputationTracker:
         """Get the reputation score for an IP."""
         if ip not in self.reputations:
             return self.initial_score
-        
+
         entry = self.reputations[ip]
         self._apply_decay(entry)
         return entry.score
@@ -346,14 +345,14 @@ class IPReputationTracker:
         """Check if an IP is blocked."""
         if ip not in self.reputations:
             return False
-        
+
         entry = self.reputations[ip]
         self._apply_decay(entry)
-        
+
         if entry.blocked and entry.score > self.block_threshold + 10:
             entry.blocked = False
             logger.info("IP unblocked", extra={"ip": ip, "score": entry.score})
-        
+
         return entry.blocked
 
     def block_ip(self, ip: str, reason: str = "manual") -> None:
@@ -398,15 +397,15 @@ class IPReputationTracker:
     def cleanup(self, max_age_hours: int = 168) -> int:
         """
         Remove old entries.
-        
+
         Args:
             max_age_hours: Maximum age in hours (default 1 week)
-            
+
         Returns:
             Number of entries removed
         """
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
-        
+        cutoff = datetime.now(UTC) - timedelta(hours=max_age_hours)
+
         to_remove = [
             ip for ip, entry in self.reputations.items()
             if entry.last_updated < cutoff and not entry.blocked

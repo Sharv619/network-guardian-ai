@@ -7,6 +7,7 @@ This module provides:
 - Channel-based subscriptions for different event types
 - Role-based access control for broadcasts
 """
+
 import uuid
 
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
@@ -65,10 +66,7 @@ async def websocket_endpoint(
 
     if not user:
         await websocket.close(code=4001, reason="Unauthorized - Invalid or missing token/api_key")
-        logger.warning(
-            "WebSocket authentication failed",
-            extra={"client_id": None}
-        )
+        logger.warning("WebSocket authentication failed", extra={"client_id": None})
         return
 
     client_id = generate_client_id(user)
@@ -97,14 +95,10 @@ async def websocket_endpoint(
 
     except WebSocketDisconnect:
         logger.info(
-            "Client disconnected",
-            extra={"client_id": client_id, "username": user.identity}
+            "Client disconnected", extra={"client_id": client_id, "username": user.identity}
         )
     except Exception as e:
-        logger.error(
-            "WebSocket error",
-            extra={"client_id": client_id, "error": str(e)}
-        )
+        logger.error("WebSocket error", extra={"client_id": client_id, "error": str(e)})
     finally:
         await ws_manager.disconnect(client_id)
 
@@ -131,7 +125,8 @@ async def websocket_public_endpoint(websocket: WebSocket):
     if not connected:
         return
 
-    await ws_manager.subscribe(client_id, ["system", "alerts"])
+    # Subscribe to public channels including threats for real-time dashboard
+    await ws_manager.subscribe(client_id, ["system", "alerts", "threats", "anomalies"])
 
     try:
         while True:
@@ -147,15 +142,9 @@ async def websocket_public_endpoint(websocket: WebSocket):
                 await websocket.send_text(msg.to_json())
 
     except WebSocketDisconnect:
-        logger.info(
-            "Public client disconnected",
-            extra={"client_id": client_id}
-        )
+        logger.info("Public client disconnected", extra={"client_id": client_id})
     except Exception as e:
-        logger.error(
-            "Public WebSocket error",
-            extra={"client_id": client_id, "error": str(e)}
-        )
+        logger.error("Public WebSocket error", extra={"client_id": client_id, "error": str(e)})
     finally:
         await ws_manager.disconnect(client_id)
 
@@ -186,7 +175,7 @@ async def websocket_admin_endpoint(
         await websocket.close(code=4003, reason="Forbidden - Admin access required")
         logger.warning(
             "WebSocket admin access denied",
-            extra={"client_id": None, "username": user.identity, "role": user.role}
+            extra={"client_id": None, "username": user.identity, "role": user.role},
         )
         return
 
@@ -216,21 +205,15 @@ async def websocket_admin_endpoint(
 
     except WebSocketDisconnect:
         logger.info(
-            "Admin client disconnected",
-            extra={"client_id": client_id, "username": user.identity}
+            "Admin client disconnected", extra={"client_id": client_id, "username": user.identity}
         )
     except Exception as e:
-        logger.error(
-            "Admin WebSocket error",
-            extra={"client_id": client_id, "error": str(e)}
-        )
+        logger.error("Admin WebSocket error", extra={"client_id": client_id, "error": str(e)})
     finally:
         await ws_manager.disconnect(client_id)
 
 
 @router.get("/ws/stats")
-async def get_websocket_stats(
-    current_user: AuthenticatedUser = Depends(require_admin)
-):
+async def get_websocket_stats(current_user: AuthenticatedUser = Depends(require_admin)):
     """Get WebSocket connection statistics (admin only)."""
     return ws_manager.get_stats()

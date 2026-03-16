@@ -1,11 +1,3 @@
-"""
-Embedding Service for Vector Store.
-
-This module provides:
-- Abstract base class for embedding providers
-- SentenceTransformerService for local, offline embeddings
-- GeminiEmbeddingService for cloud-based embeddings (fallback)
-"""
 
 from abc import ABC, abstractmethod
 from typing import Any
@@ -88,7 +80,7 @@ class SentenceTransformerService(EmbeddingService):
             except ImportError:
                 # If settings aren't available, proceed with default behavior
                 pass
-            
+
             from sentence_transformers import SentenceTransformer  # type: ignore
 
             self._model = SentenceTransformer(model_name)

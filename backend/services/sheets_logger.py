@@ -1,8 +1,9 @@
-import os
 import json
+import os
+
 import gspread
 from google.oauth2.service_account import Credentials
-from datetime import datetime, timezone
+
 from ..core.utils import get_iso_timestamp
 
 _client = None

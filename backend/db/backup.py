@@ -1,11 +1,11 @@
 import gzip
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
-from ..core.logging_config import get_logger
 from ..core.config import settings
+from ..core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -56,23 +56,23 @@ class BackupManager:
         self._cloud_backend = backend
         logger.info("Cloud backup backend configured", extra={"backend": type(backend).__name__})
 
-    async def create_backup(self) -> Optional[BackupInfo]:
+    async def create_backup(self) -> BackupInfo | None:
         if not self.source_path.exists():
             logger.error("Source database does not exist", extra={"path": str(self.source_path)})
             return None
 
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         base_name = f"network_guardian_{timestamp}"
-        
+
         if self.compress:
             backup_name = f"{base_name}.db.gz"
             backup_file = self.backup_path / backup_name
-            
+
             try:
                 with open(self.source_path, "rb") as f_in:
                     with gzip.open(backup_file, "wb") as f_out:
                         shutil.copyfileobj(f_in, f_out)
-                
+
                 compressed = True
             except Exception as e:
                 logger.error("Failed to create compressed backup", extra={"error": str(e)})
@@ -80,7 +80,7 @@ class BackupManager:
         else:
             backup_name = f"{base_name}.db"
             backup_file = self.backup_path / backup_name
-            
+
             try:
                 shutil.copy2(self.source_path, backup_file)
                 compressed = False
@@ -93,7 +93,7 @@ class BackupManager:
             name=backup_name,
             path=str(backup_file),
             size_bytes=stat.st_size,
-            created_at=datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc),
+            created_at=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
             compressed=compressed,
         )
 
@@ -117,15 +117,15 @@ class BackupManager:
 
         return backup_info
 
-    async def restore_backup(self, backup_name: str, target_path: Optional[str] = None) -> bool:
+    async def restore_backup(self, backup_name: str, target_path: str | None = None) -> bool:
         backup_file = self.backup_path / backup_name
-        
+
         if not backup_file.exists():
             logger.error("Backup file not found", extra={"backup_name": backup_name})
             return False
 
         target = Path(target_path) if target_path else self.source_path
-        
+
         try:
             if backup_name.endswith(".gz"):
                 with gzip.open(backup_file, "rb") as f_in:
@@ -142,7 +142,7 @@ class BackupManager:
 
     async def list_backups(self) -> list[BackupInfo]:
         backups: list[BackupInfo] = []
-        
+
         if not self.backup_path.exists():
             return backups
 
@@ -153,7 +153,7 @@ class BackupManager:
                     name=file_path.name,
                     path=str(file_path),
                     size_bytes=stat.st_size,
-                    created_at=datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc),
+                    created_at=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
                     compressed=file_path.name.endswith(".gz"),
                 )
                 backups.append(backup_info)
@@ -163,7 +163,7 @@ class BackupManager:
 
     async def delete_backup(self, backup_name: str) -> bool:
         backup_file = self.backup_path / backup_name
-        
+
         if not backup_file.exists():
             logger.warning("Backup file not found for deletion", extra={"backup_name": backup_name})
             return False
@@ -180,7 +180,7 @@ class BackupManager:
         if self.retention_days <= 0:
             return 0
 
-        cutoff = datetime.now(timezone.utc).timestamp() - (self.retention_days * 24 * 60 * 60)
+        cutoff = datetime.now(UTC).timestamp() - (self.retention_days * 24 * 60 * 60)
         deleted_count = 0
 
         for file_path in self.backup_path.iterdir():
@@ -203,21 +203,21 @@ class BackupManager:
 
     async def export_to_json(self, output_path: str) -> bool:
         from .repository import get_domain_repository
-        
+
         try:
             repo = await get_domain_repository()
             domains = await repo.get_all_domains()
-            
+
             import json
             data = {
-                "exported_at": datetime.now(timezone.utc).isoformat(),
+                "exported_at": datetime.now(UTC).isoformat(),
                 "total_domains": len(domains),
                 "domains": [d.to_dict() for d in domains],
             }
-            
+
             with open(output_path, "w") as f:
                 json.dump(data, f, indent=2, default=str)
-            
+
             logger.info("Database exported to JSON", extra={"path": output_path, "count": len(domains)})
             return True
         except Exception as e:
@@ -225,7 +225,7 @@ class BackupManager:
             return False
 
 
-_backup_manager: Optional[BackupManager] = None
+_backup_manager: BackupManager | None = None
 
 
 def get_backup_manager() -> BackupManager:

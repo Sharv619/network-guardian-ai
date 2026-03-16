@@ -1,13 +1,14 @@
+import json
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
 import numpy as np
 from numpy.typing import NDArray
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass, field
-import json
-import os
-from pathlib import Path
-from ..core.logging_config import get_logger
+
 from ..core.config import settings
-from .embedding_service import create_embedding_service, EmbeddingService
+from ..core.logging_config import get_logger
+from .embedding_service import EmbeddingService, create_embedding_service
 
 logger = get_logger(__name__)
 
@@ -21,9 +22,9 @@ class ThreatRecord:
     category: str
     summary: str
     timestamp: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "domain": self.domain,
@@ -35,7 +36,7 @@ class ThreatRecord:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ThreatRecord":
+    def from_dict(cls, data: dict[str, Any]) -> "ThreatRecord":
         """Create from dictionary."""
         return cls(
             domain=data["domain"],
@@ -54,7 +55,7 @@ class ThreatMatch:
     record: ThreatRecord
     similarity: float
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             **self.record.to_dict(),
@@ -74,8 +75,8 @@ class VectorMemory:
     def __init__(
         self,
         embedding_provider: str = "sentence-transformers",
-        embedding_service: Optional[EmbeddingService] = None,
-        index_path: Optional[str] = None,
+        embedding_service: EmbeddingService | None = None,
+        index_path: str | None = None,
         similarity_threshold: float = 0.7,
     ):
         """Initialize VectorMemory.
@@ -86,18 +87,18 @@ class VectorMemory:
             index_path: Path for persistence (optional)
             similarity_threshold: Minimum similarity for matches
         """
-        self._embeddings: List[NDArray[np.float32]] = []
-        self._metadata: List[ThreatRecord] = []
-        self._embedding_service: Optional[EmbeddingService] = None
+        self._embeddings: list[NDArray[np.float32]] = []
+        self._metadata: list[ThreatRecord] = []
+        self._embedding_service: EmbeddingService | None = None
         self._dimension: int = 0
         self._available: bool = False
-        self._index_path: Optional[Path] = Path(index_path) if index_path else None
+        self._index_path: Path | None = Path(index_path) if index_path else None
         self._similarity_threshold: float = similarity_threshold
 
         # Use provided embedding service or create one
         if embedding_service is not None:
             self._embedding_service = embedding_service
-            if self._embedding_service.is_available():
+            if self._embedding_service is not None and self._embedding_service.is_available():
                 self._dimension = self._embedding_service.get_dimension()
                 self._available = True
             logger.info(
@@ -112,7 +113,7 @@ class VectorMemory:
                     api_key=settings.GEMINI_API_KEY,
                 )
 
-                if self._embedding_service.is_available():
+                if self._embedding_service is not None and self._embedding_service.is_available():
                     self._dimension = self._embedding_service.get_dimension()
                     self._available = True
                     logger.info(
@@ -137,7 +138,7 @@ class VectorMemory:
     def add_to_memory(
         self,
         text: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
         persist: bool = False,
     ) -> bool:
         """Generate embedding and store in memory.
@@ -160,7 +161,6 @@ class VectorMemory:
 
             self._embeddings.append(embedding)
 
-            # Create ThreatRecord from metadata
             record = ThreatRecord(
                 domain=metadata.get("domain", text),
                 risk_score=metadata.get("risk_score", "Unknown"),
@@ -189,7 +189,7 @@ class VectorMemory:
             logger.error(f"Failed to generate embedding: {e}")
             return False
 
-    def query_memory(self, text: str, k: int = 3) -> List[Dict[str, Any]]:
+    def query_memory(self, text: str, k: int = 3) -> list[dict[str, Any]]:
         """Find top-k similar past threats using cosine similarity.
 
         Args:
@@ -211,7 +211,7 @@ class VectorMemory:
             query_embedding = self._embedding_service.embed(text)
 
             # Calculate cosine similarity with all stored embeddings
-            similarities: List[tuple[float, int]] = []
+            similarities: list[tuple[float, int]] = []
             for i, embedding in enumerate(self._embeddings):
                 # Handle potential dimension mismatch
                 if len(query_embedding) != len(embedding):
@@ -261,8 +261,8 @@ class VectorMemory:
         self,
         text: str,
         k: int = 5,
-        min_similarity: Optional[float] = None,
-    ) -> List[ThreatMatch]:
+        min_similarity: float | None = None,
+    ) -> list[ThreatMatch]:
         """Find similar threats and return as ThreatMatch objects.
 
         Args:
@@ -290,7 +290,7 @@ class VectorMemory:
         self,
         text: str,
         min_similarity: float = 0.7,
-    ) -> List[ThreatMatch]:
+    ) -> list[ThreatMatch]:
         """Get all threats above similarity threshold.
 
         Args:
@@ -302,7 +302,7 @@ class VectorMemory:
         """
         return self.find_similar_threats(text, k=100, min_similarity=min_similarity)
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get statistics about the vector memory."""
         return {
             "total_embeddings": len(self._embeddings),
@@ -311,7 +311,7 @@ class VectorMemory:
             "is_available": self._available,
         }
 
-    def get_memory_stats(self) -> Dict[str, Any]:
+    def get_memory_stats(self) -> dict[str, Any]:
         """Get statistics about the vector memory (alias for get_stats)."""
         return {
             "total_embeddings": len(self._embeddings),
@@ -372,12 +372,12 @@ class VectorMemory:
 
     # Backward compatibility properties
     @property
-    def embeddings(self) -> List[NDArray[np.float32]]:
+    def embeddings(self) -> list[NDArray[np.float32]]:
         """Backward compatibility alias for _embeddings."""
         return self._embeddings
 
     @property
-    def metadata(self) -> List[Dict[str, Any]]:
+    def metadata(self) -> list[dict[str, Any]]:
         """Return metadata as list of dicts for backward compatibility."""
         return [record.to_dict() for record in self._metadata]
 

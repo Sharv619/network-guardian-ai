@@ -2,16 +2,11 @@
 Knowledge Base Persistence Script
 Handles loading and saving of the knowledge base for container lifecycle management
 """
-import os
-import json
 import sqlite3
 from pathlib import Path
-from ..logic.vector_store import vector_memory
-from ..db.database import get_db
-from ..logic.knowledge_base import KnowledgeBase, get_knowledge_base
+
 from ..core.logging_config import get_logger
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from ..logic.vector_store import vector_memory
 
 logger = get_logger(__name__)
 
@@ -23,9 +18,9 @@ def save_knowledge_base():
         # So we just need to ensure the vector memory is saved
         if hasattr(vector_memory, '_save_to_disk'):
             vector_memory._save_to_disk()
-        
+
         logger.info("Knowledge base saved successfully")
-        
+
     except Exception as e:
         logger.error(f"Error saving knowledge base: {e}")
 
@@ -35,9 +30,9 @@ def load_knowledge_base():
         # Ensure vector memory is loaded
         if hasattr(vector_memory, '_load_from_disk'):
             vector_memory._load_from_disk()
-        
+
         logger.info("Knowledge base loaded successfully")
-        
+
     except Exception as e:
         logger.error(f"Error loading knowledge base: {e}")
 
@@ -48,7 +43,7 @@ def migrate_old_data():
         db_path = Path("network_guardian.db")
         if db_path.exists():
             conn = sqlite3.connect(str(db_path))
-            
+
             # Check if knowledge base tables exist, create if not
             cursor = conn.cursor()
             cursor.execute("""
@@ -59,12 +54,12 @@ def migrate_old_data():
                     access_count INTEGER DEFAULT 0
                 )
             """)
-            
+
             conn.commit()
             conn.close()
-            
+
         logger.info("Knowledge base migration completed")
-        
+
     except Exception as e:
         logger.error(f"Error migrating knowledge base: {e}")
 

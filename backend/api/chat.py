@@ -1,7 +1,7 @@
 import json
 import re
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -10,8 +10,13 @@ from pydantic import BaseModel
 from ..core.state import automated_threats, manual_scans
 from ..logic.analysis_cache import analysis_cache, get_cached_analysis
 from ..logic.vector_store import vector_memory
+from ..logic.ml_heuristics import calculate_entropy, is_dga, extract_domain_features
+from ..logic.anomaly_engine import AnomalyEngine
 from ..services.gemini_analyzer import analyze_domain, chat_with_ai
 from ..services.sheets_logger import log_threat_to_sheet
+
+# Global anomaly engine instance
+anomaly_engine = AnomalyEngine()
 
 router = APIRouter()
 
@@ -185,7 +190,7 @@ def search_analysis_cache(domain: str) -> dict[str, Any] | None:
     """Search analysis cache for domain analysis."""
     # Try to find cached analysis for the domain
     # We'll search with empty metadata to find general domain analysis
-    metadata = {}
+    metadata: dict[str, Any] = {}
     cached_result = get_cached_analysis(domain, metadata)
     return cached_result
 
@@ -211,9 +216,10 @@ def generate_rag_response(query: str) -> dict[str, Any]:
                 f"Found {len(threat_history)} historical records for domain '{domain}':"
             )
             for _, threat in enumerate(threat_history[:3]):
-                response_parts.append(
-                    f"- {threat.get('category', 'Unknown')}: {threat.get('risk_score', 'Unknown')} risk - {threat.get('summary', '')}"
-                )
+                category = threat.get("category", "Unknown")
+                risk = threat.get("risk_score", "Unknown")
+                summary = threat.get("summary", "")[:50]
+                response_parts.append(f"- {category}: {risk} risk - {summary}")
             sources.append("threat_history")
             confidence = "high" if threat_history else confidence
 
@@ -224,13 +230,15 @@ def generate_rag_response(query: str) -> dict[str, Any]:
         if vector_results:
             break
 
-    if vector_results:
-        response_parts.append(f"Found {len(vector_results)} similar threat patterns:")
-        for _, result in enumerate(vector_results[:3]):
-            similarity = result.get("_similarity_score", 0)
-            response_parts.append(
-                f"- Similar to {result.get('domain', 'Unknown')} (similarity: {similarity:.2f}): {result.get('summary', '')}"
-            )
+        if vector_results:
+            response_parts.append(f"Found {len(vector_results)} similar threat patterns:")
+            for _, result in enumerate(vector_results[:3]):
+                similarity = result.get("_similarity_score", 0)
+                domain = result.get("domain", "Unknown")
+                summary = result.get("summary", "")[:30]
+                response_parts.append(
+                    f"- Similar to {domain} (similarity: {similarity:.2f}): {summary}"
+                )
         sources.append("vector_memory")
         confidence = "high" if vector_results else confidence
 
@@ -273,11 +281,11 @@ def generate_rag_response(query: str) -> dict[str, Any]:
         response_parts.append(f"\n📊 **System Statistics**: {total_threats} total threat records")
         sources.append("system_stats")
 
-    if "recommend" in intents:
-        response_parts.append(
-            "\n💡 **Recommendations**: Monitor for suspicious patterns, use DNS filtering, enable threat intelligence feeds."
-        )
-        sources.append("recommendations")
+        if "recommend" in intents:
+            response_parts.append(
+                "\n💡 **Recommendations**: Monitor suspicious patterns, use DNS filtering."
+            )
+            sources.append("recommendations")
 
     # 6. If no specific domain found, use general AI chat
     if not response_parts:
@@ -338,12 +346,13 @@ async def chat_endpoint(chat_request: ChatMessage):
 
         # Log to sheets if configured
         try:
+            query_summary = chat_log.get("query", "N/A")[:50]
             log_threat_to_sheet(
                 "Chat Interaction",
                 {
                     "risk_score": rag_result.get("confidence", "N/A"),
                     "category": "Chat Analysis",
-                    "summary": f"Query: {chat_log.get('query', 'N/A')}, Response: {chat_log.get('response', 'N/A')}",
+                    "summary": f"Query: {query_summary}...",
                     "confidence": rag_result.get("confidence", "N/A"),
                     "domain_found": chat_log.get("domain_found", "N/A"),
                 },
@@ -358,9 +367,7 @@ async def chat_endpoint(chat_request: ChatMessage):
     except Exception as e:
         print(f"Chat API Error: {e}")
         # Return graceful degradation response
-        return {
-            "text": "Network Guardian AI: Chat service temporarily unavailable. Analysis services remain active."
-        }
+        return {"text": "Network Guardian AI: Chat unavailable. Analysis services active."}
 
 
 @router.get("/chat/memory-stats")
@@ -390,7 +397,7 @@ async def search_chat(query: str):
     # Extract potential domain from query
     domain = extract_domain_from_query(query)
 
-    results = {
+    results: dict[str, Any] = {
         "query": query,
         "domain_extracted": domain,
         "threat_history": [],
@@ -500,23 +507,25 @@ async def advanced_search(search_query: SearchQuery):
             ]
         if min_risk:
             threat_history = [t for t in threat_history if t.get("risk_score", "low") >= min_risk]
-        results["threat_history"] = threat_history
+        results["threat_history"] = threat_history  # type: ignore[assignment]
 
     expanded_queries = expand_query_semantically(query, recognize_intent(query))
     for exp_query in expanded_queries:
         matches = search_vector_memory(exp_query)
         if matches:
-            results["vector_matches"] = matches[:10]
+            results["vector_matches"] = cast(list[dict[str, Any]], matches[:10])  # type: ignore[assignment]
             break
 
     if domain:
         cached_analysis = search_analysis_cache(domain)
         if cached_analysis:
-            results["cached_analyses"] = [cached_analysis]
+            results["cached_analyses"] = cast(list[dict[str, Any]], [cached_analysis])  # type: ignore[assignment]
 
-    if results["threat_history"] or results["vector_matches"]:
+    threat_history_list: list[dict[str, Any]] = results.get("threat_history", [])  # type: ignore[assignment]
+    vector_matches_list: list[dict[str, Any]] = results.get("vector_matches", [])  # type: ignore[assignment]
+    if threat_history_list or vector_matches_list:
         results["patterns_detected"] = detect_threat_patterns(
-            results["threat_history"] + [v for v in results["vector_matches"]]
+            threat_history_list + vector_matches_list
         )
 
     return results
@@ -591,3 +600,211 @@ async def get_recent_threats(limit: int = 10, time_range: str | None = "day"):
         "time_range": time_range,
         "timestamp": datetime.now(UTC).isoformat(),
     }
+
+
+@router.post("/system-chat")
+async def system_chat_endpoint(chat_request: ChatMessage):
+    """System-aware chat endpoint with ML heuristics and vector store integration.
+
+    This endpoint provides comprehensive network security analysis by integrating:
+    - Shannon Entropy analysis for DGA detection
+    - Isolation Forest anomaly detection
+    - Vector similarity search for threat clustering
+    - Historical threat intelligence
+    """
+    message = chat_request.message.strip()
+
+    if not message:
+        raise HTTPException(status_code=422, detail="Message is required")
+
+    try:
+        # Extract domain from query if present
+        domain = extract_domain_from_query(message)
+
+        # Initialize analysis data
+        analysis_data: dict[str, Any] = {
+            "domain": domain,
+            "message": message,
+            "ml_heuristics": {},
+            "anomaly_detection": {},
+            "vector_similarity": [],
+            "threat_history": [],
+            "analysis_timestamp": datetime.now(UTC).isoformat(),
+        }
+
+        # ML Heuristics Analysis (Shannon Entropy)
+        if domain:
+            entropy = calculate_entropy(domain)
+            is_dga_result = is_dga(domain)
+
+            # Extract features for anomaly detection
+            features = extract_domain_features(domain)
+
+            analysis_data["ml_heuristics"] = {
+                "domain": domain,
+                "entropy_score": entropy,
+                "is_dga": is_dga_result,
+                "features": {
+                    "length": features[1],
+                    "digit_ratio": features[2],
+                    "vowel_ratio": features[3],
+                    "non_alphanumeric": features[4],
+                },
+                "dga_threshold": 3.8,
+            }
+
+            # Anomaly Detection (Isolation Forest)
+            try:
+                is_anomaly, anomaly_score = anomaly_engine.predict_anomaly(features)
+                analysis_data["anomaly_detection"] = {
+                    "is_anomaly": is_anomaly,
+                    "anomaly_score": anomaly_score,
+                    "features": features,
+                    "model_status": "trained" if anomaly_engine.is_trained else "cold_start",
+                }
+            except Exception as e:
+                analysis_data["anomaly_detection"] = {
+                    "error": str(e),
+                    "is_anomaly": False,
+                    "anomaly_score": 0.0,
+                }
+
+            # Vector Memory Search for similar threats
+            try:
+                vector_results = vector_memory.find_similar_threats(domain, k=5, min_similarity=0.5)
+                analysis_data["vector_similarity"] = [match.to_dict() for match in vector_results]
+            except Exception as e:
+                print(f"Vector memory search error: {e}")
+                analysis_data["vector_similarity"] = []
+
+            # Threat History Search
+            threat_history = search_threat_history(domain)
+            if threat_history:
+                analysis_data["threat_history"] = threat_history[:5]
+
+        # Generate comprehensive response
+        response_text = generate_system_response(analysis_data)
+
+        # Log the interaction
+        try:
+            log_threat_to_sheet(
+                "System Chat Interaction",
+                {
+                    "risk_score": "Info",
+                    "category": "System Chat",
+                    "summary": f"Query: {message[:100]}...",
+                    "domain_found": domain is not None,
+                    "entropy_score": analysis_data["ml_heuristics"].get("entropy_score", 0),
+                    "is_dga": analysis_data["ml_heuristics"].get("is_dga", False),
+                },
+            )
+        except Exception as e:
+            print(f"System chat logging error: {e}")
+
+        return {
+            "text": response_text,
+            "analysis": analysis_data,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+
+    except Exception as e:
+        print(f"System Chat API Error: {e}")
+        return {
+            "text": "Network Guardian AI: System chat service temporarily unavailable.",
+            "analysis": {},
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+
+
+def generate_system_response(analysis_data: dict[str, Any]) -> str:
+    """Generate a comprehensive system response based on analysis data."""
+    response_parts = []
+
+    domain = analysis_data.get("domain")
+    message = analysis_data.get("message", "")
+
+    # Header
+    response_parts.append("🛡️ **Network Guardian AI - System Awareness**")
+    response_parts.append("")
+
+    if domain:
+        response_parts.append(f"🔍 **Domain Analysis**: {domain}")
+        response_parts.append("")
+
+        # ML Heuristics Section
+        ml_heuristics = analysis_data.get("ml_heuristics", {})
+        if ml_heuristics:
+            entropy = ml_heuristics.get("entropy_score", 0)
+            is_dga = ml_heuristics.get("is_dga", False)
+
+            response_parts.append("📊 **ML Heuristics Analysis**:")
+            response_parts.append(f"  • Shannon Entropy: {entropy:.2f}")
+            response_parts.append(
+                f"  • DGA Detection: {'🚨 Likely DGA' if is_dga else '✅ Normal'}"
+            )
+
+            features = ml_heuristics.get("features", {})
+            if features:
+                response_parts.append(f"  • Domain Length: {features.get('length', 0)}")
+                response_parts.append(f"  • Digit Ratio: {features.get('digit_ratio', 0):.2f}")
+            response_parts.append("")
+
+        # Anomaly Detection Section
+        anomaly_data = analysis_data.get("anomaly_detection", {})
+        if anomaly_data and "error" not in anomaly_data:
+            is_anomaly = anomaly_data.get("is_anomaly", False)
+            score = anomaly_data.get("anomaly_score", 0)
+
+            response_parts.append("🎯 **Anomaly Detection (Isolation Forest)**:")
+            response_parts.append(f"  • Anomaly Score: {score:.4f}")
+            response_parts.append(
+                f"  • Status: {'🚨 Anomaly Detected' if is_anomaly else '✅ Normal'}"
+            )
+            response_parts.append("")
+
+        # Vector Similarity Section
+        vector_results = analysis_data.get("vector_similarity", [])
+        if vector_results:
+            response_parts.append("🧠 **Vector Similarity Matches**:")
+            for i, result in enumerate(vector_results[:3], 1):
+                similarity = result.get("similarity", 0)
+                domain_match = result.get("domain", "Unknown")
+                category = result.get("category", "Unknown")
+                response_parts.append(
+                    f"  {i}. {domain_match} (similarity: {similarity:.2f}, category: {category})"
+                )
+            response_parts.append("")
+
+        # Threat History Section
+        threat_history = analysis_data.get("threat_history", [])
+        if threat_history:
+            response_parts.append("📜 **Threat History**:")
+            for i, threat in enumerate(threat_history[:3], 1):
+                risk = threat.get("risk_score", "Unknown")
+                category = threat.get("category", "Unknown")
+                response_parts.append(f"  {i}. {category} - {risk} risk")
+            response_parts.append("")
+
+    else:
+        # General query response
+        response_parts.append(f"💬 **Query**: {message}")
+        response_parts.append("")
+        response_parts.append("This is a system-aware chat interface for Network Guardian AI.")
+        response_parts.append("You can ask about:")
+        response_parts.append("  • Specific domains (e.g., 'analyze example.com')")
+        response_parts.append("  • Threat patterns and categories")
+        response_parts.append("  • System status and configuration")
+        response_parts.append("  • Security recommendations")
+        response_parts.append("")
+
+    # Summary
+    response_parts.append("📋 **Analysis Summary**:")
+    response_parts.append(f"  • Timestamp: {analysis_data.get('analysis_timestamp', 'Unknown')}")
+    response_parts.append(f"  • Domain Found: {domain is not None}")
+    if domain:
+        ml_count = len(analysis_data.get("vector_similarity", []))
+        history_count = len(analysis_data.get("threat_history", []))
+        response_parts.append(f"  • Similar Threats Found: {ml_count}")
+        response_parts.append(f"  • Historical Records: {history_count}")
+
+    return "\n".join(response_parts)

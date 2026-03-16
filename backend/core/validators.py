@@ -1,5 +1,4 @@
 import re
-from typing import Optional
 from urllib.parse import urlparse
 
 from ..core.logging_config import get_logger
@@ -152,7 +151,7 @@ def sanitize_domain(domain: str) -> str:
     return domain
 
 
-def validate_url(url: str, allowed_schemes: Optional[set[str]] = None) -> str:
+def validate_url(url: str, allowed_schemes: set[str] | None = None) -> str:
     """
     Validate a URL.
 
@@ -212,7 +211,7 @@ def validate_ip_address(ip: str) -> str:
         raise ValidationError(f"Invalid IP address: {e}")
 
 
-def validate_request_size(content_length: Optional[int], max_size: int) -> bool:
+def validate_request_size(content_length: int | None, max_size: int) -> bool:
     """
     Validate request content length.
 

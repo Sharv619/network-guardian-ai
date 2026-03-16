@@ -1,15 +1,15 @@
-from .database import get_session, get_db, init_db, close_db, engine
+from .backup import BackupManager, get_backup_manager
+from .database import close_db, engine, get_db, get_session, init_db
 from .models import (
     Base,
     Domain,
-    DomainMetadata,
     DomainFeatures,
+    DomainMetadata,
     FeedbackEntry,
-    TLDRReputation,
     TemporalPattern,
+    TLDRReputation,
 )
 from .repository import DomainRepository, get_domain_repository
-from .backup import BackupManager, get_backup_manager
 
 __all__ = [
     "get_session",

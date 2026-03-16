@@ -6,7 +6,7 @@
       "risk_score": "Low"
     },
     "source": "test",
-    "timestamp": "2026-02-24T19:12:44Z",
+    "timestamp": "2026-03-14T01:23:03Z",
     "ttl": 1
   },
   "d1a5f5a54e33109c5eeedc3eca66951f": {
@@ -16,7 +16,7 @@
       "risk_score": "Low"
     },
     "source": "test",
-    "timestamp": "2026-02-24T19:12:44Z",
+    "timestamp": "2026-03-14T01:23:03Z",
     "ttl": 1
   },
   "0c51d0b5d518c008e3fea09d1780d34f": {
@@ -26,7 +26,7 @@
       "risk_score": "Low"
     },
     "source": "test",
-    "timestamp": "2026-02-24T19:12:44Z",
+    "timestamp": "2026-03-14T01:23:03Z",
     "ttl": 1
   },
   "b51306ee30326b15f53d8d02ff4fc348": {
@@ -36,7 +36,7 @@
       "risk_score": "Low"
     },
     "source": "test",
-    "timestamp": "2026-02-24T19:12:44Z",
+    "timestamp": "2026-03-14T01:23:03Z",
     "ttl": 1
   },
   "5b60b51f3f6a5d17189740a5380bb1fd": {
@@ -46,7 +46,19 @@
       "risk_score": "Low"
     },
     "source": "test",
-    "timestamp": "2026-02-24T19:12:44Z",
+    "timestamp": "2026-03-14T01:23:03Z",
     "ttl": 1
+  },
+  "485f4fa80837554392080b24df68dbcf": {
+    "domain": "google.com",
+    "metadata_signature": "485f4fa80837554392080b24df68dbcf",
+    "result": {
+      "risk_score": "Low",
+      "category": "Legitimate",
+      "summary": "The domain google.com exhibits characteristics consistent with a legitimate and well-established service. Its low entropy (1.92) suggests a human-readable, non-randomly generated name, and its estimated age (1200 days) indicates a mature and stable presence. These factors, combined with the domain's well-known reputation, indicate a very low security risk."
+    },
+    "source": "gemini_analysis",
+    "timestamp": "2026-03-14T01:23:49Z",
+    "ttl": 300
   }
 }

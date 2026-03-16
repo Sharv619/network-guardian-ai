@@ -1,7 +1,7 @@
 # AGENTS.md - Network Guardian AI
 
 ## Overview
-This is a FastAPI-based network security tool that intercepts DNS requests via AdGuard, analyzes domains using Gemini AI and local ML heuristics (Shannon Entropy, Isolation Forest), and logs results to Google Sheets.
+This is a FastAPI-based network security tool that intercepts DNS requests via AdGuard, analyzes domains using Gemini AI and local ML heuristics (Shannon Entropy, Isolation Forest), and logs results to Google Sheets. The system now features comprehensive real-time WebSocket communication, enhanced dashboard with live statistics, improved user experience with loading states, and optimized performance.
 
 ## Build & Run Commands
 
@@ -9,6 +9,8 @@ This is a FastAPI-based network security tool that intercepts DNS requests via A
 ```bash
 cd /home/lade/Hackathons/network-guardian-ai/backend
 pip install -r requirements.txt
+cd ../frontend
+npm install
 ```
 
 ### Run the Backend Server
@@ -17,23 +19,35 @@ cd /home/lade/Hackathons/network-guardian-ai/backend
 python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
+### Run the Frontend Development Server
+```bash
+cd /home/lade/Hackathons/network-guardian-ai/frontend
+npm run dev
+```
+
+### Build the Frontend
+```bash
+cd /home/lade/Hackathons/network-guardian-ai/frontend
+npm run build
+```
+
 ### Run All Tests
 ```bash
 cd /home/lade/Hackathons/network-guardian-ai
-PYTHONPATH=. python -m pytest backend/tests/ -v
+PYTHONPATH=. python -m pytest Tests_AI/ -v
 ```
 
 ### Run a Single Test
 ```bash
 cd /home/lade/Hackathons/network-guardian-ai
-PYTHONPATH=. python -m pytest backend/tests/test_heuristics.py::test_entropy_logic -v
-PYTHONPATH=. python -m pytest backend/tests/test_router.py::test_health_endpoint -v
+PYTHONPATH=. python -m pytest Tests_AI/test_heuristics.py::test_entropy_logic -v
+PYTHONPATH=. python -m pytest Tests_AI/test_router.py::test_health_endpoint -v
 ```
 
 ### Run Tests with Coverage
 ```bash
-cd /home/lade/Hackathons/network-guardian-ai/backend
-pytest backend/tests/ -v --cov=backend --cov-report=term-missing
+cd /home/lade/Hackathons/network-guardian-ai
+pytest Tests_AI/ -v --cov=Tests_AI --cov-report=term-missing
 ```
 
 ### Linting (ruff)
@@ -54,9 +68,16 @@ backend/
 ├── core/          # Config, state, utilities
 ├── logic/         # ML heuristics, anomaly detection, vector store
 ├── services/      # External integrations (AdGuard, Gemini, Sheets)
-├── tests/         # Unit and integration tests
-├── main.py        # Application entry point
+├── main.py        # Application entry point (with WebSocket integration)
 └── system_intelligence.py  # System status display
+Tests_AI/          # Unit and integration tests
+frontend/
+├── src/
+│   ├── services/  # WebSocket service and other services
+│   └── components/ # React components
+├── components/    # Shared React components with real-time updates
+├── hooks/         # Custom React hooks
+└── types.ts       # TypeScript type definitions
 ```
 
 ## Code Style Guidelines
@@ -126,7 +147,7 @@ except Exception as e:
 - Implement circuit breakers for external API failures
 
 ### Testing
-- Write tests for all new functions in `backend/tests/`
+- Write tests for all new functions in `Tests_AI/`
 - Use `pytest` as the test framework
 - Mock external services (Gemini API, AdGuard, Sheets)
 - Include both unit tests (logic) and integration tests (API endpoints)
@@ -143,9 +164,46 @@ except Exception as e:
 2. **Circuit Breaker**: Fallback to heuristics when cloud APIs fail
 3. **RAG-lite**: Hash-based "embeddings" in vector store (not actual ML)
 4. **BFF Pattern**: Backend-for-Frontend centralizes API logic
+5. **WebSocket Integration**: Real-time communication between backend and frontend
+6. **React Hooks Pattern**: Custom hooks for WebSocket integration and state management
+7. **Component Composition**: Modular, reusable UI components with skeleton loading states
+
+## Key Features Implemented
+
+### 1. Enhanced Real-time Updates & WebSocket Integration
+- **Backend WebSocket Manager**: Properly integrated with FastAPI lifespan
+- **Multiple WebSocket Endpoints**: `/ws`, `/ws/public`, `/ws/admin`
+- **Frontend WebSocket Service**: With authentication and reconnection logic
+- **Real-time Threat Updates**: Live threat detection without polling
+- **Connection Status Indicators**: Visual feedback for WebSocket connection status
+
+### 2. Improved User Experience & Loading States
+- **Skeleton Loaders**: Smooth loading experience for all components
+- **Error Boundaries**: Graceful error handling
+- **Animations & Transitions**: Enhanced visual feedback
+- **Responsive Design**: Mobile-optimized layouts
+- **Loading Spinners**: Contextual loading indicators
+
+### 3. Advanced Dashboard Features
+- **Live Data Visualization**: Real-time charts using Recharts
+- **Unified Threat Timeline**: Chronological view of all threats
+- **Interactive Dashboards**: Drill-down capabilities in all charts
+- **Comprehensive Data Representation**: All backend metrics displayed
+
+### 4. UI/UX Enhancements
+- **Dark/Light Mode**: Toggleable theme support
+- **Accessibility**: ARIA labels and keyboard navigation
+- **Consistent Design**: Standardized color palette and typography
+- **Performance Optimized**: Virtual scrolling and efficient rendering
+
+### 5. Performance Optimization
+- **Virtual Scrolling**: For large threat lists
+- **Efficient Re-renders**: Memoization and smart updates
+- **WebSocket Efficiency**: Optimized message formats and batching
+- **Bundle Optimization**: Code splitting and lazy loading
 
 ## Known Issues / Limitations
 - The "vector store" uses SHA256 hashing, not actual embeddings
 - Isolation Forest needs 5+ samples before it can detect anomalies
-- Frontend React code exists but requires building separately
-- Empty `backend/api/chat.py` file exists (functionality is in `router.py`)
+- WebSocket reconnection has exponential backoff but may fail in some network conditions
+- Frontend requires API endpoint configuration for production deployments

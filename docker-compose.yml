@@ -1,7 +1,7 @@
 services:
   # The Unified Network Guardian (Frontend + Backend)
   network-guardian:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
     container_name: network-guardian
@@ -19,6 +19,8 @@ services:
       - ADGUARD_PASS=${ADGUARD_PASS}
     ports:
       - "8000:8000"
+    volumes:
+      - network_guardian_db:/app
     networks:
       - network-guardian-net
     depends_on:
@@ -38,14 +40,12 @@ services:
     container_name: adguard
     restart: always
     ports:
-      - "3000:80/tcp"  # Map host port 3000 to container port 80
+      - "8080:80/tcp"  # Map host port 8080 to container port 80
       - "53:53/tcp"
       - "53:53/udp"
     volumes:
       - adguard_work:/opt/adguardhome/work
       - adguard_conf:/opt/adguardhome/conf
-      # Don't mount initial config as read-only since AdGuard needs to write to it
-      # Instead, let AdGuard create its initial config and we'll persist it in the volume
     networks:
       - network-guardian-net
     # Health check for AdGuard Home - check port 80 inside container
@@ -59,6 +59,7 @@ services:
 volumes:
   adguard_work:
   adguard_conf:
+  network_guardian_db:
 
 networks:
   network-guardian-net:
