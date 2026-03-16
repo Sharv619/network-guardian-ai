@@ -1,0 +1,408 @@
+{
+  "evalId": "eval-bot-2026-03-16T20:28:21",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-03-16T20:28:21.614Z",
+    "prompts": [
+      {
+        "id": "fedb7db3ed03546c8fdff8f4b386fd37618a723815cd0c398c25ec2d01fc11ac",
+        "raw": "{{domain}}",
+        "label": "{{domain}}",
+        "provider": "exec:curl",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 5,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "error": "Error: Command failed: curl google.com {\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}} {\"vars\":{\"domain\":\"google.com\"},\"prompt\":{\"raw\":\"{{domain}}\",\"label\":\"{{domain}}\",\"config\":{}},\"test\":{\"description\":\"Benign domain - google.com should return Low risk\",\"vars\":{\"domain\":\"google.com\"},\"assert\":[{\"type\":\"contains\",\"value\":\"Low\",\"metric\":\"risk_score\"},{\"type\":\"is-json\"}],\"options\":{},\"metadata\":{}},\"repeatIndex\":0}\n  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r100   219  100   219    0     0   1637      0 --:--:-- --:--:-- --:--:--  1646\ncurl: (3) nested brace in URL position 28:\n{\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}}\n                           ^\n\n    at genericNodeError (node:internal/errors:984:15)\n    at wrappedFn (node:internal/errors:538:14)\n    at ChildProcess.exithandler (node:child_process:422:12)\n    at ChildProcess.emit (node:events:524:28)\n    at maybeClose (node:internal/child_process:1104:16)\n    at ChildProcess._handle.onexit (node:internal/child_process:304:5)",
+        "gradingResult": null,
+        "id": "a9e78dfd-8434-4ca7-a61a-46eb2a482fd2",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "google.com",
+          "label": "{{domain}}",
+          "config": {}
+        },
+        "promptId": "fedb7db3ed03546c8fdff8f4b386fd37618a723815cd0c398c25ec2d01fc11ac",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:curl",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Benign domain - google.com should return Low risk",
+          "vars": {
+            "domain": "google.com"
+          },
+          "assert": [
+            {
+              "type": "contains",
+              "value": "Low",
+              "metric": "risk_score"
+            },
+            {
+              "type": "is-json"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "vars": {
+          "domain": "google.com"
+        },
+        "metadata": {
+          "errorContext": {
+            "providerId": "exec:curl",
+            "providerLabel": ""
+          }
+        },
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Command failed: curl xkdhf8sj2dh.net {\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}} {\"vars\":{\"domain\":\"xkdhf8sj2dh.net\"},\"prompt\":{\"raw\":\"{{domain}}\",\"label\":\"{{domain}}\",\"config\":{}},\"test\":{\"description\":\"High entropy random domain - should return High risk\",\"vars\":{\"domain\":\"xkdhf8sj2dh.net\"},\"assert\":[{\"type\":\"contains\",\"value\":\"High\",\"metric\":\"risk_score\"}],\"options\":{},\"metadata\":{}},\"repeatIndex\":0}\n  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0curl: (6) Could not resolve host: xkdhf8sj2dh.net\ncurl: (3) nested brace in URL position 28:\n{\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}}\n                           ^\n\n    at genericNodeError (node:internal/errors:984:15)\n    at wrappedFn (node:internal/errors:538:14)\n    at ChildProcess.exithandler (node:child_process:422:12)\n    at ChildProcess.emit (node:events:524:28)\n    at maybeClose (node:internal/child_process:1104:16)\n    at ChildProcess._handle.onexit (node:internal/child_process:304:5)",
+        "gradingResult": null,
+        "id": "147c0c59-963f-4546-9e27-2152faad9a14",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "xkdhf8sj2dh.net",
+          "label": "{{domain}}",
+          "config": {}
+        },
+        "promptId": "fedb7db3ed03546c8fdff8f4b386fd37618a723815cd0c398c25ec2d01fc11ac",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:curl",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "High entropy random domain - should return High risk",
+          "vars": {
+            "domain": "xkdhf8sj2dh.net"
+          },
+          "assert": [
+            {
+              "type": "contains",
+              "value": "High",
+              "metric": "risk_score"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "vars": {
+          "domain": "xkdhf8sj2dh.net"
+        },
+        "metadata": {
+          "errorContext": {
+            "providerId": "exec:curl",
+            "providerLabel": ""
+          }
+        },
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Command failed: curl cdn.jsdelivr.net {\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}} {\"vars\":{\"domain\":\"cdn.jsdelivr.net\"},\"prompt\":{\"raw\":\"{{domain}}\",\"label\":\"{{domain}}\",\"config\":{}},\"test\":{\"description\":\"CDN/safe domain - should return Low risk\",\"vars\":{\"domain\":\"cdn.jsdelivr.net\"},\"assert\":[{\"type\":\"contains\",\"value\":\"Low\",\"metric\":\"risk_score\"}],\"options\":{},\"metadata\":{}},\"repeatIndex\":0}\n  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\ncurl: (3) nested brace in URL position 28:\n{\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}}\n                           ^\n\n    at genericNodeError (node:internal/errors:984:15)\n    at wrappedFn (node:internal/errors:538:14)\n    at ChildProcess.exithandler (node:child_process:422:12)\n    at ChildProcess.emit (node:events:524:28)\n    at maybeClose (node:internal/child_process:1104:16)\n    at ChildProcess._handle.onexit (node:internal/child_process:304:5)",
+        "gradingResult": null,
+        "id": "0e603065-db09-432e-b8a3-461125404de9",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "cdn.jsdelivr.net",
+          "label": "{{domain}}",
+          "config": {}
+        },
+        "promptId": "fedb7db3ed03546c8fdff8f4b386fd37618a723815cd0c398c25ec2d01fc11ac",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:curl",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "CDN/safe domain - should return Low risk",
+          "vars": {
+            "domain": "cdn.jsdelivr.net"
+          },
+          "assert": [
+            {
+              "type": "contains",
+              "value": "Low",
+              "metric": "risk_score"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "vars": {
+          "domain": "cdn.jsdelivr.net"
+        },
+        "metadata": {
+          "errorContext": {
+            "providerId": "exec:curl",
+            "providerLabel": ""
+          }
+        },
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Command failed: curl analytics.google.com {\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}} {\"vars\":{\"domain\":\"analytics.google.com\"},\"prompt\":{\"raw\":\"{{domain}}\",\"label\":\"{{domain}}\",\"config\":{}},\"test\":{\"description\":\"Known tracking domain - should return risk\",\"vars\":{\"domain\":\"analytics.google.com\"},\"assert\":[{\"type\":\"is-json\"}],\"options\":{},\"metadata\":{}},\"repeatIndex\":0}\n  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r100   240  100   240    0     0   5454      0 --:--:-- --:--:-- --:--:--  5581\ncurl: (3) nested brace in URL position 28:\n{\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}}\n                           ^\n\n    at genericNodeError (node:internal/errors:984:15)\n    at wrappedFn (node:internal/errors:538:14)\n    at ChildProcess.exithandler (node:child_process:422:12)\n    at ChildProcess.emit (node:events:524:28)\n    at maybeClose (node:internal/child_process:1104:16)\n    at ChildProcess._handle.onexit (node:internal/child_process:304:5)",
+        "gradingResult": null,
+        "id": "677136ca-a2ab-4677-96ba-83402f98ce2a",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "analytics.google.com",
+          "label": "{{domain}}",
+          "config": {}
+        },
+        "promptId": "fedb7db3ed03546c8fdff8f4b386fd37618a723815cd0c398c25ec2d01fc11ac",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:curl",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Known tracking domain - should return risk",
+          "vars": {
+            "domain": "analytics.google.com"
+          },
+          "assert": [
+            {
+              "type": "is-json"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 3,
+        "vars": {
+          "domain": "analytics.google.com"
+        },
+        "metadata": {
+          "errorContext": {
+            "providerId": "exec:curl",
+            "providerLabel": ""
+          }
+        },
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Command failed: curl abc.com {\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}} {\"vars\":{\"domain\":\"abc.com\"},\"prompt\":{\"raw\":\"{{domain}}\",\"label\":\"{{domain}}\",\"config\":{}},\"test\":{\"description\":\"Short domain - should return valid response\",\"vars\":{\"domain\":\"abc.com\"},\"assert\":[{\"type\":\"is-json\"}],\"options\":{},\"metadata\":{}},\"repeatIndex\":0}\n  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r100   167  100   167    0     0   4364      0 --:--:-- --:--:-- --:--:--  4394\ncurl: (3) nested brace in URL position 28:\n{\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}}\n                           ^\n\n    at genericNodeError (node:internal/errors:984:15)\n    at wrappedFn (node:internal/errors:538:14)\n    at ChildProcess.exithandler (node:child_process:422:12)\n    at ChildProcess.emit (node:events:524:28)\n    at maybeClose (node:internal/child_process:1104:16)\n    at ChildProcess._handle.onexit (node:internal/child_process:304:5)",
+        "gradingResult": null,
+        "id": "02ec39bc-75be-4c56-b40a-b265d9738b10",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "abc.com",
+          "label": "{{domain}}",
+          "config": {}
+        },
+        "promptId": "fedb7db3ed03546c8fdff8f4b386fd37618a723815cd0c398c25ec2d01fc11ac",
+        "promptIdx": 0,
+        "provider": {
+          "id": "exec:curl",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Short domain - should return valid response",
+          "vars": {
+            "domain": "abc.com"
+          },
+          "assert": [
+            {
+              "type": "is-json"
+            }
+          ],
+          "options": {},
+          "metadata": {}
+        },
+        "testIdx": 4,
+        "vars": {
+          "domain": "abc.com"
+        },
+        "metadata": {
+          "errorContext": {
+            "providerId": "exec:curl",
+            "providerLabel": ""
+          }
+        },
+        "failureReason": 2
+      }
+    ],
+    "stats": {
+      "successes": 0,
+      "failures": 0,
+      "errors": 5,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 0,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0
+          }
+        }
+      },
+      "durationMs": 169
+    }
+  },
+  "config": {
+    "prompts": [
+      "{{domain}}"
+    ],
+    "providers": [
+      {
+        "id": "exec:curl",
+        "config": {
+          "command": "curl -s -X POST http://localhost:8000/analyze  -H \"Content-Type: application/json\"  -d '{\"domain\":\"{{domain}}\"}'",
+          "parse": "json"
+        }
+      }
+    ],
+    "tests": [
+      {
+        "description": "Benign domain - google.com should return Low risk",
+        "vars": {
+          "domain": "google.com"
+        },
+        "assert": [
+          {
+            "type": "contains",
+            "value": "Low",
+            "metric": "risk_score"
+          },
+          {
+            "type": "is-json"
+          }
+        ]
+      },
+      {
+        "description": "High entropy random domain - should return High risk",
+        "vars": {
+          "domain": "xkdhf8sj2dh.net"
+        },
+        "assert": [
+          {
+            "type": "contains",
+            "value": "High",
+            "metric": "risk_score"
+          }
+        ]
+      },
+      {
+        "description": "CDN/safe domain - should return Low risk",
+        "vars": {
+          "domain": "cdn.jsdelivr.net"
+        },
+        "assert": [
+          {
+            "type": "contains",
+            "value": "Low",
+            "metric": "risk_score"
+          }
+        ]
+      },
+      {
+        "description": "Known tracking domain - should return risk",
+        "vars": {
+          "domain": "analytics.google.com"
+        },
+        "assert": [
+          {
+            "type": "is-json"
+          }
+        ]
+      },
+      {
+        "description": "Short domain - should return valid response",
+        "vars": {
+          "domain": "abc.com"
+        },
+        "assert": [
+          {
+            "type": "is-json"
+          }
+        ]
+      }
+    ],
+    "outputPath": "./promptfoo-results.json",
+    "extensions": []
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.120.19",
+    "nodeVersion": "v20.19.5",
+    "platform": "linux",
+    "arch": "x64",
+    "exportedAt": "2026-03-16T20:28:21.831Z",
+    "evaluationCreatedAt": "2026-03-16T20:28:21.614Z"
+  }
+}

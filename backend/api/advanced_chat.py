@@ -492,7 +492,7 @@ async def contextual_analyze_endpoint(chat_request: AdvancedChatMessage):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}") from e
 
 
 @router.get("/chat/vector-insights/{query}")

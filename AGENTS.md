@@ -1,22 +1,29 @@
 # AGENTS.md - Network Guardian AI
 
 ## Overview
-This is a FastAPI-based network security tool that intercepts DNS requests via AdGuard, analyzes domains using Gemini AI and local ML heuristics (Shannon Entropy, Isolation Forest), and logs results to Google Sheets. The system now features comprehensive real-time WebSocket communication, enhanced dashboard with live statistics, improved user experience with loading states, and optimized performance.
+
+This is a FastAPI-based network security tool that intercepts DNS requests via AdGuard, analyzes domains using Gemini AI and local ML heuristics (Shannon Entropy, Isolation Forest), and logs results to Google Sheets. The system features real-time WebSocket communication, enhanced dashboard with live statistics, and optimized performance.
 
 ## Build & Run Commands
 
 ### Install Dependencies
 ```bash
+# Backend
 cd /home/lade/Hackathons/network-guardian-ai/backend
 pip install -r requirements.txt
+
+# Frontend  
 cd ../frontend
 npm install
+
+# Optional: sentence-transformers for vector embeddings
+pip install sentence-transformers
 ```
 
 ### Run the Backend Server
 ```bash
-cd /home/lade/Hackathons/network-guardian-ai/backend
-python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+cd /home/lade/Hackathons/network-guardian-ai
+PYTHONPATH=. python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ### Run the Frontend Development Server
@@ -47,24 +54,20 @@ PYTHONPATH=. python -m pytest Tests_AI/test_router.py::test_health_endpoint -v
 ### Run Tests with Coverage
 ```bash
 cd /home/lade/Hackathons/network-guardian-ai
-pytest Tests_AI/ -v --cov=Tests_AI --cov-report=term-missing
+PYTHONPATH=. pytest Tests_AI/ -v --cov=backend --cov-report=term-missing
 ```
 
 ### Linting (ruff)
 ```bash
+cd /home/lade/Hackathons/network-guardian-ai
 ruff check backend/
 ruff check backend/ --fix
 ```
 
 ### Type Checking (mypy)
 ```bash
+cd /home/lade/Hackathons/network-guardian-ai
 mypy backend/ --ignore-missing-imports
-```
-
-### Run PromptFoo Evaluations
-```bash
-promptfoo eval
-promptfoo view
 ```
 
 ### MCP Server (for AI agent integration)
@@ -72,34 +75,36 @@ promptfoo view
 # Run the MCP server
 python mcp_server.py
 
-# Or use the network_guardian_mcp.py for simpler version
+# Or use the simpler version
 python network_guardian_mcp.py
 ```
 
 ## Project Structure
 ```
 backend/
-├── api/           # FastAPI routes and models
-├── core/          # Config, state, utilities
-├── logic/         # ML heuristics, anomaly detection, vector store
-├── services/      # External integrations (AdGuard, Gemini, Sheets)
-├── main.py        # Application entry point (with WebSocket integration)
-└── system_intelligence.py  # System status display
-Tests_AI/          # Unit and integration tests
+├── api/              # FastAPI routes (chat.py, router.py, stats.py, etc.)
+├── core/             # Config, state, auth, websocket manager
+├── db/               # SQLAlchemy models, repository, database
+├── logic/            # ML heuristics, anomaly detection, vector store, embeddings
+├── services/         # External integrations (AdGuard, Gemini, Sheets)
+├── main.py           # Application entry point
+└── system_intelligence.py
+
+Tests_AI/            # Unit and integration tests
 frontend/
 ├── src/
-│   ├── services/  # WebSocket service and other services
-│   └── components/ # React components
-├── components/    # Shared React components with real-time updates
-├── hooks/         # Custom React hooks
-└── types.ts       # TypeScript type definitions
+│   ├── services/     # WebSocket service, API services
+│   ├── components/  # React components (Dashboard, StatsPanel, etc.)
+│   └── hooks/       # Custom React hooks
+├── components/      # Shared React components
+└── types.ts         # TypeScript type definitions
 ```
 
 ## Code Style Guidelines
 
 ### Imports
 - Use absolute imports: `from backend.logic.ml_heuristics import ...`
-- Group imports: stdlib, third-party, local
+- Group imports in order: stdlib, third-party, local
 - Sort alphabetically within groups
 ```python
 import os
@@ -145,7 +150,7 @@ def calculate_entropy(domain: str) -> float:
 ```python
 try:
     analysis = analyze_domain(domain, context)
-except Exception as e:
+except SpecificException as e:
     print(f"Analysis Failed: {e}")
     return _heuristic_fallback(domain, str(e))
 ```
@@ -158,8 +163,8 @@ except Exception as e:
 
 ### Database/State
 - Use in-memory collections for session state (lists, dicts)
-- Google Sheets is the persistence layer (not a database)
-- Implement circuit breakers for external API failures
+- Use SQLite via SQLAlchemy for persistence
+- Use repository pattern for database operations
 
 ### Testing
 - Write tests for all new functions in `Tests_AI/`
@@ -173,52 +178,56 @@ except Exception as e:
 - Use `is_valid_domain()` before processing input
 - Keep secrets in `.env` files, never commit them
 
-### Specific Patterns Used in This Project
+## Key Features
 
-1. **Singleton Pattern**: Global instances (e.g., `engine`, `classifier`, `vector_memory`)
-2. **Circuit Breaker**: Fallback to heuristics when cloud APIs fail
-3. **RAG-lite**: Hash-based "embeddings" in vector store (not actual ML)
-4. **BFF Pattern**: Backend-for-Frontend centralizes API logic
-5. **WebSocket Integration**: Real-time communication between backend and frontend
-6. **React Hooks Pattern**: Custom hooks for WebSocket integration and state management
-7. **Component Composition**: Modular, reusable UI components with skeleton loading states
+### 1. Real-time DNS Analysis
+- AdGuard DNS interception
+- Shannon Entropy for DGA detection
+- Isolation Forest for anomaly detection
+- Gemini AI for domain classification
 
-## Key Features Implemented
+### 2. Vector Store & RAG
+- SQLAlchemy persistence with float32 embeddings
+- Hybrid search (semantic + keyword)
+- RAG context builder for chatbot
 
-### 1. Enhanced Real-time Updates & WebSocket Integration
-- **Backend WebSocket Manager**: Properly integrated with FastAPI lifespan
-- **Multiple WebSocket Endpoints**: `/ws`, `/ws/public`, `/ws/admin`
-- **Frontend WebSocket Service**: With authentication and reconnection logic
-- **Real-time Threat Updates**: Live threat detection without polling
-- **Connection Status Indicators**: Visual feedback for WebSocket connection status
+### 3. Conversational Chatbot
+- Short responses for simple queries (<=3 words)
+- Full analysis for domain-specific queries
+- Real-time system stats integration
+- Keyword-based intent recognition
 
-### 2. Improved User Experience & Loading States
-- **Skeleton Loaders**: Smooth loading experience for all components
-- **Error Boundaries**: Graceful error handling
-- **Animations & Transitions**: Enhanced visual feedback
-- **Responsive Design**: Mobile-optimized layouts
-- **Loading Spinners**: Contextual loading indicators
+### 4. WebSocket Integration
+- Multiple endpoints: `/ws`, `/ws/public`, `/ws/admin`
+- Real-time threat updates
+- Connection status indicators
 
-### 3. Advanced Dashboard Features
-- **Live Data Visualization**: Real-time charts using Recharts
-- **Unified Threat Timeline**: Chronological view of all threats
-- **Interactive Dashboards**: Drill-down capabilities in all charts
-- **Comprehensive Data Representation**: All backend metrics displayed
+## Environment Variables
 
-### 4. UI/UX Enhancements
-- **Dark/Light Mode**: Toggleable theme support
-- **Accessibility**: ARIA labels and keyboard navigation
-- **Consistent Design**: Standardized color palette and typography
-- **Performance Optimized**: Virtual scrolling and efficient rendering
+Key environment variables (see `.env`):
+```bash
+# API Keys
+GEMINI_API_KEY=your_key_here
+NOTION_TOKEN=your_token
+GOOGLE_SHEETS_CREDENTIALS=json_credentials
+GOOGLE_SHEET_ID=spreadsheet_id
 
-### 5. Performance Optimization
-- **Virtual Scrolling**: For large threat lists
-- **Efficient Re-renders**: Memoization and smart updates
-- **WebSocket Efficiency**: Optimized message formats and batching
-- **Bundle Optimization**: Code splitting and lazy loading
+# AdGuard
+ADGUARD_URL=http://localhost:8080
+ADGUARD_USER=admin
+ADGUARD_PASS=password
 
-## Known Issues / Limitations
-- The "vector store" uses SHA256 hashing, not actual embeddings
-- Isolation Forest needs 5+ samples before it can detect anomalies
-- WebSocket reconnection has exponential backoff but may fail in some network conditions
-- Frontend requires API endpoint configuration for production deployments
+# Ollama (optional)
+OLLAMA_ENABLED=false
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=nomic-embed-text
+OLLAMA_CHAT_MODEL=llama3.2
+
+# Embedding Provider
+EMBEDDING_PROVIDER=sentence-transformers  # or "ollama", "mock"
+```
+
+## Known Issues
+- Isolation Forest needs 10+ samples before detecting anomalies
+- sentence-transformers not installed by default (run: `pip install sentence-transformers`)
+- Gemini API has rate limits - falls back to heuristics when exceeded

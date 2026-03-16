@@ -126,7 +126,13 @@ async def get_domain_features() -> dict[str, Any]:
         return {
             "total_samples": len(features),
             "feature_count": 5,
-            "feature_names": ["entropy", "length", "digit_ratio", "vowel_ratio", "non_alphanumeric"],
+            "feature_names": [
+                "entropy",
+                "length",
+                "digit_ratio",
+                "vowel_ratio",
+                "non_alphanumeric",
+            ],
         }
 
 
@@ -173,7 +179,7 @@ async def restore_backup(backup_name: str) -> dict[str, Any]:
             raise HTTPException(status_code=400, detail="Restore failed")
     except Exception as e:
         logger.error("Restore failed", extra={"error": str(e)})
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.delete("/backups/{backup_name}")

@@ -23,6 +23,17 @@ class Settings(BaseSettings):
     NOTION_TOKEN: str | None = Field(None, description="Notion API Token (optional)")
     NOTION_DATABASE_ID: str | None = Field(None, description="Notion Database ID (optional)")
 
+    # Ollama Configuration (Local LLM)
+    OLLAMA_ENABLED: bool = Field(False, description="Enable Ollama for local embeddings")
+    OLLAMA_BASE_URL: str = Field("http://localhost:11434", description="Ollama API base URL")
+    OLLAMA_MODEL: str = Field("nomic-embed-text", description="Ollama embedding model")
+    OLLAMA_CHAT_MODEL: str = Field("llama3.2", description="Ollama chat model for RAG")
+
+    # Embedding provider choice
+    EMBEDDING_PROVIDER: str = Field(
+        "sentence-transformers", description="Provider: sentence-transformers, ollama, or mock"
+    )
+
     # AdGuard is now optional
     ADGUARD_URL: str | None = Field(None, description="AdGuard Home URL")
     ADGUARD_USER: str | None = Field(None, description="AdGuard Home Username")
@@ -89,4 +100,4 @@ try:
     logger.info("Configuration loaded successfully")
 except ValidationError as e:
     logger.critical(f"Configuration validation failed: {e}")
-    raise ConfigurationError(f"Missing required environment variables: {e}")
+    raise ConfigurationError(f"Missing required environment variables: {e}") from e

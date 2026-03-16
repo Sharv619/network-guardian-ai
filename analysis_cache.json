@@ -60,5 +60,1315 @@
     "source": "gemini_analysis",
     "timestamp": "2026-03-14T01:23:49Z",
     "ttl": 300
+  },
+  "9e32fd9a6e8001fefcc96bee37c8dead": {
+    "domain": "api.individual.githubcopilot.com",
+    "metadata_signature": "9e32fd9a6e8001fefcc96bee37c8dead",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:02Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.0
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:05Z",
+    "ttl": 3600
+  },
+  "b13a213b6e088e8a77e0dd21279542db": {
+    "domain": "education.github.com",
+    "metadata_signature": "b13a213b6e088e8a77e0dd21279542db",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:05Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.0
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:07Z",
+    "ttl": 3600
+  },
+  "fef84d838b3b77332fe5297406d04089": {
+    "domain": "cloudcode-pa.googleapis.com",
+    "metadata_signature": "fef84d838b3b77332fe5297406d04089",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:07Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.0
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:09Z",
+    "ttl": 3600
+  },
+  "fc390b11ba54445caaf629f1b2cf022a": {
+    "domain": "westus-0.in.applicationinsights.azure.com",
+    "metadata_signature": "fc390b11ba54445caaf629f1b2cf022a",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:09Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.0
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:10Z",
+    "ttl": 3600
+  },
+  "b7937a3a0de515a1b9e48419115287b2": {
+    "domain": "api.github.com",
+    "metadata_signature": "b7937a3a0de515a1b9e48419115287b2",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:10Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.0
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:11Z",
+    "ttl": 3600
+  },
+  "0efd2822e457cec37179ef9c3c57354f": {
+    "domain": "registry.npmjs.org",
+    "metadata_signature": "0efd2822e457cec37179ef9c3c57354f",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:11Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.0
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:13Z",
+    "ttl": 3600
+  },
+  "e4c42e2f2925524fbf32616bc961630a": {
+    "domain": "copilot-telemetry.githubusercontent.com",
+    "metadata_signature": "e4c42e2f2925524fbf32616bc961630a",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:13Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.0
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:14Z",
+    "ttl": 3600
+  },
+  "abc7d53b3da2129d7f882ef2ded97bfa": {
+    "domain": "mobile.events.data.microsoft.com",
+    "metadata_signature": "abc7d53b3da2129d7f882ef2ded97bfa",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:14Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.0
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:15Z",
+    "ttl": 3600
+  },
+  "6a6f765cb08cdc4172139df11bedc1f8": {
+    "domain": "data.cline.bot",
+    "metadata_signature": "6a6f765cb08cdc4172139df11bedc1f8",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:15Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.0
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:17Z",
+    "ttl": 3600
+  },
+  "a849d6dfd4620d02708e6541821ca041": {
+    "domain": "marketplace.visualstudio.com",
+    "metadata_signature": "a849d6dfd4620d02708e6541821ca041",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:17Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.13257036160910407
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:18Z",
+    "ttl": 3600
+  },
+  "d67fbb5b5269bd588eac11b7005250e1": {
+    "domain": "default.exp-tas.com",
+    "metadata_signature": "d67fbb5b5269bd588eac11b7005250e1",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:18Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.14460015529848302
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:19Z",
+    "ttl": 3600
+  },
+  "784aab13f4c68e58d87684f52136b944": {
+    "domain": "docs.google.com",
+    "metadata_signature": "784aab13f4c68e58d87684f52136b944",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:19Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.05931292663438603
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:20Z",
+    "ttl": 3600
+  },
+  "641f803c5a5f04597d1725a52de31a81": {
+    "domain": "firebaselogging-pa.googleapis.com",
+    "metadata_signature": "641f803c5a5f04597d1725a52de31a81",
+    "result": {
+      "risk_score": "High",
+      "category": "Malicious Pattern",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:20Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.021576612822820862
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:22Z",
+    "ttl": 3600
+  },
+  "43897b84c3bc46933df4e8425a7e1c1d": {
+    "domain": "www.linkedin.com",
+    "metadata_signature": "43897b84c3bc46933df4e8425a7e1c1d",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:22Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.12873776893077404
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:23Z",
+    "ttl": 3600
+  },
+  "3fce67d20cb32224ff6d21d8ae514df9": {
+    "domain": "waa-pa.clients6.google.com",
+    "metadata_signature": "3fce67d20cb32224ff6d21d8ae514df9",
+    "result": {
+      "risk_score": "Low",
+      "category": "Privacy Risk",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:23Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.047489636597434104
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:24Z",
+    "ttl": 3600
+  },
+  "3559747abcb5f38f1f56ab1b1df93a56": {
+    "domain": "people.googleapis.com",
+    "metadata_signature": "3559747abcb5f38f1f56ab1b1df93a56",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:24Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.11406265175120467
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:25Z",
+    "ttl": 3600
+  },
+  "cc9e29a6a4c06540d13fa7eec7ee7ec6": {
+    "domain": "oauth2.googleapis.com",
+    "metadata_signature": "cc9e29a6a4c06540d13fa7eec7ee7ec6",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:25Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.04335736946195223
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:27Z",
+    "ttl": 3600
+  },
+  "fe680608e9dbce2edc1ddbf286ab702d": {
+    "domain": "rr2.sn-v2u0n-ntqy.googlevideo.com",
+    "metadata_signature": "fe680608e9dbce2edc1ddbf286ab702d",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:27Z",
+      "is_anomaly": false,
+      "anomaly_score": -0.014539921561599112
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:28Z",
+    "ttl": 3600
+  },
+  "2b47dbcbd1ef612c7d8061a9b3d57748": {
+    "domain": "rr2---sn-v2u0n-ntqy.googlevideo.com",
+    "metadata_signature": "2b47dbcbd1ef612c7d8061a9b3d57748",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:28Z",
+      "is_anomaly": false,
+      "anomaly_score": -0.07007066410667995
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:29Z",
+    "ttl": 3600
+  },
+  "b7c8828ec6d686542904c86cff4071f8": {
+    "domain": "github.com",
+    "metadata_signature": "b7c8828ec6d686542904c86cff4071f8",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:29Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.10954537131961367
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:31Z",
+    "ttl": 3600
+  },
+  "374ccb1274557945eb31c7ca728f5e68": {
+    "domain": "www.schemastore.org",
+    "metadata_signature": "374ccb1274557945eb31c7ca728f5e68",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:31Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.13257036160910407
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:32Z",
+    "ttl": 3600
+  },
+  "7aa8889119207cdc99c780e839746c40": {
+    "domain": "json.schemastore.org",
+    "metadata_signature": "7aa8889119207cdc99c780e839746c40",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:32Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.05931292663438603
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:33Z",
+    "ttl": 3600
+  },
+  "70be1308df7717ab9061647c5a1905f3": {
+    "domain": "api.segment.io",
+    "metadata_signature": "70be1308df7717ab9061647c5a1905f3",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:33Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.09535034770768452
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:34Z",
+    "ttl": 3600
+  },
+  "a8da681cd2cc0644aaa16e14649b4be9": {
+    "domain": "signaler-pa.clients6.google.com",
+    "metadata_signature": "a8da681cd2cc0644aaa16e14649b4be9",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:35Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.07522552166793639
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:36Z",
+    "ttl": 3600
+  },
+  "f74658abeff6e81dac5dafafdb791bda": {
+    "domain": "api.contextstream.io",
+    "metadata_signature": "f74658abeff6e81dac5dafafdb791bda",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:36Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.09535034770768452
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:37Z",
+    "ttl": 3600
+  },
+  "fea3cd341d021f78b5a2746e1820cfb7": {
+    "domain": "www.youtube.com",
+    "metadata_signature": "fea3cd341d021f78b5a2746e1820cfb7",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:37Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.10949121320531569
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:39Z",
+    "ttl": 3600
+  },
+  "7ba215b966695d97f7ba27205d94de6a": {
+    "domain": "otel.cline.bot",
+    "metadata_signature": "7ba215b966695d97f7ba27205d94de6a",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:39Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.10472763191122664
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:40Z",
+    "ttl": 3600
+  },
+  "fd2dd7485e6e4c334b72067800f1f162": {
+    "domain": "api.cline.bot",
+    "metadata_signature": "fd2dd7485e6e4c334b72067800f1f162",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:40Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.09535034770768452
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:41Z",
+    "ttl": 3600
+  },
+  "b2794e2aebddc7b9103d5e95d79ee746": {
+    "domain": "api2.luma.com",
+    "metadata_signature": "b2794e2aebddc7b9103d5e95d79ee746",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:41Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.023428106300246943
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:43Z",
+    "ttl": 3600
+  },
+  "99ab2e9f553634cd4f8864e1f35d0414": {
+    "domain": "vscode-sync.trafficmanager.net",
+    "metadata_signature": "99ab2e9f553634cd4f8864e1f35d0414",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:43Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.06860664900906477
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:44Z",
+    "ttl": 3600
+  },
+  "357615af095cfcc902f8c367c33334e6": {
+    "domain": "incoming.telemetry.mozilla.org",
+    "metadata_signature": "357615af095cfcc902f8c367c33334e6",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:44Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.12873776893077404
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:45Z",
+    "ttl": 3600
+  },
+  "acac906f9111f8aaae2a78e3c0613908": {
+    "domain": "api.mcp.github.com",
+    "metadata_signature": "acac906f9111f8aaae2a78e3c0613908",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:45Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.09535034770768452
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:46Z",
+    "ttl": 3600
+  },
+  "65bccb847ab62f719e2d76ad3b25d9bb": {
+    "domain": "www.notion.so",
+    "metadata_signature": "65bccb847ab62f719e2d76ad3b25d9bb",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:46Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.11406265175120467
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:46Z",
+    "ttl": 3600
+  },
+  "515f92d5fb21d2dc60f3fe702a89058d": {
+    "domain": "www.gstatic.com",
+    "metadata_signature": "515f92d5fb21d2dc60f3fe702a89058d",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:46Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.10715158066382496
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:46Z",
+    "ttl": 3600
+  },
+  "812df6f93ab279e740fa239998cc23c3": {
+    "domain": "main.vscode-cdn.net",
+    "metadata_signature": "812df6f93ab279e740fa239998cc23c3",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:46Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.10472763191122664
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:46Z",
+    "ttl": 3600
+  },
+  "dda1bab308c98a607fb94855acf582ab": {
+    "domain": "update.code.visualstudio.com",
+    "metadata_signature": "dda1bab308c98a607fb94855acf582ab",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:46Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.13501427899471324
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:47Z",
+    "ttl": 3600
+  },
+  "9af2f00eaf5052551de9a96600c08d35": {
+    "domain": "ssl.gstatic.com",
+    "metadata_signature": "9af2f00eaf5052551de9a96600c08d35",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:47Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.032752869450419886
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:47Z",
+    "ttl": 3600
+  },
+  "2414e49eecf2cc4ca3c49d439141523a": {
+    "domain": "espresso-pa.clients6.google.com",
+    "metadata_signature": "2414e49eecf2cc4ca3c49d439141523a",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:47Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.08107354496142749
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:47Z",
+    "ttl": 3600
+  },
+  "731e8eb4811a8205fac70d90c1a93194": {
+    "domain": "chat.mistral.ai",
+    "metadata_signature": "731e8eb4811a8205fac70d90c1a93194",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:47Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.05931292663438603
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:47Z",
+    "ttl": 3600
+  },
+  "943120c7e2b124515a8b8360e5409519": {
+    "domain": "web.telegram.org",
+    "metadata_signature": "943120c7e2b124515a8b8360e5409519",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:47Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.08145234705707471
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:48Z",
+    "ttl": 3600
+  },
+  "1a63c30d54da167aba91bea086fab68b": {
+    "domain": "nexus-europe-websocket.intercom.io",
+    "metadata_signature": "1a63c30d54da167aba91bea086fab68b",
+    "result": {
+      "risk_score": "High",
+      "category": "Malicious Pattern",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:48Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.018464303491647738
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:48Z",
+    "ttl": 3600
+  },
+  "dcac23843328bf86b3901f0a1111fd0d": {
+    "domain": "api-iam.eu.intercom.io",
+    "metadata_signature": "dcac23843328bf86b3901f0a1111fd0d",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:48Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.03331526129568785
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:48Z",
+    "ttl": 3600
+  },
+  "e133e381478664199d737e28d5fc5538": {
+    "domain": "js.intercomcdn.com",
+    "metadata_signature": "e133e381478664199d737e28d5fc5538",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:48Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.032752869450419886
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:48Z",
+    "ttl": 3600
+  },
+  "66bc0633150b05e6d7e4b26f3ef22dc8": {
+    "domain": "widget.intercom.io",
+    "metadata_signature": "66bc0633150b05e6d7e4b26f3ef22dc8",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:48Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.10954537131961367
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:49Z",
+    "ttl": 3600
+  },
+  "3580007b4be21dffcdf316893006a5ea": {
+    "domain": "token.services.mozilla.com",
+    "metadata_signature": "3580007b4be21dffcdf316893006a5ea",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:49Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.10524282260486983
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:49Z",
+    "ttl": 3600
+  },
+  "6d7f328869bf25bc8e501d21303cf007": {
+    "domain": "console.mistral.ai",
+    "metadata_signature": "6d7f328869bf25bc8e501d21303cf007",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:49Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.13506844851308347
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:49Z",
+    "ttl": 3600
+  },
+  "1a004b5e5e2878c1940be71150d8215e": {
+    "domain": "cms.mistral.ai",
+    "metadata_signature": "1a004b5e5e2878c1940be71150d8215e",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:49Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.06219928270098529
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:50Z",
+    "ttl": 3600
+  },
+  "e553abda763ad19b54c7c3c9cca5ada7": {
+    "domain": "mistral.ai",
+    "metadata_signature": "e553abda763ad19b54c7c3c9cca5ada7",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:50Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.11800966244393957
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:52Z",
+    "ttl": 3600
+  },
+  "b37f74c7c64a83adebed34d3f8d49de6": {
+    "domain": "www.google.com",
+    "metadata_signature": "b37f74c7c64a83adebed34d3f8d49de6",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:52Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.11406265175120467
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:53Z",
+    "ttl": 3600
+  },
+  "0fbb87689671c8dcaefe12cba4fc5911": {
+    "domain": "midio.com",
+    "metadata_signature": "0fbb87689671c8dcaefe12cba4fc5911",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:53Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.09355813872157454
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:55Z",
+    "ttl": 3600
+  },
+  "5def9bf5dfba9361fa0b4bf923b2ece8": {
+    "domain": "mail.google.com",
+    "metadata_signature": "5def9bf5dfba9361fa0b4bf923b2ece8",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:55Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.10472763191122664
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:55Z",
+    "ttl": 3600
+  },
+  "3caa6c7574dc1d7d4108778f66ef5add": {
+    "domain": "i.ytimg.com",
+    "metadata_signature": "3caa6c7574dc1d7d4108778f66ef5add",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:55Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.0639745401887829
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:55Z",
+    "ttl": 3600
+  },
+  "328637a8170a01ff37c5d3a41a6e5d04": {
+    "domain": "stun.l.google.com",
+    "metadata_signature": "328637a8170a01ff37c5d3a41a6e5d04",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:55Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.05931292663438603
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:55Z",
+    "ttl": 3600
+  },
+  "f56bf187d35bcba885c90818b7d67d38": {
+    "domain": "dms.licdn.com",
+    "metadata_signature": "f56bf187d35bcba885c90818b7d67d38",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:56Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.06219928270098529
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:56Z",
+    "ttl": 3600
+  },
+  "eb75a8c997f826a464b5b94c06fc5c4f": {
+    "domain": "fonts.gstatic.com",
+    "metadata_signature": "eb75a8c997f826a464b5b94c06fc5c4f",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:56Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.06568402820312769
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:56Z",
+    "ttl": 3600
+  },
+  "84a9dac47c7fc97d28c633765b9d415e": {
+    "domain": "li.protechts.net",
+    "metadata_signature": "84a9dac47c7fc97d28c633765b9d415e",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:56Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.07276855534028304
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:56Z",
+    "ttl": 3600
+  },
+  "7f219ed14eb1d6a6772ee28fed71ebaf": {
+    "domain": "collector-pxdojv695v.px-cloud.net",
+    "metadata_signature": "7f219ed14eb1d6a6772ee28fed71ebaf",
+    "result": {
+      "risk_score": "High",
+      "category": "Malware",
+      "summary": "\ud83d\udee1\ufe0f LOCAL ANALYSIS: High Entropy (4.08)",
+      "timestamp": "2026-03-16T20:26:56Z",
+      "is_anomaly": false,
+      "anomaly_score": -0.07007066410667995,
+      "analysis_source": "entropy_heuristic"
+    },
+    "source": "entropy_heuristic",
+    "timestamp": "2026-03-16T20:26:57Z",
+    "ttl": 3600
+  },
+  "b7c732c5d2c26b0776156171b07a355b": {
+    "domain": "tzm.protechts.net",
+    "metadata_signature": "b7c732c5d2c26b0776156171b07a355b",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:57Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.06219928270098529
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:57Z",
+    "ttl": 3600
+  },
+  "d09dfb01493c0a7e96f9a2fe21b09d43": {
+    "domain": "collector-pxdojv695v.protechts.net",
+    "metadata_signature": "d09dfb01493c0a7e96f9a2fe21b09d43",
+    "result": {
+      "risk_score": "High",
+      "category": "Malware",
+      "summary": "\ud83d\udee1\ufe0f LOCAL ANALYSIS: High Entropy (4.08)",
+      "timestamp": "2026-03-16T20:26:57Z",
+      "is_anomaly": false,
+      "anomaly_score": -0.07007066410667995,
+      "analysis_source": "entropy_heuristic"
+    },
+    "source": "entropy_heuristic",
+    "timestamp": "2026-03-16T20:26:57Z",
+    "ttl": 3600
+  },
+  "220f8edd66242eb9bed8e1b58d6b94b2": {
+    "domain": "client.protechts.net",
+    "metadata_signature": "220f8edd66242eb9bed8e1b58d6b94b2",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:57Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.10954537131961367
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:58Z",
+    "ttl": 3600
+  },
+  "5aa06b02eae89dc722d38631cbf43736": {
+    "domain": "merchantpool1.linkedin.com",
+    "metadata_signature": "5aa06b02eae89dc722d38631cbf43736",
+    "result": {
+      "risk_score": "High",
+      "category": "Malicious Pattern",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:58Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.026460860980355716
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:58Z",
+    "ttl": 3600
+  },
+  "eeb0deb8702220ee3f79a900ecb5a0ae": {
+    "domain": "platform.linkedin.com",
+    "metadata_signature": "eeb0deb8702220ee3f79a900ecb5a0ae",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:58Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.1130038974889509
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:58Z",
+    "ttl": 3600
+  },
+  "3e18a01a6d712397ffec3b0a3b51fd0a": {
+    "domain": "media.licdn.com",
+    "metadata_signature": "3e18a01a6d712397ffec3b0a3b51fd0a",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:58Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.09646074896728435
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:59Z",
+    "ttl": 3600
+  },
+  "7827ffd2b7f6e59789c4042161078032": {
+    "domain": "fr.linkedin.com",
+    "metadata_signature": "7827ffd2b7f6e59789c4042161078032",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:59Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.032752869450419886
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:59Z",
+    "ttl": 3600
+  },
+  "3f36e4b5ade00ce1a2386819af069181": {
+    "domain": "static.licdn.com",
+    "metadata_signature": "3f36e4b5ade00ce1a2386819af069181",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:59Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.09286442270229694
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:59Z",
+    "ttl": 3600
+  },
+  "9d0eadc8491b2c4dd7269ed766659e92": {
+    "domain": "ogs.google.com",
+    "metadata_signature": "9d0eadc8491b2c4dd7269ed766659e92",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:59Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.08145234705707471
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:26:59Z",
+    "ttl": 3600
+  },
+  "167e4656e445a78fcaf4a4da3627e3fc": {
+    "domain": "accounts.google.com",
+    "metadata_signature": "167e4656e445a78fcaf4a4da3627e3fc",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:26:59Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.14281493240434268
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:27:00Z",
+    "ttl": 3600
+  },
+  "5265f5e94f85056b72f8926881cf9137": {
+    "domain": "encrypted-tbn0.gstatic.com",
+    "metadata_signature": "5265f5e94f85056b72f8926881cf9137",
+    "result": {
+      "risk_score": "High",
+      "category": "Malicious Pattern",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:27:00Z",
+      "is_anomaly": false,
+      "anomaly_score": -0.024534905626764525
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:27:00Z",
+    "ttl": 3600
+  },
+  "7ecfbe207b4fc49ea085cebec420e589": {
+    "domain": "encrypted-tbn2.gstatic.com",
+    "metadata_signature": "7ecfbe207b4fc49ea085cebec420e589",
+    "result": {
+      "risk_score": "High",
+      "category": "Malicious Pattern",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:27:00Z",
+      "is_anomaly": false,
+      "anomaly_score": -0.024534905626764525
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:27:00Z",
+    "ttl": 3600
+  },
+  "3d8a4d4cdcafaf9169cac74b51f5d5b4": {
+    "domain": "ogads-pa.clients6.google.com",
+    "metadata_signature": "3d8a4d4cdcafaf9169cac74b51f5d5b4",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:27:00Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.0819972460992292
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:27:01Z",
+    "ttl": 3600
+  },
+  "7e5d45304f334a1ff3074d9f05d53ac5": {
+    "domain": "lh3.googleusercontent.com",
+    "metadata_signature": "7e5d45304f334a1ff3074d9f05d53ac5",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:27:01Z",
+      "is_anomaly": false,
+      "anomaly_score": -0.012568920447310616
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:27:01Z",
+    "ttl": 3600
+  },
+  "787178df5a6b83078aeb771633b2e832": {
+    "domain": "images.lumacdn.com",
+    "metadata_signature": "787178df5a6b83078aeb771633b2e832",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:27:01Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.13501427899471324
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:27:01Z",
+    "ttl": 3600
+  },
+  "519e7fadffc71bf84561b9e9bd8404af": {
+    "domain": "luma.com",
+    "metadata_signature": "519e7fadffc71bf84561b9e9bd8404af",
+    "result": {
+      "risk_score": "Low",
+      "category": "General Traffic",
+      "summary": "\ud83d\udee1\ufe0f KNOWLEDGE BASE MATCH: SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+      "confidence": 0.8,
+      "similarity_score": 1.0,
+      "analysis_source": "knowledge_base",
+      "timestamp": "2026-03-16T20:27:01Z",
+      "is_anomaly": false,
+      "anomaly_score": 0.10472763191122664
+    },
+    "source": "knowledge_base",
+    "timestamp": "2026-03-16T20:27:02Z",
+    "ttl": 3600
   }
 }

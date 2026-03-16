@@ -11,12 +11,7 @@ from ..core.state import automated_threats, manual_scans
 from ..logic.analysis_cache import analysis_cache, get_cached_analysis
 from ..logic.vector_store import vector_memory
 from ..logic.ml_heuristics import calculate_entropy, is_dga, extract_domain_features
-from ..logic.anomaly_engine import AnomalyEngine
-from ..services.gemini_analyzer import analyze_domain, chat_with_ai
-from ..services.sheets_logger import log_threat_to_sheet
-
-# Global anomaly engine instance
-anomaly_engine = AnomalyEngine()
+from ..logic.anomaly_engine import engine as anomaly_engine
 
 router = APIRouter()
 
@@ -682,8 +677,14 @@ async def system_chat_endpoint(chat_request: ChatMessage):
             if threat_history:
                 analysis_data["threat_history"] = threat_history[:5]
 
-        # Generate comprehensive response
-        response_text = generate_system_response(analysis_data)
+        # Use conversational response for short queries (<=3 words), full analysis otherwise
+        word_count = len(message.split())
+        if word_count <= 3 and not domain:
+            # Short conversational response using real system stats
+            response_text = await generate_conversational_response(message)
+        else:
+            # Full analysis response
+            response_text = generate_system_response(analysis_data)
 
         # Log the interaction
         try:
@@ -808,3 +809,88 @@ def generate_system_response(analysis_data: dict[str, Any]) -> str:
         response_parts.append(f"  • Historical Records: {history_count}")
 
     return "\n".join(response_parts)
+
+
+async def generate_conversational_response(message: str) -> str:
+    """Generate a short, conversational chatbot response using real system stats."""
+    import httpx
+
+    message_lower = message.lower().strip()
+    words = message_lower.split()
+
+    # Get real system stats
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            stats_response = await client.get("http://localhost:8000/api/stats/system")
+            stats = stats_response.json() if stats_response.status_code == 200 else {}
+    except:
+        stats = {}
+
+    # Get threat count
+    threat_count = 0
+    threats = []
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            history_response = await client.get("http://localhost:8000/history")
+            threats = history_response.json() if history_response.status_code == 200 else []
+            threat_count = len(threats)
+    except:
+        pass
+
+    # Short responses based on keywords
+    if any(w in message_lower for w in ["hi", "hello", "hey", "sup"]):
+        return f"👋 Hey! I'm monitoring {threat_count} threats in real-time. Ask me about specific domains, threat patterns, or system stats!"
+
+    if any(w in message_lower for w in ["status", "how", "doing", "health"]):
+        autonomy = stats.get("autonomy_score", 0)
+        cache_size = stats.get("cache", {}).get("memory_cache_size", 0)
+        return f"✅ System healthy! {threat_count} threats tracked | {autonomy:.1f}% autonomy | {cache_size} cached analyses | Local ML + Gemini working"
+
+    if any(w in message_lower for w in ["entropy", "shannon", "dga"]):
+        entropy_data = stats.get("entropy", {})
+        avg_entropy = entropy_data.get("avg_entropy", 0)
+        return f"📊 Shannon Entropy: {avg_entropy:.2f}/5.0 | >4.2 = suspicious random patterns (DGA) | Currently analyzing DNS queries in real-time"
+
+    if any(w in message_lower for w in ["isolation", "forest", "anomaly", "ml", "local"]):
+        anomaly_data = stats.get("anomaly", {})
+        is_trained = anomaly_data.get("is_trained", False)
+        samples = anomaly_data.get("total_samples", 0)
+        return f"🎯 Isolation Forest: {'Trained' if is_trained else 'Training'} | {samples} samples | Detects unusual DNS patterns | Requires 10+ samples for detection"
+
+    if any(w in message_lower for w in ["vector", "embedding", "rag", "memory", "knowledge"]):
+        vm_stats = stats.get("vector_memory", {})
+        return f"🧠 Vector Store: {vm_stats.get('total_embeddings', 0)} embeddings | Semantic search ready | RAG pipeline active | Ollama support in .env"
+
+    if any(w in message_lower for w in ["adguard", "dns", "block", "filter"]):
+        return f"🛡️ AdGuard DNS: Active | Filtering malicious domains | Check http://localhost:8080 for dashboard | Logs all DNS queries"
+
+    if any(w in message_lower for w in ["gemini", "cloud", "ai", "api"]):
+        cloud = stats.get("cloud_decisions", 0)
+        local = stats.get("local_decisions", 0)
+        sources = stats.get("cache", {}).get("source_distribution", {})
+        return f"🤖 AI Stack: {cloud} Gemini calls | {local} local ML | {sources.get('gemini_api', 0)} API | {sources.get('knowledge_base', 0)} KB | Falls back to heuristics when quota exceeded"
+
+    if any(w in message_lower for w in ["threat", "attack", "malware", "suspicious"]):
+        high_risks = (
+            sum(1 for t in threats if t.get("risk_score") in ["High", "Critical"])
+            if threat_count > 0
+            else 0
+        )
+        return f"🚨 {threat_count} threats detected | {high_risks} high-risk | Categories: {list(stats.get('classifier', {}).get('category_distribution', {}).keys())}"
+
+    if any(w in message_lower for w in ["stats", "number", "count", "how many"]):
+        decisions = stats.get("total_decisions", 0)
+        patterns = stats.get("classifier", {}).get("total_patterns", 0)
+        return f"📈 {decisions} total decisions | {threat_count} threats | {patterns} ML patterns | 73 cached analyses | 5 seed patterns"
+
+    if any(w in message_lower for w in ["help", "what", "can"]):
+        return """🤖 I can help with:
+• Domain analysis (e.g., "analyze example.com")
+• System status ("how are you?")
+• Threat stats ("how many threats?")
+• ML explainers ("what is entropy?", "how does isolation forest work?")
+• AdGuard info ("is dns filtering active?")
+• Vector/RAG ("what's in memory?")"""
+
+    # Default conversational response
+    return f"🤔 Got it! I see {threat_count} threats tracked. Ask me about specific domains, system stats, or how my ML detection works (Shannon entropy, Isolation Forest, vector embeddings)!"

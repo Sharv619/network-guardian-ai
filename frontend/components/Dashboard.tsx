@@ -105,6 +105,15 @@ const Dashboard: React.FC<DashboardProps> = ({ selectedModel }) => {
                 >
                     STATS PANEL
                 </button>
+                <button
+                    onClick={() => setActiveTab('intelligence')}
+                    className={`pb-2 px-4 font-mono font-bold transition-colors ${activeTab === 'intelligence'
+                        ? 'text-accent border-b-2 border-accent'
+                        : 'text-dark-500 hover:text-dark-300'
+                        }`}
+                >
+                    SYSTEM INTELLIGENCE
+                </button>
             </div>
 
             <div className="flex-grow overflow-hidden">
@@ -250,9 +259,9 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
             <div className="flex items-center gap-2">
               <div className="flex items-center bg-yellow-500/20 px-2 py-1 rounded-full text-xs font-medium">
                 <Wifi className="w-3 h-3 text-yellow-400 mr-1 animate-pulse" />
-                <span className="text-yellow-400">INITIALIZING</span>
+                <span className="text-yellow-100">INITIALIZING</span>
               </div>
-              <span className="text-dark-500 text-sm font-mono">• Connecting...</span>
+              <span className="text-dark-300 text-sm font-mono">• Connecting...</span>
             </div>
           </div>
           <SkeletonLoader variant="list-item" count={5} className="w-full" />
@@ -281,7 +290,7 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                             <span className="text-red-500 text-sm font-mono">DISCONNECTED</span>
                         </>
                     )}
-                    <span className="text-dark-500 text-sm font-mono">• {history.length} records</span>
+                    <span className="text-dark-300 text-sm font-mono">• {history.length} records</span>
                 </div>
                 
                 {/* Risk Filter Buttons */}
@@ -363,7 +372,7 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                                     </span>
                                 )}
                             </div>
-                            <span className="text-xs text-dark-500 font-mono">{displayTime}</span>
+                            <span className="text-xs text-dark-400 font-mono">{displayTime}</span>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2 text-sm mb-3">
@@ -380,12 +389,12 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                         </div>
 
                         {item.adguard_metadata && item.adguard_metadata.reason !== 'NotFilteredNotFound' && (
-                            <div className="mb-3 p-2 bg-dark-900/50 rounded border border-dark-700/50">
-                                <p className="text-[10px] uppercase font-mono text-dark-500 mb-1">AdGuard Intelligence</p>
+                            <div className="mb-3 px-3 py-2 border-l-2 border-orange-500/50">
+                                <p className="text-[10px] uppercase font-mono text-dark-400 mb-1">AdGuard Intelligence</p>
                                 <div className="flex flex-col space-y-1">
                                     <div className="flex justify-between text-xs">
                                         <span className="text-dark-400">Reason:</span>
-                                        <span className="text-orange-400 font-mono">{item.adguard_metadata.reason}</span>
+                                        <span className="text-orange-300 font-mono">{item.adguard_metadata.reason}</span>
                                     </div>
                                     {item.adguard_metadata.rule && (
                                         <div className="flex flex-col text-xs">

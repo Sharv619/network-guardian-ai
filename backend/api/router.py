@@ -89,7 +89,7 @@ def api_analyze(request: dict[str, Any]):
             analysis["timestamp"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
         return analysis
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # Mount the chat routers

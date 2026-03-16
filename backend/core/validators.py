@@ -21,6 +21,7 @@ PUNYCODE_PREFIX = "xn--"
 
 class ValidationError(Exception):
     """Raised when input validation fails."""
+
     pass
 
 
@@ -84,7 +85,7 @@ def validate_domain(
             try:
                 label.encode("ascii").decode("idna")
             except Exception as e:
-                raise ValidationError(f"Invalid punycode in label '{label}': {e}")
+                raise ValidationError(f"Invalid punycode in label '{label}': {e}") from e
         else:
             if not re.match(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$", label, re.IGNORECASE):
                 raise ValidationError(f"Label '{label}' contains invalid characters")
@@ -173,7 +174,7 @@ def validate_url(url: str, allowed_schemes: set[str] | None = None) -> str:
     try:
         parsed = urlparse(url)
     except Exception as e:
-        raise ValidationError(f"Invalid URL format: {e}")
+        raise ValidationError(f"Invalid URL format: {e}") from e
 
     if parsed.scheme.lower() not in allowed_schemes:
         raise ValidationError(f"URL scheme must be one of: {allowed_schemes}")
@@ -208,7 +209,7 @@ def validate_ip_address(ip: str) -> str:
         ipaddress.ip_address(ip.strip())
         return ip.strip()
     except ValueError as e:
-        raise ValidationError(f"Invalid IP address: {e}")
+        raise ValidationError(f"Invalid IP address: {e}") from e
 
 
 def validate_request_size(content_length: int | None, max_size: int) -> bool:
