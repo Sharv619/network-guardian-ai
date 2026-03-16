@@ -33,7 +33,7 @@ from backend.core.config import settings
 from backend.logic.analysis_cache import analysis_cache
 from backend.logic.vector_store import vector_memory
 from backend.logic.metadata_classifier import classifier
-from backend.logic.ml_heuristics import calculate_entropy, calculate_digit_ratio, calculate_vowel_ratio
+from backend.logic.ml_heuristics import calculate_entropy, is_dga, extract_domain_features
 from backend.logic.anomaly_engine import AnomalyEngine
 from backend.db.repository import get_domain_repository
 from backend.services.sheets_logger import log_threat_to_sheet

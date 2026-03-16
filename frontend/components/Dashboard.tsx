@@ -61,7 +61,7 @@ const Dashboard: React.FC<DashboardProps> = ({ selectedModel }) => {
 
     return (
         <div className="h-full flex flex-col space-y-6">
-            <div className="flex space-x-4 border-b border-slate-700 pb-2 overflow-x-auto whitespace-nowrap">
+            <div className="flex space-x-4 border-b border-dark-700 pb-2 overflow-x-auto whitespace-nowrap">
                 <button
                     onClick={() => {
                         setActiveTab('live');
@@ -69,8 +69,8 @@ const Dashboard: React.FC<DashboardProps> = ({ selectedModel }) => {
                         setSelectedDomainFromLiveFeed(null);
                     }}
                     className={`pb-2 px-4 font-mono font-bold transition-colors ${activeTab === 'live'
-                        ? 'text-cyan-400 border-b-2 border-cyan-400'
-                        : 'text-slate-500 hover:text-slate-300'
+                        ? 'text-accent border-b-2 border-accent'
+                        : 'text-dark-500 hover:text-dark-300'
                         }`}
                 >
                     LIVE FEED
@@ -81,8 +81,8 @@ const Dashboard: React.FC<DashboardProps> = ({ selectedModel }) => {
                         // Keep the selected domain when switching to manual
                     }}
                     className={`pb-2 px-4 font-mono font-bold transition-colors ${activeTab === 'manual'
-                        ? 'text-cyan-400 border-b-2 border-cyan-400'
-                        : 'text-slate-500 hover:text-slate-300'
+                        ? 'text-accent border-b-2 border-accent'
+                        : 'text-dark-500 hover:text-dark-300'
                         }`}
                 >
                     MANUAL ANALYSIS
@@ -90,8 +90,8 @@ const Dashboard: React.FC<DashboardProps> = ({ selectedModel }) => {
                 <button
                     onClick={() => setActiveTab('chat')}
                     className={`pb-2 px-4 font-mono font-bold transition-colors ${activeTab === 'chat'
-                        ? 'text-cyan-400 border-b-2 border-cyan-400'
-                        : 'text-slate-500 hover:text-slate-300'
+                        ? 'text-accent border-b-2 border-accent'
+                        : 'text-dark-500 hover:text-dark-300'
                         }`}
                 >
                     SYSTEM CHAT
@@ -99,8 +99,8 @@ const Dashboard: React.FC<DashboardProps> = ({ selectedModel }) => {
                 <button
                     onClick={() => setActiveTab('stats')}
                     className={`pb-2 px-4 font-mono font-bold transition-colors ${activeTab === 'stats'
-                        ? 'text-cyan-400 border-b-2 border-cyan-400'
-                        : 'text-slate-500 hover:text-slate-300'
+                        ? 'text-accent border-b-2 border-accent'
+                        : 'text-dark-500 hover:text-dark-300'
                         }`}
                 >
                     STATS PANEL
@@ -252,7 +252,7 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                 <Wifi className="w-3 h-3 text-yellow-400 mr-1 animate-pulse" />
                 <span className="text-yellow-400">INITIALIZING</span>
               </div>
-              <span className="text-slate-500 text-sm font-mono">• Connecting...</span>
+              <span className="text-dark-500 text-sm font-mono">• Connecting...</span>
             </div>
           </div>
           <SkeletonLoader variant="list-item" count={5} className="w-full" />
@@ -281,7 +281,7 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                             <span className="text-red-500 text-sm font-mono">DISCONNECTED</span>
                         </>
                     )}
-                    <span className="text-slate-500 text-sm font-mono">• {history.length} records</span>
+                    <span className="text-dark-500 text-sm font-mono">• {history.length} records</span>
                 </div>
                 
                 {/* Risk Filter Buttons */}
@@ -291,7 +291,7 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                         className={`px-3 py-1 rounded text-sm font-mono transition-colors ${
                             riskFilter === 'high' 
                             ? 'bg-red-600 text-white' 
-                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                            : 'bg-dark-700 text-dark-400 hover:bg-dark-600'
                         }`}
                     >
                         🔴 HIGH RISK ONLY
@@ -300,8 +300,8 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                         onClick={() => setRiskFilter('all')}
                         className={`px-3 py-1 rounded text-sm font-mono transition-colors ${
                             riskFilter === 'all' 
-                            ? 'bg-cyan-600 text-white' 
-                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                            ? 'bg-accent text-white' 
+                            : 'bg-dark-700 text-dark-400 hover:bg-dark-600'
                         }`}
                     >
                         📋 ALL THREATS
@@ -324,11 +324,11 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                 const isBlocked = item.adguard_metadata && item.adguard_metadata.reason !== 'NotFilteredNotFound';
 
                 return (
-                    <div key={item.timestamp + idx} className={`bg-slate-800 p-4 rounded border-l-4 ${item.is_anomaly ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)] animate-[pulse_3s_infinite]' : geoRisk ? 'border-red-500 bg-red-900/10' : isBlocked ? 'border-orange-500 bg-orange-950/5' : 'border-slate-600'} hover:border-cyan-500 transition-all shadow-md relative overflow-hidden group`}>
+                    <div key={item.timestamp + idx} className={`bg-dark-800 p-4 rounded border-l-4 ${item.is_anomaly ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)] animate-[pulse_3s_infinite]' : geoRisk ? 'border-red-500 bg-red-900/10' : isBlocked ? 'border-orange-500 bg-orange-950/5' : 'border-dark-600'} hover:border-accent transition-all shadow-md relative overflow-hidden group`}>
                         <div className="flex justify-between items-start mb-2">
                             <div className="flex items-center space-x-2">
                                 <h3 
-                                    className="text-lg font-bold text-slate-100 font-mono break-all cursor-pointer hover:text-cyan-400 transition-colors"
+                                    className="text-lg font-bold text-dark-100 font-mono break-all cursor-pointer hover:text-accent transition-colors"
                                     onClick={() => handleDomainClick(item.domain, item)}
                                     title="Click to view detailed backend analysis"
                                 >
@@ -336,14 +336,14 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                                 </h3>
                                 <button
                                     onClick={() => handleDomainClick(item.domain, item)}
-                                    className="p-1 hover:bg-slate-700 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                    className="p-1 hover:bg-dark-700 rounded transition-colors opacity-0 group-hover:opacity-100"
                                     title="View detailed analysis"
                                 >
-                                    <EyeIcon className="w-4 h-4 text-cyan-400" />
+                                    <EyeIcon className="w-4 h-4 text-accent" />
                                 </button>
                                 <button
                                     onClick={() => handleDomainSelectForManual(item.domain, item)}
-                                    className="p-1 hover:bg-slate-700 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                    className="p-1 hover:bg-dark-700 rounded transition-colors opacity-0 group-hover:opacity-100"
                                     title="Copy to Manual Analysis"
                                 >
                                     <Target className="w-4 h-4 text-blue-400" />
@@ -352,7 +352,7 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                                     <LocateFixed className="w-5 h-5 text-red-500 animate-pulse" />
                                 )}
                                 {isBlocked && (
-                                    <span className="flex items-center space-x-1 px-2 py-0.5 bg-slate-700 text-cyan-400 border border-cyan-500/30 rounded text-[10px] font-mono uppercase tracking-wider">
+                                    <span className="flex items-center space-x-1 px-2 py-0.5 bg-dark-700 text-accent border border-accent/30 rounded text-[10px] font-mono uppercase tracking-wider">
                                         <ShieldAlert className="w-3 h-3" />
                                         <span>ADGUARD BLOCKED: {item.adguard_metadata?.rule || item.adguard_metadata?.reason}</span>
                                     </span>
@@ -363,12 +363,12 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                                     </span>
                                 )}
                             </div>
-                            <span className="text-xs text-slate-500 font-mono">{displayTime}</span>
+                            <span className="text-xs text-dark-500 font-mono">{displayTime}</span>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2 text-sm mb-3">
                             <RiskBadge score={item.risk_score} />
-                            <span className="px-2 py-0.5 bg-slate-700 text-slate-300 rounded text-xs font-mono uppercase tracking-wide">
+                            <span className="px-2 py-0.5 bg-dark-700 text-dark-300 rounded text-xs font-mono uppercase tracking-wide">
                                 {item.category}
                             </span>
                             {geoRisk && (
@@ -380,24 +380,24 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                         </div>
 
                         {item.adguard_metadata && item.adguard_metadata.reason !== 'NotFilteredNotFound' && (
-                            <div className="mb-3 p-2 bg-slate-900/50 rounded border border-slate-700/50">
-                                <p className="text-[10px] uppercase font-mono text-slate-500 mb-1">AdGuard Intelligence</p>
+                            <div className="mb-3 p-2 bg-dark-900/50 rounded border border-dark-700/50">
+                                <p className="text-[10px] uppercase font-mono text-dark-500 mb-1">AdGuard Intelligence</p>
                                 <div className="flex flex-col space-y-1">
                                     <div className="flex justify-between text-xs">
-                                        <span className="text-slate-400">Reason:</span>
+                                        <span className="text-dark-400">Reason:</span>
                                         <span className="text-orange-400 font-mono">{item.adguard_metadata.reason}</span>
                                     </div>
                                     {item.adguard_metadata.rule && (
                                         <div className="flex flex-col text-xs">
-                                            <span className="text-slate-400">Rule:</span>
-                                            <code className="text-[10px] text-cyan-500 bg-slate-900 p-1 rounded mt-1 overflow-x-auto">{item.adguard_metadata.rule}</code>
+                                            <span className="text-dark-400">Rule:</span>
+                                            <code className="text-[10px] text-accent-light bg-dark-900 p-1 rounded mt-1 overflow-x-auto">{item.adguard_metadata.rule}</code>
                                         </div>
                                     )}
                                 </div>
                             </div>
                         )}
 
-                        <p className="text-slate-400 text-sm leading-relaxed font-sans border-t border-slate-700 pt-2">
+                        <p className="text-dark-400 text-sm leading-relaxed font-sans border-t border-dark-700 pt-2">
                             {item.summary}
                         </p>
 
@@ -417,7 +417,7 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                 );
             })}
             {history.length === 0 && (
-                <div className="text-center text-slate-500 py-10 font-mono">
+                <div className="text-center text-dark-500 py-10 font-mono">
                     No threats detected... yet.
                 </div>
             )}
@@ -512,43 +512,43 @@ const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel, selected
         const anomalyScoreBinary = (result.anomaly_score || 0).toString(2).replace('.', '');
         
         return (
-            <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 mb-6">
+            <div className="bg-dark-800 p-4 rounded-lg border border-dark-700 mb-6">
                 <div className="flex items-center justify-between mb-4">
                     <h4 className="text-lg font-semibold text-white">Vector Embedding Data</h4>
-                    <Activity className="w-5 h-5 text-cyan-400" />
+                    <Activity className="w-5 h-5 text-accent" />
                 </div>
                 
                 <div className="space-y-4">
                     <div>
                         <div className="flex justify-between text-sm mb-2">
-                            <span className="text-slate-400">Entropy Binary Representation</span>
-                            <span className="text-slate-400">Length: {entropyBinary.length}</span>
+                            <span className="text-dark-400">Entropy Binary Representation</span>
+                            <span className="text-dark-400">Length: {entropyBinary.length}</span>
                         </div>
-                        <div className="bg-slate-900 p-3 rounded border border-slate-600 font-mono text-sm overflow-x-auto">
+                        <div className="bg-dark-900 p-3 rounded border border-dark-600 font-mono text-sm overflow-x-auto">
                             {entropyBinary.substring(0, 64)}{entropyBinary.length > 64 ? '...' : ''}
                         </div>
                     </div>
                     
                     <div>
                         <div className="flex justify-between text-sm mb-2">
-                            <span className="text-slate-400">Anomaly Score Binary</span>
-                            <span className="text-slate-400">Length: {anomalyScoreBinary.length}</span>
+                            <span className="text-dark-400">Anomaly Score Binary</span>
+                            <span className="text-dark-400">Length: {anomalyScoreBinary.length}</span>
                         </div>
-                        <div className="bg-slate-900 p-3 rounded border border-slate-600 font-mono text-sm overflow-x-auto">
+                        <div className="bg-dark-900 p-3 rounded border border-dark-600 font-mono text-sm overflow-x-auto">
                             {anomalyScoreBinary.substring(0, 64)}{anomalyScoreBinary.length > 64 ? '...' : ''}
                         </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4 mt-4">
-                        <div className="bg-slate-900 p-3 rounded border border-slate-600">
-                            <div className="text-xs text-slate-400 mb-1">Similarity Match</div>
-                            <div className="text-lg font-bold text-cyan-400">
+                        <div className="bg-dark-900 p-3 rounded border border-dark-600">
+                            <div className="text-xs text-dark-400 mb-1">Similarity Match</div>
+                            <div className="text-lg font-bold text-accent">
                                 {result.has_similarity_match ? 'YES' : 'NO'}
                             </div>
                         </div>
-                        <div className="bg-slate-900 p-3 rounded border border-slate-600">
-                            <div className="text-xs text-slate-400 mb-1">Embedding Size</div>
-                            <div className="text-lg font-bold text-cyan-400">
+                        <div className="bg-dark-900 p-3 rounded border border-dark-600">
+                            <div className="text-xs text-dark-400 mb-1">Embedding Size</div>
+                            <div className="text-lg font-bold text-accent">
                                 {result.entropy ? Math.floor((result.entropy || 0) * 100) : 0} bits
                             </div>
                         </div>
@@ -560,20 +560,20 @@ const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel, selected
 
     return (
         <div className="flex flex-col h-full overflow-y-auto pr-2 custom-scrollbar">
-            <form onSubmit={handleAnalyze} className="bg-slate-800 p-5 rounded-lg border border-slate-700 mb-6 shadow-lg">
-                <label className="block text-xs font-mono text-cyan-500 mb-2 uppercase tracking-widest">Target Domain</label>
+            <form onSubmit={handleAnalyze} className="bg-dark-800 p-5 rounded-lg border border-dark-700 mb-6 shadow-lg">
+                <label className="block text-xs font-mono text-accent-light mb-2 uppercase tracking-widest">Target Domain</label>
                 <div className="flex gap-3">
                     <input
                         type="text"
                         value={domain}
                         onChange={(e) => setDomain(e.target.value)}
                         placeholder="e.g., suspicious-site.com"
-                        className="flex-grow bg-slate-900 border border-slate-600 rounded p-3 text-slate-100 focus:outline-none focus:border-cyan-500 font-mono transition-colors"
+                        className="flex-grow bg-dark-900 border border-dark-600 rounded p-3 text-dark-100 focus:outline-none focus:border-accent font-mono transition-colors"
                     />
                     <button
                         type="submit"
                         disabled={loading}
-                        className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-6 rounded transition-colors disabled:opacity-50 uppercase font-mono tracking-wide"
+                        className="bg-accent hover:bg-accent text-white font-bold py-2 px-6 rounded transition-colors disabled:opacity-50 uppercase font-mono tracking-wide"
                     >
                         {loading ? 'Scanning...' : 'Scan'}
                     </button>
@@ -581,7 +581,7 @@ const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel, selected
             </form>
 
             {result && (
-                <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 shadow-xl animate-fade-in mb-8">
+                <div className="bg-dark-800 rounded-lg p-6 border border-dark-700 shadow-xl animate-fade-in mb-8">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-xl font-bold text-white font-mono">Scan Results</h3>
                         <RiskBadge score={result.risk_score} />
@@ -592,30 +592,30 @@ const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel, selected
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
-                            <p className="text-xs text-slate-500 uppercase font-mono mb-1">Category</p>
-                            <p className="text-lg text-slate-200">{result.category}</p>
+                            <p className="text-xs text-dark-500 uppercase font-mono mb-1">Category</p>
+                            <p className="text-lg text-dark-200">{result.category}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 uppercase font-mono mb-1">Verdict</p>
-                            <p className="text-lg text-slate-200">{result.summary}</p>
+                            <p className="text-xs text-dark-500 uppercase font-mono mb-1">Verdict</p>
+                            <p className="text-lg text-dark-200">{result.summary}</p>
                         </div>
                         
                         {/* Additional forensic data from live feed */}
                         {result.entropy !== undefined && (
                             <div>
-                                <p className="text-xs text-slate-500 uppercase font-mono mb-1">Entropy Score</p>
+                                <p className="text-xs text-dark-500 uppercase font-mono mb-1">Entropy Score</p>
                                 <p className="text-lg text-white font-mono">{result.entropy?.toFixed(2)}</p>
                             </div>
                         )}
                         {result.is_anomaly !== undefined && (
                             <div>
-                                <p className="text-xs text-slate-500 uppercase font-mono mb-1">Anomaly Score</p>
+                                <p className="text-xs text-dark-500 uppercase font-mono mb-1">Anomaly Score</p>
                                 <p className="text-lg text-white font-mono">{result.anomaly_score?.toFixed(4)}</p>
                             </div>
                         )}
                         {result.analysis_source && (
                             <div>
-                                <p className="text-xs text-slate-500 uppercase font-mono mb-1">Analysis Source</p>
+                                <p className="text-xs text-dark-500 uppercase font-mono mb-1">Analysis Source</p>
                                 <p className="text-lg text-white font-mono capitalize">{result.analysis_source}</p>
                             </div>
                         )}
@@ -627,7 +627,7 @@ const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel, selected
 
             {/* Session Research Section */}
             <div className="mt-4">
-                <h3 className="text-slate-400 font-mono text-sm uppercase mb-4 border-b border-slate-700 pb-2">Session Research</h3>
+                <h3 className="text-dark-400 font-mono text-sm uppercase mb-4 border-b border-dark-700 pb-2">Session Research</h3>
                 <div className="space-y-3">
                     {sessionHistory.map((item, idx) => {
                         const displayTime = item.timestamp && !isNaN(Date.parse(item.timestamp))
@@ -639,19 +639,19 @@ const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel, selected
                               })
                             : "Unknown";
                         return (
-                            <div key={idx} className="bg-slate-800/50 p-3 rounded border-l-2 border-slate-600 flex justify-between items-center hover:bg-slate-800 transition-colors">
+                            <div key={idx} className="bg-dark-800/50 p-3 rounded border-l-2 border-dark-600 flex justify-between items-center hover:bg-dark-800 transition-colors">
                                 <div>
-                                    <div className="font-mono text-slate-200 font-bold">{item.domain}</div>
-                                    <div className="text-xs text-slate-500">{item.category} • {item.risk_score} Risk</div>
+                                    <div className="font-mono text-dark-200 font-bold">{item.domain}</div>
+                                    <div className="text-xs text-dark-500">{item.category} • {item.risk_score} Risk</div>
                                 </div>
-                                <div className="text-xs text-slate-600 font-mono">
+                                <div className="text-xs text-dark-600 font-mono">
                                     {displayTime}
                                 </div>
                             </div>
                         );
                     })}
                     {sessionHistory.length === 0 && (
-                        <div className="text-slate-500 text-xs font-mono italic">No manual scans this session.</div>
+                        <div className="text-dark-500 text-xs font-mono italic">No manual scans this session.</div>
                     )}
                 </div>
             </div>
@@ -663,7 +663,7 @@ const ManualAnalysis: React.FC<ManualAnalysisProps> = ({ selectedModel, selected
 
 
 const RiskBadge: React.FC<{ score: string }> = ({ score }) => {
-    let color = 'bg-slate-600 text-slate-200';
+    let color = 'bg-dark-600 text-dark-200';
 
     // Normalize score cases
     const s = score.toLowerCase();
@@ -691,10 +691,10 @@ const CacheBarChart: React.FC<{ cacheStats: any }> = ({ cacheStats }) => {
       {data.map((item, index) => (
         <div key={index} className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-300">{item.label}</span>
+            <span className="text-dark-300">{item.label}</span>
             <span className="font-bold text-white">{item.value}%</span>
           </div>
-          <div className="w-full bg-slate-700 rounded-full h-2">
+          <div className="w-full bg-dark-700 rounded-full h-2">
             <div 
               className={`${item.color}`} 
               style={{ width: `${item.value}%` }}
@@ -747,8 +747,8 @@ const SourceDistributionPieChart: React.FC<{ sourceDistribution: any }> = ({ sou
             );
           })}
           {/* Center circle */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-slate-800 rounded-full border-2 border-slate-700 flex items-center justify-center">
-            <span className="text-xs font-mono text-slate-400">Total</span>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-dark-800 rounded-full border-2 border-dark-700 flex items-center justify-center">
+            <span className="text-xs font-mono text-dark-400">Total</span>
           </div>
         </div>
       </div>
@@ -762,7 +762,7 @@ const SourceDistributionPieChart: React.FC<{ sourceDistribution: any }> = ({ sou
                 className="w-3 h-3 rounded-full" 
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-slate-300">{item.label}</span>
+              <span className="text-dark-300">{item.label}</span>
             </div>
             <span className="font-bold text-white">{item.value}%</span>
           </div>

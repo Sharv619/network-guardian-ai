@@ -61,6 +61,21 @@ ruff check backend/ --fix
 mypy backend/ --ignore-missing-imports
 ```
 
+### Run PromptFoo Evaluations
+```bash
+promptfoo eval
+promptfoo view
+```
+
+### MCP Server (for AI agent integration)
+```bash
+# Run the MCP server
+python mcp_server.py
+
+# Or use the network_guardian_mcp.py for simpler version
+python network_guardian_mcp.py
+```
+
 ## Project Structure
 ```
 backend/

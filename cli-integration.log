@@ -1,0 +1,2 @@
+{"ingestionServiceUrl":"http://localhost:3000","level":"info","message":"CLI Integration Service initialized","queryServiceUrl":"http://localhost:4000","retries":3,"service":"cli-integration","timeout":30000,"timestamp":"2026-03-09T01:55:26.975Z"}
+{"ingestionServiceUrl":"http://localhost:3000","level":"info","message":"CLI Integration Service initialized","queryServiceUrl":"http://localhost:4000","retries":3,"service":"cli-integration","timeout":30000,"timestamp":"2026-03-09T01:55:40.370Z"}

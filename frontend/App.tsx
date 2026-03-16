@@ -69,7 +69,7 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900 font-sans flex flex-col">
+    <div className="min-h-screen bg-dark-950 font-sans text-dark-100 flex flex-col">
       <Header
         availableModels={availableModels}
         selectedModel={selectedModel}
