@@ -17,6 +17,12 @@ services:
       - ADGUARD_URL=http://adguard:80
       - ADGUARD_USER=${ADGUARD_USER}
       - ADGUARD_PASS=${ADGUARD_PASS}
+      # Ollama - use host.docker.internal to connect to host machine
+      - OLLAMA_ENABLED=${OLLAMA_ENABLED:-false}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-nomic-embed-text}
+      - OLLAMA_CHAT_MODEL=${OLLAMA_CHAT_MODEL:-llama3.2}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-mock}
     ports:
       - "8000:8000"
     volumes:
@@ -26,6 +32,8 @@ services:
     depends_on:
       adguard:
         condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5).read()\""]
       interval: 10s

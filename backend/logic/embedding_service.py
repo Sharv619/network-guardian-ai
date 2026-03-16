@@ -1,4 +1,3 @@
-
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -61,7 +60,6 @@ class EmbeddingService(ABC):
 
 
 class SentenceTransformerService(EmbeddingService):
-
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
         self.model_name = model_name
         self._model: Any = None
@@ -72,7 +70,8 @@ class SentenceTransformerService(EmbeddingService):
             # Add conditional import based on settings availability
             try:
                 from backend.core.config import settings
-                embedding_enabled = getattr(settings, 'EMBEDDING_SERVICE_ENABLED', True)
+
+                embedding_enabled = getattr(settings, "EMBEDDING_SERVICE_ENABLED", True)
                 if not embedding_enabled:
                     self._available = False
                     logger.info("SentenceTransformerService disabled via config")
@@ -186,6 +185,64 @@ class GeminiEmbeddingService(EmbeddingService):
         return self._available
 
 
+class OllamaEmbeddingService(EmbeddingService):
+    """Ollama embedding service for local embeddings."""
+
+    def __init__(
+        self, base_url: str = "http://localhost:11434", model_name: str = "nomic-embed-text"
+    ):
+        import requests
+
+        self._base_url = base_url
+        self._model = model_name
+        self._requests = requests
+        self._dimension = 768  # Default, will be updated on first call
+        self._available = self._check_available()
+
+    def _check_available(self) -> bool:
+        """Check if Ollama is available."""
+        try:
+            response = self._requests.get(f"{self._base_url}/api/tags", timeout=2)
+            return response.ok
+        except Exception:
+            return False
+
+    def embed(self, text: str) -> NDArray[np.float32]:
+        """Generate embedding using Ollama API."""
+        if not self._available:
+            logger.warning("Ollama not available, using fallback")
+            return np.zeros(self._dimension, dtype=np.float32)
+
+        try:
+            response = self._requests.post(
+                f"{self._base_url}/api/embeddings",
+                json={"model": self._model, "prompt": text},
+                timeout=10,
+            )
+            if response.ok:
+                data = response.json()
+                embedding = data.get("embedding", [])
+                if embedding:
+                    self._dimension = len(embedding)
+                    return np.array(embedding, dtype=np.float32)
+        except Exception as e:
+            logger.warning(f"Ollama embedding failed: {e}")
+
+        return np.zeros(self._dimension, dtype=np.float32)
+
+    def embed_batch(self, texts: list[str]) -> list[NDArray[np.float32]]:
+        """Generate embeddings for multiple texts."""
+        return [self.embed(text) for text in texts]
+
+    def get_dimension(self) -> int:
+        """Get the embedding dimension."""
+        return self._dimension
+
+    def is_available(self) -> bool:
+        """Check if the service is available."""
+        return self._available
+
+
 class MockEmbeddingService(EmbeddingService):
     """
     Mock embedding service for testing.
@@ -235,14 +292,16 @@ def create_embedding_service(
     provider: str = "sentence-transformers",
     model: str = "all-MiniLM-L6-v2",
     api_key: str | None = None,
+    ollama_url: str = "http://localhost:11434",
 ) -> EmbeddingService:
     """
     Factory function to create an embedding service.
 
     Args:
-        provider: The embedding provider ("sentence-transformers", "gemini", "mock")
+        provider: The embedding provider ("sentence-transformers", "gemini", "ollama", "mock")
         model: The model name to use
         api_key: API key for cloud providers
+        ollama_url: Base URL for Ollama
 
     Returns:
         An EmbeddingService instance
@@ -251,6 +310,8 @@ def create_embedding_service(
         return SentenceTransformerService(model_name=model)
     elif provider == "gemini":
         return GeminiEmbeddingService(api_key=api_key, model=model)
+    elif provider == "ollama":
+        return OllamaEmbeddingService(base_url=ollama_url, model_name=model)
     elif provider == "mock":
         return MockEmbeddingService()
     else:

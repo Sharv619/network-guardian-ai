@@ -148,6 +148,12 @@ const SystemIntelligence: React.FC<SystemIntelligenceProps> = ({ selectedModel }
     ? Math.round((stats.local_decisions / stats.total_decisions) * 100)
     : 0;
 
+  // Show actual values when autonomy is 0
+  const displayPercentage = autonomyPercentage > 0 ? autonomyPercentage : 
+    (stats.local_decisions + stats.cloud_decisions > 0 ? 0 : '--');
+  const displayLabel = autonomyPercentage > 0 ? 'Local Processing' : 
+    (stats.local_decisions + stats.cloud_decisions > 0 ? 'Cloud Only' : 'No Data');
+
   const categoryData = Object.entries(stats.classifier.category_distribution).map(([name, value]) => ({
     name,
     value,
@@ -293,14 +299,14 @@ const SystemIntelligence: React.FC<SystemIntelligenceProps> = ({ selectedModel }
               <Brain className="w-5 h-5 text-purple-400" />
               Decision Autonomy
             </h3>
-            <div className="relative w-48 h-48 mx-auto">
+              <div className="relative w-48 h-48 mx-auto">
               <svg className="w-full h-full transform -rotate-90">
                 <circle cx="96" cy="96" r="88" fill="none" stroke="#1e293b" strokeWidth="12" />
                 <circle 
                   cx="96" cy="96" r="88" fill="none" 
                   stroke="url(#autonomyGradient)" strokeWidth="12"
                   strokeLinecap="round"
-                  strokeDasharray={`${autonomyPercentage * 5.52} 552`}
+                  strokeDasharray={`${(displayPercentage === '--' ? 0 : displayPercentage) * 5.52} 552`}
                   className="transition-all duration-1000"
                 />
                 <defs>
@@ -311,8 +317,8 @@ const SystemIntelligence: React.FC<SystemIntelligenceProps> = ({ selectedModel }
                 </defs>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-5xl font-black text-white">{autonomyPercentage}%</span>
-                <span className="text-slate-400 text-sm">Local Processing</span>
+                <span className="text-5xl font-black text-white">{displayPercentage}{displayPercentage !== '--' ? '%' : ''}</span>
+                <span className="text-slate-400 text-sm">{displayLabel}</span>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 mt-6">

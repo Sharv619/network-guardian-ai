@@ -723,6 +723,45 @@ def generate_system_response(analysis_data: dict[str, Any]) -> str:
 
     domain = analysis_data.get("domain")
     message = analysis_data.get("message", "")
+    message_lower = message.lower().strip() if message else ""
+
+    # PRIORITY: Handle shortcut commands even in full analysis mode
+    if (
+        message_lower in ["ml", "entropy", "status", "stats"]
+        or "isolation" in message_lower
+        or "forest" in message_lower
+    ):
+        print(f"DEBUG: Shortcut detected: {message_lower}")
+        # Use httpx to get stats directly
+        import httpx
+
+        try:
+            sync_client = httpx.Client(timeout=5.0)
+            stats_response = sync_client.get("http://localhost:8000/api/stats/system")
+            stats = stats_response.json() if stats_response.status_code == 200 else {}
+            sync_client.close()
+        except Exception as e:
+            print(f"DEBUG: Exception getting stats: {e}")
+            stats = {}
+
+        if message_lower == "ml" or "isolation" in message_lower or "forest" in message_lower:
+            anomaly_data = stats.get("anomaly", {})
+            is_trained = anomaly_data.get("is_trained", False)
+            samples = anomaly_data.get("total_samples", 0)
+            return f"🎯 **Isolation Forest**: {'Trained' if is_trained else 'Cold Start (Training)'} | {samples} samples | Detects unusual DNS patterns via statistical outlier detection"
+
+        if message_lower == "entropy" or "shannon" in message_lower:
+            entropy_data = stats.get("entropy", {})
+            avg_entropy = entropy_data.get("avg_entropy", 0)
+            threshold = entropy_data.get("threshold", 3.8)
+            return f"📊 **Shannon Entropy**: Avg {avg_entropy:.2f}/5.0 | Threshold {threshold} | >{threshold} = suspicious random patterns (DGA)"
+
+        if message_lower == "status" or message_lower == "stats":
+            autonomy = stats.get("autonomy_score", 0)
+            cache_size = stats.get("cache", {}).get("memory_cache_size", 0)
+            patterns = stats.get("patterns_learned", 0)
+            seed_patterns = stats.get("seed_patterns", 0)
+            return f"✅ **System Status**: {autonomy:.1f}% autonomy | {cache_size} cached | {seed_patterns} seed + {patterns} learned patterns"
 
     # Header
     response_parts.append("🛡️ **Network Guardian AI - System Awareness**")
@@ -837,6 +876,31 @@ async def generate_conversational_response(message: str) -> str:
     except:
         pass
 
+    # PRIORITY: Handle exact shortcut commands first (ml, entropy, status, etc.)
+    if (
+        message_lower == "ml"
+        or "isolation" in message_lower
+        or "forest" in message_lower
+        or "anomaly" in message_lower
+    ):
+        anomaly_data = stats.get("anomaly", {})
+        is_trained = anomaly_data.get("is_trained", False)
+        samples = anomaly_data.get("total_samples", 0)
+        return f"🎯 **Isolation Forest**: {'Trained' if is_trained else 'Cold Start (Training)'} | {samples} samples | Detects unusual DNS patterns via statistical outlier detection"
+
+    if message_lower == "entropy" or "shannon" in message_lower:
+        entropy_data = stats.get("entropy", {})
+        avg_entropy = entropy_data.get("avg_entropy", 0)
+        threshold = entropy_data.get("threshold", 3.8)
+        return f"📊 **Shannon Entropy**: Avg {avg_entropy:.2f}/5.0 | Threshold {threshold} | >{threshold} = suspicious random patterns (DGA)"
+
+    if message_lower == "status" or message_lower == "stats":
+        autonomy = stats.get("autonomy_score", 0)
+        cache_size = stats.get("cache", {}).get("memory_cache_size", 0)
+        patterns = stats.get("patterns_learned", 0)
+        seed_patterns = stats.get("seed_patterns", 0)
+        return f"✅ **System Status**: {threat_count} threats | {autonomy:.1f}% autonomy | {cache_size} cached | {seed_patterns} seed + {patterns} learned patterns"
+
     # Short responses based on keywords
     if any(w in message_lower for w in ["hi", "hello", "hey", "sup"]):
         return f"👋 Hey! I'm monitoring {threat_count} threats in real-time. Ask me about specific domains, threat patterns, or system stats!"
@@ -867,6 +931,9 @@ async def generate_conversational_response(message: str) -> str:
     if any(w in message_lower for w in ["gemini", "cloud", "ai", "api"]):
         cloud = stats.get("cloud_decisions", 0)
         local = stats.get("local_decisions", 0)
+        return (
+            f"☁️ Gemini AI: {cloud} decisions | Local ML: {local} decisions | Hybrid analysis active"
+        )
         sources = stats.get("cache", {}).get("source_distribution", {})
         return f"🤖 AI Stack: {cloud} Gemini calls | {local} local ML | {sources.get('gemini_api', 0)} API | {sources.get('knowledge_base', 0)} KB | Falls back to heuristics when quota exceeded"
 

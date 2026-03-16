@@ -11,6 +11,11 @@ export const getAvailableModels = async (): Promise<string[]> => {
         const res = await fetch(`${API_BASE}/models`);
         if (!res.ok) throw new Error('Failed to fetch models');
         const data = await res.json();
+        
+        // Handle both old format (array) and new format (array of objects with provider)
+        if (Array.isArray(data)) {
+            return data.map((m: any) => typeof m === 'string' ? m : m.id);
+        }
         return data.models || [];
     } catch (error) {
         console.error("Model Discovery Error:", error);

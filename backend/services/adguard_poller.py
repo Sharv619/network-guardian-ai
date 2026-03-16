@@ -327,11 +327,9 @@ def poll_adguard():
                         )
 
                         category = analysis.get("category")
-                        if (
-                            analysis.get("analysis_source") == "gemini_ai"
-                            and category
-                            and category not in ["Unknown", "General Traffic"]
-                        ):
+                        if category and category not in ["Unknown", "General Traffic"]:
+                            # Learn from any analysis source (Gemini or local)
+                            source = analysis.get("analysis_source", "unknown")
                             learn_from_completed_analysis(
                                 dns_query.domain, adguard_metadata, category
                             )

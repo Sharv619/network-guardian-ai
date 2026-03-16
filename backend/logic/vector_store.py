@@ -109,8 +109,11 @@ class VectorMemory:
             try:
                 self._embedding_service = create_embedding_service(
                     provider=embedding_provider,
-                    model="all-MiniLM-L6-v2",
+                    model=settings.OLLAMA_MODEL
+                    if embedding_provider == "ollama"
+                    else "all-MiniLM-L6-v2",
                     api_key=settings.GEMINI_API_KEY,
+                    ollama_url=settings.OLLAMA_BASE_URL,
                 )
 
                 if self._embedding_service is not None and self._embedding_service.is_available():

@@ -42,7 +42,7 @@ class MetadataClassifier:
         self.patterns: dict[str, MetadataPattern] = {}
         self.seed_patterns_count = 0  # Track seed patterns separately
         self.pattern_counter: Counter = Counter()
-        self.min_support = 3  # Minimum occurrences to create a pattern
+        self.min_support = 1  # Minimum occurrences to create a pattern (1 for demo)
         self.confidence_threshold = 0.8  # Minimum confidence for classification
 
         # Real-time metric tracking for demo
@@ -352,16 +352,14 @@ class MetadataClassifier:
             autonomy_score = (self.local_decisions_count / total_decisions) * 100
 
         actual_learned = len(self.patterns) - self.seed_patterns_count
-        # Only show seed patterns if real patterns have been learned
-        seed_count = self.seed_patterns_count if actual_learned > 0 else 0
 
         return {
             "local_decisions": self.local_decisions_count,
             "cloud_decisions": self.cloud_decisions_count,
             "total_decisions": total_decisions,
             "autonomy_score": round(autonomy_score, 1),
-            "patterns_learned": max(0, actual_learned + self.total_patterns_learned),
-            "seed_patterns": seed_count,
+            "patterns_learned": max(0, actual_learned),
+            "seed_patterns": self.seed_patterns_count,
             "learned_patterns": max(0, actual_learned),
         }
 

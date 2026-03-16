@@ -82,14 +82,24 @@ def api_analyze(request: dict[str, Any]):
     if len(domain) > 255:
         raise HTTPException(status_code=422, detail="Domain too long")
 
-    try:
-        analysis = analyze_domain(domain)
-        # Ensure timestamp is included in the response
-        if "timestamp" not in analysis:
-            analysis["timestamp"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
-        return analysis
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    model_id = request.get("model_id")
+
+    # Check if Ollama model selected
+    if model_id and model_id.startswith("ollama:"):
+        from backend.services.ollama_analyzer import analyze_with_ollama
+
+        ollama_model = model_id.replace("ollama:", "")
+        analysis = analyze_with_ollama(domain, model=ollama_model)
+    else:
+        # Use Gemini
+        from backend.services.gemini_analyzer import analyze_domain
+
+        analysis = analyze_domain(domain, model_id=model_id)
+
+    # Ensure timestamp is included in the response
+    if "timestamp" not in analysis:
+        analysis["timestamp"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    return analysis
 
 
 # Mount the chat routers
