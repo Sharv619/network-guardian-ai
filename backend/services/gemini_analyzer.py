@@ -321,15 +321,15 @@ def _heuristic_fallback(domain: str, error: str) -> dict:
     category = (
         "Privacy Risk"
         if is_privacy
-        else ("Malicious Pattern" if entropy > 3.5 else "General Traffic")
+        else ("Malicious Pattern" if entropy > 3.3 else "General Traffic")
     )
 
-    fallback_summary = "SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)"
+    fallback_summary = f"SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy ({entropy:.2f}). Normal network behavior."
 
     return {
-        "risk_score": "High" if entropy > 3.5 else "Low",
+        "risk_score": "High" if entropy > 3.3 else "Low",
         "category": category,
         "summary": fallback_summary,
-        "is_anomaly": False,
-        "anomaly_score": 0.0,
+        "is_anomaly": is_anomaly,
+        "anomaly_score": anomaly_score,
     }

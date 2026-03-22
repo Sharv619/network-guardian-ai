@@ -158,7 +158,7 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
 
     // Store subscriptions in ref to avoid re-creating on every render
     const wsConfig = {
-        url: `ws://${window.location.hostname}:8000/ws/public`,
+        url: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/public`,
         onConnect: () => {
             setConnectionStatus('connected');
             // Only fetch history once on initial load

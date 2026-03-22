@@ -107,6 +107,27 @@ export interface SystemStats {
     entropy_threshold: number;
     anomaly_threshold: number;
   };
+  blocklist?: {
+    total_entries: number;
+    active_sources: number;
+    total_sources: number;
+    category_distribution: Record<string, number>;
+  };
+}
+
+export interface BlocklistStats {
+  total_entries: number;
+  active_sources: number;
+  total_sources: number;
+  category_distribution: Record<string, number>;
+  last_sync?: string;
+  last_sync_status?: string;
+}
+
+export interface OllamaModel {
+  id: string;
+  provider: string;
+  name: string;
 }
 
 export interface AlertStats {

@@ -1,9 +1,14 @@
 import logging
+import os
 
+from dotenv import load_dotenv
 from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
+
+# Load .env from backend directory
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 
 class ConfigurationError(Exception):
@@ -14,7 +19,6 @@ class ConfigurationError(Exception):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
         case_sensitive=True,
         extra="ignore",
     )
@@ -70,10 +74,27 @@ class Settings(BaseSettings):
     ENABLE_SECURITY_HEADERS: bool = Field(True, description="Enable security headers middleware")
     ENABLE_HTTPS_REDIRECT: bool = Field(False, description="Enable HTTPS redirect middleware")
 
+    # Stripe Billing Configuration
+    STRIPE_API_KEY: str = Field("", description="Stripe API Key")
+    STRIPE_WEBHOOK_SECRET: str = Field("", description="Stripe Webhook Secret")
+    STRIPE_PRO_PRICE_ID: str = Field("", description="Stripe Price ID for Pro tier")
+    STRIPE_ENTERPRISE_PRICE_ID: str = Field("", description="Stripe Price ID for Enterprise tier")
+
     # Backup configuration
     BACKUP_PATH: str = Field("./backups", description="Path for database backups")
     BACKUP_RETENTION_DAYS: int = Field(7, description="Days to retain backup files")
     BACKUP_ENABLED: bool = Field(True, description="Enable automatic backups")
+
+    # Blocklist configuration
+    BLOCKLIST_ENABLED: bool = Field(True, description="Enable blocklist knowledge base")
+    BLOCKLIST_SYNC_INTERVAL: int = Field(
+        21600, description="Blocklist sync interval in seconds (default: 6 hours)"
+    )
+    BLOCKLIST_SOURCES: str = Field(
+        "adguard_dns,easylist,easyprivacy,steven_black",
+        description="Comma-separated list of blocklist sources to sync",
+    )
+    BLOCKLIST_AUTO_SYNC: bool = Field(True, description="Auto-sync blocklists on startup if empty")
 
     @property
     def is_valid(self) -> bool:

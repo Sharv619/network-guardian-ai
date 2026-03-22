@@ -17,23 +17,20 @@ def get_sheets_service():
     if _client:
         return _client
 
-    raw_creds = os.getenv("GOOGLE_SHEETS_CREDENTIALS")
-    if not raw_creds:
-        return None
+    # Try to read from credentials.json file
+    creds_file = os.getenv("GOOGLE_SHEETS_CREDENTIALS_FILE", "credentials.json")
+    if not os.path.isabs(creds_file):
+        creds_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), creds_file)
 
-    # SRE Pattern: Sanitize & Validate input strings
-    creds_json = raw_creds.strip().strip("'").strip('"')
-    print(f"DEBUG: Credentials string length: {len(creds_json)}")
+    creds_file = os.path.normpath(creds_file)
 
-    if not creds_json.startswith("{"):
-        print(
-            "⚠️ Config Error: GOOGLE_SHEETS_CREDENTIALS is not a valid JSON object. Check your .env file."
-        )
+    if not os.path.exists(creds_file):
+        print(f"⚠️ Config Error: Credentials file not found: {creds_file}")
         return None
 
     try:
-        # Parse the JSON string from .env
-        creds_dict = json.loads(creds_json)
+        with open(creds_file, "r") as f:
+            creds_dict = json.load(f)
 
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
@@ -76,7 +73,30 @@ def log_threat_to_sheet(
     try:
         sheet = client.open_by_key(spreadsheet_id).sheet1
 
-        # Prepare row data
+        # Count existing rows
+        row_count = len(sheet.col_values(1))
+
+        # If sheet is empty, add headers
+        if row_count == 0:
+            headers = [
+                "Timestamp",
+                "Domain",
+                "Risk Score",
+                "Category",
+                "Summary",
+                "AdGuard Reason",
+                "AdGuard Rule",
+                "Is Anomaly",
+                "Anomaly Score",
+                "Entropy",
+            ]
+            # Update header row using A1 notation
+            header_range = "A1:J1"
+            sheet.update(header_range, [headers])
+            row_count = 1
+            print("📊 Created headers in Google Sheet")
+
+        # Prepare data row
         row = [
             get_iso_timestamp(),
             domain,
@@ -85,21 +105,19 @@ def log_threat_to_sheet(
             (analysis or {}).get("summary", ""),
         ]
 
-        # Append AdGuard metadata if available (Cols F, G)
+        # Append AdGuard metadata
         if adguard_metadata:
-            row.append(adguard_metadata.get("reason", ""))
-            row.append(adguard_metadata.get("rule", ""))
+            row.extend([adguard_metadata.get("reason", ""), adguard_metadata.get("rule", "")])
         else:
-            row.extend(["", ""])  # Fill F and G if missing
+            row.extend(["", ""])
 
-        # Append Anomaly data (Cols H, I)
-        row.append(is_anomaly)
-        row.append(anomaly_score)
+        # Append Anomaly data and Entropy
+        row.extend([is_anomaly, anomaly_score, entropy])
 
-        # Append Entropy (Col J)
-        row.append(entropy)
-
-        sheet.append_row(row)
+        # Update the next row using A1 notation
+        next_row = row_count + 1
+        data_range = f"A{next_row}:J{next_row}"
+        sheet.update(data_range, [row])
         print(f"📊 Logged to Sheets: {domain} (Anomaly: {is_anomaly}, Entropy: {entropy:.2f})")
     except Exception as e:
         print(f"Sheets API Error: {e}")

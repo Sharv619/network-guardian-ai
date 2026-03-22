@@ -35,9 +35,14 @@ import {
   Bell,
   Key,
   Info,
+  Database as DbIcon,
+  Server,
+  Globe,
+  RefreshCw,
 } from 'lucide-react';
 import { useWebSocket } from '../src/services/websocketService';
 import { WebSocketMessage } from '../src/services/websocketService';
+import { BlocklistStats, OllamaModel } from '../types';
 
 const API_BASE = '';
 
@@ -56,21 +61,26 @@ const COLORS = {
 };
 
 const StatsPanel: React.FC<StatsPanelProps> = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'ml' | 'alerts' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'ml' | 'alerts' | 'blocklist' | 'settings'>('overview');
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
   const [alertStats, setAlertStats] = useState<AlertStats | null>(null);
   const [mlDashboard, setMlDashboard] = useState<MLDashboard | null>(null);
+  const [blocklistStats, setBlocklistStats] = useState<BlocklistStats | null>(null);
+  const [ollamaModels, setOllamaModels] = useState<OllamaModel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncingBlocklist, setSyncingBlocklist] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
   const fetchAllData = async () => {
     try {
-      const [statsRes, alertsRes, mlRes, historyRes] = await Promise.all([
+      const [statsRes, alertsRes, mlRes, historyRes, modelsRes, blocklistRes] = await Promise.all([
         fetch(`${API_BASE}/api/stats/system`),
         fetch(`${API_BASE}/api/stats/alerts/stats`),
         fetch(`${API_BASE}/api/stats/ml/dashboard`),
         fetch(`${API_BASE}/history`),
+        fetch(`${API_BASE}/models`),
+        fetch(`${API_BASE}/blocklist/status`),
       ]);
 
       if (statsRes.ok) {
@@ -150,6 +160,23 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
       }
       
       if (historyRes.ok) setHistory(await historyRes.json());
+      
+      if (modelsRes.ok) {
+        const modelsData = await modelsRes.json();
+        setOllamaModels(modelsData || []);
+      }
+      
+      if (blocklistRes.ok) {
+        const blData = await blocklistRes.json();
+        setBlocklistStats({
+          total_entries: blData.total_entries || 0,
+          active_sources: blData.active_sources || 0,
+          total_sources: blData.total_sources || 0,
+          category_distribution: blData.category_distribution || {},
+          last_sync: blData.last_sync,
+          last_sync_status: blData.last_sync_status,
+        });
+      }
     } catch (e) {
       console.error('Failed to fetch stats', e);
     } finally {
@@ -157,9 +184,23 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
     }
   };
 
+  const syncBlocklist = async () => {
+    setSyncingBlocklist(true);
+    try {
+      const res = await fetch(`${API_BASE}/blocklist/sync`, { method: 'POST' });
+      if (res.ok) {
+        await fetchAllData();
+      }
+    } catch (e) {
+      console.error('Failed to sync blocklist', e);
+    } finally {
+      setSyncingBlocklist(false);
+    }
+  };
+
   // WebSocket integration for real-time updates
   const wsConfig = {
-    url: `ws://${window.location.hostname}:8000/ws/public`,
+    url: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/public`,
     onConnect: () => {
       setConnectionStatus('connected');
       // Subscribe to system stats updates
@@ -272,28 +313,46 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
 
   const renderOverview = () => (
     <div className="space-y-6">
-      {/* Key Metrics Cards */}
+      {/* Blocklist + Ollama Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <MetricCard
+          icon={<Shield className="w-6 h-6" />}
+          label="Blocklist KB"
+          value={blocklistStats?.total_entries?.toLocaleString() || '0'}
+          subtext="Known threats"
+          color="cyan"
+        />
+        <MetricCard
+          icon={<Server className="w-6 h-6" />}
+          label="Ollama Models"
+          value={ollamaModels.length}
+          subtext="Local AI"
+          color="green"
+        />
         <MetricCard
           icon={<Activity className="w-6 h-6" />}
           label="Total Decisions"
           value={systemStats?.total_decisions || 0}
           subtext="Analyzed domains"
-          color="cyan"
+          color="purple"
         />
         <MetricCard
           icon={<Zap className="w-6 h-6" />}
           label="Autonomy Score"
           value={`${systemStats?.autonomy_score || 0}%`}
           subtext="Local analysis rate"
-          color="purple"
+          color="yellow"
         />
+      </div>
+
+      {/* Key Metrics Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard
           icon={<Brain className="w-6 h-6" />}
           label="Patterns Learned"
           value={systemStats?.learned_patterns || 0}
           subtext="ML model patterns"
-          color="yellow"
+          color="blue"
         />
         <MetricCard
           icon={<AlertTriangle className="w-6 h-6" />}
@@ -301,6 +360,20 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
           value={alertStats?.pending_alerts || 0}
           subtext="Pending alerts"
           color="red"
+        />
+        <MetricCard
+          icon={<Target className="w-6 h-6" />}
+          label="Anomaly Model"
+          value={systemStats?.anomaly?.is_trained ? 'Trained' : 'Training'}
+          subtext={`${systemStats?.anomaly?.total_samples || 0} samples`}
+          color={systemStats?.anomaly?.is_trained ? 'green' : 'yellow'}
+        />
+        <MetricCard
+          icon={<Shield className="w-6 h-6" />}
+          label="Sources Active"
+          value={`${blocklistStats?.active_sources || 0}/${blocklistStats?.total_sources || 0}`}
+          subtext="Blocklist sources"
+          color="cyan"
         />
       </div>
 
@@ -662,6 +735,150 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
     </div>
   );
 
+  const renderBlocklist = () => (
+    <div className="space-y-6">
+      {/* Blocklist Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-bold text-white">Blocklist Knowledge Base</h3>
+        <button
+          onClick={syncBlocklist}
+          disabled={syncingBlocklist}
+          className="flex items-center px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-600 rounded-lg text-white text-sm font-medium transition-colors"
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${syncingBlocklist ? 'animate-spin' : ''}`} />
+          {syncingBlocklist ? 'Syncing...' : 'Sync Now'}
+        </button>
+      </div>
+
+      {/* Blocklist Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <MetricCard
+          icon={<Database className="w-6 h-6" />}
+          label="Total Entries"
+          value={blocklistStats?.total_entries?.toLocaleString() || '0'}
+          subtext="Known threats"
+          color="cyan"
+        />
+        <MetricCard
+          icon={<Server className="w-6 h-6" />}
+          label="Sources"
+          value={`${blocklistStats?.active_sources || 0}/${blocklistStats?.total_sources || 0}`}
+          subtext="Active sources"
+          color="green"
+        />
+        <MetricCard
+          icon={<Brain className="w-6 h-6" />}
+          label="Patterns"
+          value={systemStats?.learned_patterns || 0}
+          subtext="ML patterns"
+          color="purple"
+        />
+        <MetricCard
+          icon={<Server className="w-6 h-6" />}
+          label="Ollama Models"
+          value={ollamaModels.length}
+          subtext="Local AI models"
+          color="yellow"
+        />
+      </div>
+
+      {/* Ollama Models */}
+      <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+        <h4 className="text-sm font-mono text-slate-400 uppercase mb-4 flex items-center">
+          <Server className="w-4 h-4 mr-2" /> Local Ollama Models
+        </h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {ollamaModels.map((model) => (
+            <div key={model.id} className="bg-slate-900 p-3 rounded border border-slate-700 flex items-center justify-between">
+              <div>
+                <div className="text-white font-medium">{model.name}</div>
+                <div className="text-xs text-slate-500">{model.provider}</div>
+              </div>
+              <span className="px-2 py-1 bg-green-900 text-green-400 text-xs rounded">Local</span>
+            </div>
+          ))}
+          {ollamaModels.length === 0 && (
+            <div className="text-slate-500 text-sm col-span-2">No Ollama models available</div>
+          )}
+        </div>
+      </div>
+
+      {/* Category Distribution */}
+      <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+        <h4 className="text-sm font-mono text-slate-400 uppercase mb-4 flex items-center">
+          <Globe className="w-4 h-4 mr-2" /> Blocklist Categories
+        </h4>
+        <div className="space-y-3">
+          {blocklistStats?.category_distribution && Object.entries(blocklistStats.category_distribution)
+            .sort((a, b) => (b[1] as number) - (a[1] as number))
+            .slice(0, 10)
+            .map(([category, count]) => {
+              const percentage = ((count as number) / (blocklistStats?.total_entries || 1)) * 100;
+              return (
+                <div key={category} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-300 capitalize">{category}</span>
+                    <span className="font-bold text-white">{count?.toLocaleString()}</span>
+                  </div>
+                  <div className="w-full bg-slate-700 rounded-full h-2">
+                    <div
+                      className="bg-cyan-500 h-2 rounded-full transition-all"
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          {(!blocklistStats?.category_distribution || Object.keys(blocklistStats.category_distribution).length === 0) && (
+            <div className="text-slate-500 text-sm">No blocklist data available</div>
+          )}
+        </div>
+      </div>
+
+      {/* Sync Status */}
+      {blocklistStats?.last_sync && (
+        <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+          <div className="flex items-center justify-between text-sm">
+            <div>
+              <span className="text-slate-400">Last Sync: </span>
+              <span className="text-slate-300">{new Date(blocklistStats.last_sync).toLocaleString()}</span>
+            </div>
+            <div>
+              <span className="text-slate-400">Status: </span>
+              <span className={`px-2 py-1 rounded text-xs ${blocklistStats.last_sync_status === 'success' ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'}`}>
+                {blocklistStats.last_sync_status || 'Unknown'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detection Pipeline */}
+      <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+        <h4 className="text-sm font-mono text-slate-400 uppercase mb-4 flex items-center">
+          <Shield className="w-4 h-4 mr-2" /> Detection Pipeline
+        </h4>
+        <div className="space-y-2">
+          {[
+            { name: 'Blocklist Lookup', desc: `${blocklistStats?.total_entries?.toLocaleString() || 0} known threats`, active: true },
+            { name: 'Metadata Patterns', desc: `${systemStats?.learned_patterns || 0} learned patterns`, active: true },
+            { name: 'ML Heuristics', desc: 'Entropy, DGA detection', active: true },
+            { name: 'Isolation Forest', desc: 'Anomaly detection', active: true },
+            { name: 'Ollama AI', desc: `${ollamaModels.length} local models`, active: ollamaModels.length > 0 },
+          ].map((item, idx) => (
+            <div key={idx} className="flex items-center justify-between p-2 bg-slate-900 rounded">
+              <div className="flex items-center">
+                <div className={`w-2 h-2 rounded-full mr-3 ${item.active ? 'bg-green-400' : 'bg-slate-600'}`} />
+                <span className="text-slate-300">{item.name}</span>
+              </div>
+              <span className="text-xs text-slate-500">{item.desc}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="h-full flex flex-col">
       {/* Tabs */}
@@ -670,6 +887,7 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
           { id: 'overview', label: 'OVERVIEW', icon: <Activity className="w-4 h-4 mr-2" /> },
           { id: 'ml', label: 'ML DASHBOARD', icon: <Brain className="w-4 h-4 mr-2" /> },
           { id: 'alerts', label: 'ALERTS', icon: <AlertTriangle className="w-4 h-4 mr-2" /> },
+          { id: 'blocklist', label: 'BLOCKLIST', icon: <Shield className="w-4 h-4 mr-2" /> },
           { id: 'settings', label: 'SETTINGS', icon: <Settings className="w-4 h-4 mr-2" /> },
         ].map((tab) => (
           <button
@@ -690,6 +908,7 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
         {activeTab === 'overview' && renderOverview()}
         {activeTab === 'ml' && renderML()}
         {activeTab === 'alerts' && renderAlerts()}
+        {activeTab === 'blocklist' && renderBlocklist()}
         {activeTab === 'settings' && renderSettings()}
       </div>
     </div>

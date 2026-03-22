@@ -1,8 +1,9 @@
-
 import { useEffect, useState } from 'react';
-import { Brain, Wifi, WifiOff } from 'lucide-react';
+import { Brain, Wifi, WifiOff, LogOut, User, ChevronDown } from 'lucide-react';
 import { useWebSocket } from '../src/services/websocketService';
 import { WebSocketMessage } from '../src/services/websocketService';
+import TenantSelector from './TenantSelector';
+import { isAuthenticated, logout, getUsername } from '../services/tenantService';
 
 const ShieldIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-accent" viewBox="0 0 20 20" fill="currentColor">
@@ -14,15 +15,27 @@ interface HeaderProps {
   availableModels: string[];
   selectedModel: string;
   onModelChange: (model: string) => void;
+  onLogout?: () => void;
+  onNavigate?: (page: string) => void;
+  currentPage?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ availableModels, selectedModel, onModelChange }) => {
+const Header: React.FC<HeaderProps> = ({ 
+  availableModels, 
+  selectedModel, 
+  onModelChange,
+  onLogout,
+  onNavigate,
+  currentPage = 'dashboard'
+}) => {
   const [isHealthy, setIsHealthy] = useState<boolean | null>(null);
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const authed = isAuthenticated();
+  const username = getUsername();
 
-  // WebSocket integration for real-time connection status
   const wsConfig = {
-    url: `ws://${window.location.hostname}:8000/ws/public`,
+    url: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/public`,
     onConnect: () => {
       setConnectionStatus('connected');
     },
@@ -30,12 +43,11 @@ const Header: React.FC<HeaderProps> = ({ availableModels, selectedModel, onModel
       setConnectionStatus('disconnected');
     },
     onMessage: (message: WebSocketMessage) => {
-      // Handle heartbeat to maintain connection status
       if (message.event_type === 'heartbeat') {
         setConnectionStatus('connected');
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('WebSocket error in header:', error);
       setConnectionStatus('error');
     }
@@ -54,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({ availableModels, selectedModel, onModel
     };
 
     checkHealth();
-    const interval = setInterval(checkHealth, 10000); // Check every 10 seconds
+    const interval = setInterval(checkHealth, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -102,33 +114,104 @@ const Header: React.FC<HeaderProps> = ({ availableModels, selectedModel, onModel
     }
   };
 
-  return (
-    <header className="bg-dark-950/80 backdrop-blur-md shadow-soft border-b border-dark-800 p-4 sticky top-0 z-10 w-full">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <ShieldIcon />
-          <h1 className="text-2xl font-display font-bold text-dark-100 tracking-tight">
-            Network Guardian <span className="text-accent">AI</span>
-          </h1>
-        </div>
+  const handleLogout = () => {
+    logout();
+    setShowUserMenu(false);
+    onLogout?.();
+  };
 
-        <div className="flex items-center space-x-3">
-          {getConnectionBadge()}
-          <div className="flex items-center bg-dark-800 rounded-lg px-3 py-2 border border-dark-700 hover:border-accent/50 transition-colors">
-            <Brain className="w-4 h-4 text-accent-muted mr-2" />
-            <select
-              value={selectedModel}
-              onChange={(e) => onModelChange(e.target.value)}
-              className="bg-transparent text-dark-200 text-sm font-mono focus:outline-none cursor-pointer"
-            >
-              {availableModels.map(m => (
-                <option key={m} value={m} className="bg-dark-800">
-                  {m.replace('models/', '')}
-                </option>
-              ))}
-            </select>
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'admin', label: 'Admin' },
+    { id: 'usage', label: 'Usage' },
+    { id: 'pricing', label: 'Pricing' },
+  ];
+
+  return (
+    <header className="bg-dark-950/80 backdrop-blur-md shadow-soft border-b border-dark-800 p-4 sticky top-0 z-50 w-full">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <ShieldIcon />
+              <h1 className="text-2xl font-display font-bold text-dark-100 tracking-tight">
+                Network Guardian <span className="text-accent">AI</span>
+              </h1>
+            </div>
+
+            {authed && (
+              <nav className="hidden md:flex items-center gap-1">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => onNavigate?.(item.id)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      currentPage === item.id
+                        ? 'bg-accent/20 text-accent'
+                        : 'text-dark-400 hover:text-dark-200 hover:bg-dark-800'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+            )}
           </div>
-          {getHealthBadge()}
+
+          <div className="flex items-center space-x-3">
+            {getConnectionBadge()}
+            
+            {authed ? (
+              <>
+                <TenantSelector />
+                
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center gap-2 px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg hover:border-accent/50 transition-colors"
+                  >
+                    <User className="w-4 h-4 text-dark-400" />
+                    <span className="text-sm text-dark-200 hidden sm:inline">{username || 'User'}</span>
+                    <ChevronDown className="w-4 h-4 text-dark-400" />
+                  </button>
+
+                  {showUserMenu && (
+                    <div className="absolute top-full right-0 mt-2 w-48 bg-dark-800 border border-dark-700 rounded-lg shadow-xl overflow-hidden">
+                      <div className="p-2">
+                        <div className="px-3 py-2 text-sm text-dark-400 border-b border-dark-700">
+                          Signed in as <span className="text-dark-200">{username}</span>
+                        </div>
+                        <button
+                          onClick={handleLogout}
+                          className="w-full mt-1 px-3 py-2 text-left text-sm text-red-400 hover:bg-dark-700 rounded flex items-center gap-2"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sign out
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center bg-dark-800 rounded-lg px-3 py-2 border border-dark-700 hover:border-accent/50 transition-colors">
+                <Brain className="w-4 h-4 text-accent-muted mr-2" />
+                <select
+                  value={selectedModel}
+                  onChange={(e) => onModelChange(e.target.value)}
+                  className="bg-transparent text-dark-200 text-sm font-mono focus:outline-none cursor-pointer"
+                >
+                  {availableModels.map(m => (
+                    <option key={m} value={m} className="bg-dark-800">
+                      {m.replace('models/', '')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {getHealthBadge()}
+          </div>
         </div>
       </div>
     </header>

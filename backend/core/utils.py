@@ -2,28 +2,29 @@
 Utility functions for the Network Guardian AI system
 """
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 
 def get_iso_timestamp() -> str:
     """
-    Get current timestamp in ISO-8601 format with 'Z' suffix for UTC.
-    Standardizes timestamp format across the entire system.
+    Get current timestamp in ISO-8601 format with Sydney timezone (UTC+11).
     """
-    return datetime.now(UTC).isoformat(timespec='seconds').replace("+00:00", "Z")
+    sydney_tz = ZoneInfo("Australia/Sydney")
+    return datetime.now(sydney_tz).isoformat(timespec="seconds")
+
 
 def ensure_iso_timestamp(timestamp: str) -> str:
     """
-    Ensure a timestamp is in proper ISO-8601 format with 'Z' suffix.
+    Ensure a timestamp is in proper ISO-8601 format.
     """
     if not timestamp:
         return get_iso_timestamp()
 
-    # Remove any existing timezone offset and add Z
+    # Remove any existing timezone offset
     if "+00:00" in timestamp:
-        return timestamp.replace("+00:00", "Z")
+        return timestamp.replace("+00:00", "")
     elif timestamp.endswith("Z"):
-        return timestamp
-    else:
-        # Assume UTC if no timezone info
-        return timestamp + "Z"
+        return timestamp[:-1]
+
+    return timestamp

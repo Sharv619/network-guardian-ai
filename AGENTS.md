@@ -1,233 +1,231 @@
 # AGENTS.md - Network Guardian AI
 
-## Overview
-
-This is a FastAPI-based network security tool that intercepts DNS requests via AdGuard, analyzes domains using Gemini AI and local ML heuristics (Shannon Entropy, Isolation Forest), and logs results to Google Sheets. The system features real-time WebSocket communication, enhanced dashboard with live statistics, and optimized performance.
+FastAPI-based network security tool that intercepts DNS via AdGuard, analyzes domains with Gemini AI and ML heuristics (Shannon Entropy, Isolation Forest), and logs to Google Sheets. Now being converted to a multi-tenant Security-as-a-Service platform.
 
 ## Build & Run Commands
 
 ### Install Dependencies
 ```bash
 # Backend
-cd /home/lade/Hackathons/network-guardian-ai/backend
-pip install -r requirements.txt
-
-# Frontend  
-cd ../frontend
-npm install
-
-# Optional: sentence-transformers for vector embeddings
+cd backend && pip install -r requirements.txt
+# Frontend
+cd frontend && npm install
+# Optional
 pip install sentence-transformers
 ```
 
-### Run the Backend Server
+### Run Servers
 ```bash
-cd /home/lade/Hackathons/network-guardian-ai
+# Production/All-in-one: Backend serves frontend from port 8000
 PYTHONPATH=. python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
-```
 
-### Run the Frontend Development Server
-```bash
-cd /home/lade/Hackathons/network-guardian-ai/frontend
-npm run dev
-```
+# Development: Run backend + separate frontend dev server
+# Backend on 8000, Frontend on 3000 (proxies to backend)
+PYTHONPATH=. python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload &
+cd frontend && npm run dev
 
-### Build the Frontend
-```bash
-cd /home/lade/Hackathons/network-guardian-ai/frontend
-npm run build
-```
+# Build frontend for production (copies to backend/static)
+cd frontend && npm run build
+# Then copy: cp -r frontend/dist/* backend/static/
 
-### Run All Tests
-```bash
-cd /home/lade/Hackathons/network-guardian-ai
-PYTHONPATH=. python -m pytest Tests_AI/ -v
-```
-
-### Run a Single Test
-```bash
-cd /home/lade/Hackathons/network-guardian-ai
-PYTHONPATH=. python -m pytest Tests_AI/test_heuristics.py::test_entropy_logic -v
-PYTHONPATH=. python -m pytest Tests_AI/test_router.py::test_health_endpoint -v
-```
-
-### Run Tests with Coverage
-```bash
-cd /home/lade/Hackathons/network-guardian-ai
-PYTHONPATH=. pytest Tests_AI/ -v --cov=backend --cov-report=term-missing
-```
-
-### Linting (ruff)
-```bash
-cd /home/lade/Hackathons/network-guardian-ai
-ruff check backend/
-ruff check backend/ --fix
-```
-
-### Type Checking (mypy)
-```bash
-cd /home/lade/Hackathons/network-guardian-ai
-mypy backend/ --ignore-missing-imports
-```
-
-### MCP Server (for AI agent integration)
-```bash
-# Run the MCP server
-python mcp_server.py
-
-# Or use the simpler version
+# MCP Server (for tool access)
 python network_guardian_mcp.py
+```
+
+### Testing
+```bash
+# All tests
+PYTHONPATH=. python -m pytest Tests_AI/ -v
+# Single test
+PYTHONPATH=. python -m pytest Tests_AI/test_heuristics.py::test_entropy_logic -v
+# With coverage
+PYTHONPATH=. pytest Tests_AI/ -v --cov=backend --cov-report=term-missing
+# Test specific tenant functionality
+PYTHONPATH=. python -m pytest Tests_AI/ -k "tenant" -v
+```
+
+### Linting & Type Checking
+```bash
+ruff check backend/ && ruff check backend/ --fix  # fix auto-fixable
+mypy backend/ --ignore-missing-imports
 ```
 
 ## Project Structure
 ```
 backend/
-├── api/              # FastAPI routes (chat.py, router.py, stats.py, etc.)
-├── core/             # Config, state, auth, websocket manager
-├── db/               # SQLAlchemy models, repository, database
-├── logic/            # ML heuristics, anomaly detection, vector store, embeddings
-├── services/         # External integrations (AdGuard, Gemini, Sheets)
-├── main.py           # Application entry point
-└── system_intelligence.py
-
-Tests_AI/            # Unit and integration tests
+├── api/          # FastAPI routes (chat.py, router.py, stats.py, tenant_router.py, etc.)
+├── core/         # Config, state, auth, websocket manager, tenant_middleware
+├── db/           # SQLAlchemy models, repository, database (with multi-tenancy support)
+├── logic/        # ML heuristics, anomaly detection, vector store
+├── services/     # External integrations (AdGuard, Gemini, Sheets)
+Tests_AI/         # pytest unit/integration tests
 frontend/
-├── src/
-│   ├── services/     # WebSocket service, API services
-│   ├── components/  # React components (Dashboard, StatsPanel, etc.)
-│   └── hooks/       # Custom React hooks
-├── components/      # Shared React components
-└── types.ts         # TypeScript type definitions
 ```
 
 ## Code Style Guidelines
 
 ### Imports
 - Use absolute imports: `from backend.logic.ml_heuristics import ...`
-- Group imports in order: stdlib, third-party, local
-- Sort alphabetically within groups
+- Group order: stdlib → third-party → local, sorted alphabetically
 ```python
 import os
-import time
-from datetime import datetime
+from datetime import datetime, UTC
 
 import numpy as np
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter
 
 from backend.core.config import settings
-from backend.services.gemini_analyzer import analyze_domain
+from backend.db.models import Tenant
 ```
 
-### Formatting
-- Line length: 100 characters max
-- Use 4 spaces for indentation (no tabs)
-- Use blank lines to separate logical sections (2 for top-level, 1 for functions)
-- Trailing commas in multi-line structures
-
-### Types
-- Use Python 3.10+ type hints throughout
-- Prefer explicit types over `Any`
-- Use `Optional[X]` instead of `X | None` for compatibility
-- Add return types to all functions
+### Formatting & Types
+- Line length: 100 chars max, 4 spaces, no tabs
+- Python 3.10+ type hints required on all functions
+- Union syntax preferred: `dict[str, Any] | None` (avoid `Optional[X]` for new code)
 ```python
 def calculate_entropy(domain: str) -> float:
     ...
 ```
 
 ### Naming Conventions
-- **Files**: snake_case (e.g., `ml_heuristics.py`, `adguard_poller.py`)
-- **Classes**: PascalCase (e.g., `AnomalyEngine`, `VectorMemory`)
-- **Functions/variables**: snake_case (e.g., `calculate_entropy`, `processed_domains`)
-- **Constants**: SCREAMING_SNAKE_CASE (e.g., `POLL_INTERVAL`)
-- **Private methods**: prefix with underscore (e.g., `_heuristic_fallback`)
+| Type | Convention | Example |
+|------|------------|---------|
+| Files | snake_case | `ml_heuristics.py` |
+| Classes | PascalCase | `AnomalyEngine` |
+| Functions/vars | snake_case | `calculate_entropy` |
+| Constants | SCREAMING_SNAKE_CASE | `POLL_INTERVAL` |
+| Private methods | `_prefix` | `_heuristic_fallback` |
+| Tenant ID | tenant_id | `tenant_id: int` |
 
 ### Error Handling
-- Use try/except with specific exception types
-- Always log errors before re-raising or returning fallbacks
-- Implement graceful degradation (return sensible defaults on failure)
-- Never expose raw exception messages to API responses
+- Use specific exception types, log before re-raising
+- Never expose raw exceptions to API responses
+- Implement graceful degradation with sensible defaults
 ```python
 try:
-    analysis = analyze_domain(domain, context)
+    analysis = analyze_domain(domain)
 except SpecificException as e:
-    print(f"Analysis Failed: {e}")
-    return _heuristic_fallback(domain, str(e))
+    logger.error(f"Analysis Failed: {e}", exc_info=True)
+    return _fallback_result(domain)
 ```
 
-### API Design
-- All endpoints return JSON
-- Use Pydantic models for request/response validation
-- Include appropriate HTTP status codes (200, 401, 429, 500)
-- Add docstrings to all endpoints
+### Async/Await
+- Async functions must be called with `await` or `asyncio.run()`
+- Calling async from sync context returns a coroutine (TypeError on dict access)
+- Use proper async session handling: `async with get_session() as session:`
 
-### Database/State
-- Use in-memory collections for session state (lists, dicts)
-- Use SQLite via SQLAlchemy for persistence
-- Use repository pattern for database operations
+### API Design
+- Return JSON, use Pydantic models for validation
+- HTTP status codes: 200, 401, 422, 429, 500
+- Docstrings on all endpoints
+- Include tenant_id in API responses where relevant
+- Use proper error responses with detail messages
+
+### Database & State
+- In-memory for session state (lists, dicts)
+- SQLite via SQLAlchemy for persistence with tenant_id columns
+- Repository pattern for DB operations with tenant scoping
+- All database queries must include tenant filtering
+- Use async database sessions throughout
 
 ### Testing
-- Write tests for all new functions in `Tests_AI/`
-- Use `pytest` as the test framework
-- Mock external services (Gemini API, AdGuard, Sheets)
-- Include both unit tests (logic) and integration tests (API endpoints)
+- Tests in `Tests_AI/`, use `pytest`
+- Mock external services (Gemini, AdGuard, Sheets)
+- Include both unit tests and integration tests
+- Test tenant isolation and data separation
+- Test API key validation and permissions
 
 ### Security
-- Never log API keys or credentials
-- Validate all user inputs (especially domain names)
-- Use `is_valid_domain()` before processing input
-- Keep secrets in `.env` files, never commit them
+- Never log API keys/credentials
+- Validate inputs with `is_valid_domain()` before processing
+- Keep secrets in `.env`, never commit them
+- Implement proper tenant isolation to prevent data leakage
+- Use API keys for tenant authentication in addition to JWT
+- Rate limit per tenant/API key
 
 ## Key Features
-
-### 1. Real-time DNS Analysis
-- AdGuard DNS interception
-- Shannon Entropy for DGA detection
-- Isolation Forest for anomaly detection
-- Gemini AI for domain classification
-
-### 2. Vector Store & RAG
-- SQLAlchemy persistence with float32 embeddings
-- Hybrid search (semantic + keyword)
-- RAG context builder for chatbot
-
-### 3. Conversational Chatbot
-- Short responses for simple queries (<=3 words)
-- Full analysis for domain-specific queries
-- Real-time system stats integration
-- Keyword-based intent recognition
-
-### 4. WebSocket Integration
-- Multiple endpoints: `/ws`, `/ws/public`, `/ws/admin`
-- Real-time threat updates
-- Connection status indicators
+1. **Real-time DNS Analysis**: AdGuard interception, Shannon Entropy, Isolation Forest, Gemini AI
+2. **Vector Store & RAG**: SQLAlchemy persistence, hybrid search, semantic context
+3. **Conversational Chatbot**: Short responses (<=3 words), full domain analysis, real-time stats
+4. **WebSocket**: `/ws`, `/ws/public`, `/ws/admin` for real-time updates
+5. **Multi-tenancy**: Complete tenant isolation with separate data, configurations, and API keys
+6. **Tenant Management**: API for tenant creation, configuration, and management
+7. **Security-as-a-Service**: Ready for commercial offering with billing integration
 
 ## Environment Variables
-
-Key environment variables (see `.env`):
 ```bash
-# API Keys
-GEMINI_API_KEY=your_key_here
-NOTION_TOKEN=your_token
-GOOGLE_SHEETS_CREDENTIALS=json_credentials
-GOOGLE_SHEET_ID=spreadsheet_id
-
-# AdGuard
-ADGUARD_URL=http://localhost:8080
-ADGUARD_USER=admin
-ADGUARD_PASS=password
-
-# Ollama (optional)
-OLLAMA_ENABLED=false
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=nomic-embed-text
-OLLAMA_CHAT_MODEL=llama3.2
-
-# Embedding Provider
+GEMINI_API_KEY, NOTION_TOKEN, GOOGLE_SHEETS_CREDENTIALS, GOOGLE_SHEET_ID
+ADGUARD_URL, ADGUARD_USER, ADGUARD_PASS
+OLLAMA_ENABLED, OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_CHAT_MODEL
 EMBEDDING_PROVIDER=sentence-transformers  # or "ollama", "mock"
+# New for multi-tenancy:
+API_RATE_LIMIT_PER_TENANT=100  # Requests per minute per tenant
+DEFAULT_TENANT_ID=1  # Default tenant for backward compatibility
 ```
 
 ## Known Issues
 - Isolation Forest needs 10+ samples before detecting anomalies
-- sentence-transformers not installed by default (run: `pip install sentence-transformers`)
-- Gemini API has rate limits - falls back to heuristics when exceeded
+- sentence-transformers not installed by default
+- Gemini API rate limits → falls back to heuristics
+- Tenant management API requires admin authentication (to be integrated with auth system)
+- WebSocket tenant broadcasting needs further testing
+- Frontend updates needed for tenant awareness (Phase 5)
+
+## Current Progress
+
+✅ Phase 1 Foundation - Multi-tenancy & Customer Isolation:
+- Database schema updated with tenant_id columns
+- Tenant table created with proper indexing
+- Repository layer updated for tenant scoping
+- Tenant middleware implemented for request-based tenant identification
+- WebSocket manager updated for tenant-aware connections
+- Core API endpoints updated to be tenant-aware
+- Tenant management API created (tenant_router.py)
+- System intelligence display updated to work with tenant context
+
+✅ Phase 2 - Customer Management & Billing:
+- User registration API with tenant creation (registration_router.py)
+- Stripe billing integration (billing_service.py, billing_router.py)
+- Subscription management (create checkout, portal, cancel)
+- Usage tracking per tenant (daily and overall stats)
+- Subscription webhooks for automated tier updates
+- Documentation updated with complete API reference
+
+✅ Phase 3 - Public API & Developer Experience:
+- Developer portal API (developer_router.py)
+- API key generation and management per tenant
+- Tier-based rate limiting (tier_rate_limiter.py)
+- Usage analytics per API key
+- Rate limit headers in responses
+- Public API documentation endpoint
+
+✅ Phase 5 - Customer Experience:
+- Login/Registration UI (LoginPage.tsx)
+- Admin Dashboard for tenant management (AdminDashboard.tsx)
+- Tenant Selector dropdown (TenantSelector.tsx)
+- Pricing/Subscription page (PricingPage.tsx)
+- Usage Dashboard with charts (UsageDashboard.tsx)
+- API service layer (tenantService.ts)
+
+🔜 Phase 4 - Operational Excellence:
+- Kubernetes manifests for deployment
+- Monitoring and alerting setup
+- Backup and recovery procedures
+
+🔜 Phase 6 - Advanced Features:
+- Compliance reporting
+- Advanced analytics
+- SIEM integrations
+
+## Next Steps
+1. Deploy infrastructure (Phase 4)
+2. Add compliance features (Phase 6)
+
+## New Environment Variables
+```bash
+# Stripe Billing
+STRIPE_API_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRO_PRICE_ID=price_...
+STRIPE_ENTERPRISE_PRICE_ID=price_...
+```
