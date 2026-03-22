@@ -1,0 +1,17 @@
+# Python Tool Dependencies
+# Install with: pip install -r tools/requirements.txt
+
+# PromptFoo (also available via pip)
+promptfoo>=0.100.0
+
+# Vercel Agent Eval
+# @vercel/agent-eval @latest
+
+# HackMyAgent (Node.js based)
+# npm install hackmyagent
+
+# Agent Duelist (Node.js based)
+# npm install agent-duelist
+
+# For local development
+-r requirements.txt

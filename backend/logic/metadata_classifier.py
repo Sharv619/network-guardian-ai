@@ -1,6 +1,6 @@
 """
 Metadata Pattern Recognition System
-Leverages AdGuard metadata to classify threats without Gemini API calls
+Leverages AdGuard metadata and blocklist data to classify threats without Gemini API calls
 """
 
 import hashlib
@@ -10,6 +10,68 @@ from collections import Counter
 from dataclasses import asdict, dataclass
 
 from ..core.utils import get_iso_timestamp
+
+# Blocklist cache for fast lookups
+_blocklist_cache: dict[str, dict] = {}
+_blocklist_cache_loaded = False
+
+
+def _load_blocklist_cache():
+    """Load blocklist entries into memory cache for fast lookups."""
+    global _blocklist_cache, _blocklist_cache_loaded
+    if _blocklist_cache_loaded:
+        return
+
+    try:
+        import asyncio
+
+        from sqlalchemy import select
+
+        from backend.db.database import get_session
+        from backend.db.models import BlocklistEntry
+
+        async def _load():
+            async with get_session() as session:
+                result = await session.execute(select(BlocklistEntry).limit(500000))
+                entries = result.scalars().all()
+                for entry in entries:
+                    _blocklist_cache[entry.domain] = {
+                        "category": entry.category,
+                        "source": entry.source,
+                        "risk_level": entry.risk_level,
+                    }
+                print(f"Blocklist cache loaded: {len(_blocklist_cache)} domains")
+
+        asyncio.run(_load())
+        _blocklist_cache_loaded = True
+    except Exception as e:
+        print(f"Warning: Could not load blocklist cache: {e}")
+
+
+def check_blocklist(domain: str) -> dict | None:
+    """Check if domain is in blocklist. Returns blocklist entry or None."""
+    if not _blocklist_cache_loaded:
+        _load_blocklist_cache()
+
+    domain_lower = domain.lower()
+    if domain_lower in _blocklist_cache:
+        return _blocklist_cache[domain_lower]
+
+    # Check for wildcard matches (e.g., subdomain of blocked domain)
+    parts = domain_lower.split(".")
+    for i in range(1, len(parts)):
+        parent = ".".join(parts[i:])
+        if parent in _blocklist_cache:
+            return _blocklist_cache[parent]
+
+    return None
+
+
+def invalidate_blocklist_cache():
+    """Invalidate blocklist cache to force reload."""
+    global _blocklist_cache, _blocklist_cache_loaded
+    _blocklist_cache.clear()
+    _blocklist_cache_loaded = False
 
 
 @dataclass
@@ -255,8 +317,22 @@ class MetadataClassifier:
             if len(self.patterns) % 5 == 0:  # Save more frequently
                 self.save_patterns()
 
-    def classify(self, metadata: dict) -> ClassificationResult:
-        """Classify a domain based on metadata patterns"""
+    def classify(self, metadata: dict, domain: str = "") -> ClassificationResult:
+        """Classify a domain based on metadata patterns and blocklist"""
+        # First, check blocklist for known threats
+        if domain:
+            blocklist_entry = check_blocklist(domain)
+            if blocklist_entry:
+                self.increment_local_decision()
+                category = blocklist_entry.get("category", "General")
+                confidence = 0.95
+                return ClassificationResult(
+                    category=category,
+                    confidence=confidence,
+                    source="blocklist",
+                    pattern_id=None,
+                )
+
         reason = metadata.get("reason", "Unknown")
         filter_id = metadata.get("filter_id")
         rule_pattern = self._extract_rule_pattern(metadata.get("rule"))
@@ -284,6 +360,7 @@ class MetadataClassifier:
 
         # Return classification if confidence is high enough
         if best_match and best_confidence >= self.confidence_threshold:
+            self.increment_local_decision()
             return ClassificationResult(
                 category=best_match.category,
                 confidence=best_confidence,
@@ -368,9 +445,9 @@ class MetadataClassifier:
 classifier = MetadataClassifier()
 
 
-def classify_domain_metadata(metadata: dict) -> ClassificationResult:
-    """Public function to classify domain using metadata patterns"""
-    return classifier.classify(metadata)
+def classify_domain_metadata(metadata: dict, domain: str = "") -> ClassificationResult:
+    """Public function to classify domain using metadata patterns and blocklist"""
+    return classifier.classify(metadata, domain)
 
 
 def learn_from_completed_analysis(domain: str, metadata: dict, category: str):
@@ -381,3 +458,12 @@ def learn_from_completed_analysis(domain: str, metadata: dict, category: str):
 def get_classifier_stats() -> dict:
     """Public function to get classifier statistics"""
     return classifier.get_pattern_stats()
+
+
+def get_blocklist_stats() -> dict:
+    """Get blocklist integration statistics"""
+    return {
+        "cache_loaded": _blocklist_cache_loaded,
+        "cached_domains": len(_blocklist_cache),
+        "sources_available": 4,
+    }

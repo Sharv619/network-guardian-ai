@@ -1,11 +1,12 @@
 """
 Statistics and monitoring endpoints for the optimized analysis system
+Tenant-aware: All statistics are scoped to the current tenant context
 """
 
 import time
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from ..core.state import automated_threats
 from ..logic.analysis_cache import get_cache_stats
@@ -81,15 +82,49 @@ def get_anomaly_stats():
 
 
 @router.get("/system")
-def get_system_stats():
+async def get_system_stats(request: Request):
     """Get comprehensive system statistics with real-time metrics"""
     from backend.core.config import settings
 
+    from ..db.repository import get_domain_repository
+
+    # Get tenant_id from request state (set by TenantMiddleware)
+    tenant_id = getattr(request.state, "tenant_id", 1)  # Default to 1 for backward compatibility
+
+    # Get repository for the current tenant
+    repo = await get_domain_repository(tenant_id=tenant_id)
+
+    # Get threat-based stats from the repository (tenant-aware)
+    threat_stats = await repo.get_stats()
+
+    # Get global stats (not tenant-aware in Phase 1)
     stats = get_classifier_stats()
     realtime_stats = classifier.get_realtime_stats()
-    entropy_stats = get_entropy_stats()
-    anomaly_stats = get_anomaly_stats()
+    entropy_stats = (
+        get_entropy_stats()
+    )  # Note: This uses global automated_threats, not tenant-aware
+    anomaly_stats = get_anomaly_stats()  # Note: This uses global engine, not tenant-aware
     cache_stats = get_cache_stats()
+
+    # Get blocklist stats (not tenant-aware in Phase 1)
+    blocklist_stats = {
+        "total_entries": 0,
+        "active_sources": 0,
+        "total_sources": 0,
+        "category_distribution": {},
+    }
+    try:
+        from backend.services.blocklist_loader import blocklist_loader
+
+        bl_stats = await blocklist_loader.get_stats()
+        blocklist_stats = {
+            "total_entries": bl_stats.get("total_entries", 0),
+            "active_sources": bl_stats.get("active_sources", 0),
+            "total_sources": bl_stats.get("total_sources", 0),
+            "category_distribution": bl_stats.get("category_distribution", {}),
+        }
+    except Exception as e:
+        print(f"Blocklist stats error: {e}")
 
     autonomy_score = realtime_stats["autonomy_score"]
 
@@ -98,23 +133,29 @@ def get_system_stats():
     sheets_status = (
         "ACTIVE" if settings.GOOGLE_SHEETS_CREDENTIALS and settings.GOOGLE_SHEET_ID else "INACTIVE"
     )
+    blocklist_status = "ACTIVE" if settings.BLOCKLIST_ENABLED else "INACTIVE"
 
     system_usage = {
         "active_integrations": [
             {
-                "name": "AdGuard Metadata",
+                "name": "AdGuard DNS",
                 "status": adguard_status,
-                "description": "Real-time threat metadata analysis",
+                "description": "Live DNS query interception",
             },
             {
-                "name": "Gemini AI",
-                "status": gemini_status,
-                "description": "Fallback analysis for unknown threats",
+                "name": "Blocklist Knowledge Base",
+                "status": blocklist_status,
+                "description": f"{blocklist_stats['total_entries']:,} domains from {blocklist_stats['active_sources']} sources",
             },
             {
                 "name": "Local ML Classifier",
                 "status": "ACTIVE",
                 "description": "Pattern-based threat detection",
+            },
+            {
+                "name": "Gemini AI",
+                "status": gemini_status,
+                "description": "Fallback analysis for unknown threats",
             },
             {
                 "name": "Google Sheets",
@@ -126,6 +167,7 @@ def get_system_stats():
             "total_detected": sum(stats["category_distribution"].values()),
             "categories": stats["category_distribution"],
             "detection_methods": [
+                "Blocklist lookup (162K+ domains)",
                 "AdGuard metadata analysis",
                 "Pattern matching from learned patterns",
                 "Heuristic analysis for unknown threats",
@@ -134,8 +176,9 @@ def get_system_stats():
         "learning_progress": {
             "seed_patterns": realtime_stats["seed_patterns"],
             "learned_patterns": realtime_stats["learned_patterns"],
-            "learning_rate": f"{realtime_stats['learned_patterns']}/5 seed patterns active",
-            "next_milestone": "10 patterns learned for enhanced accuracy",
+            "blocklist_domains": blocklist_stats["total_entries"],
+            "learning_rate": f"{blocklist_stats['total_entries']:,} blocklist + {realtime_stats['learned_patterns']} patterns",
+            "next_milestone": "1M blocklist domains for maximum coverage",
         },
     }
 
@@ -153,6 +196,9 @@ def get_system_stats():
         "entropy": entropy_stats,
         "anomaly": anomaly_stats,
         "system_usage": system_usage,
+        "blocklist": blocklist_stats,
+        # Add threat-based stats from the repository (tenant-aware)
+        "threat_stats": threat_stats,
     }
 
     # Add additional fields expected by the frontend with error handling

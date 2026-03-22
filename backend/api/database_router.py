@@ -1,7 +1,7 @@
 from datetime import UTC
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from backend.core.logging_config import get_logger
@@ -62,23 +62,30 @@ class ExportResponse(BaseModel):
 
 
 @router.get("/stats", response_model=StatsResponse)
-async def get_database_stats() -> StatsResponse:
-    """Get database statistics."""
+async def get_database_stats(request: Request) -> StatsResponse:
+    """Get database statistics for the current tenant."""
+    # Get tenant_id from request state (set by TenantMiddleware)
+    tenant_id = getattr(request.state, "tenant_id", 1)  # Default to 1 for backward compatibility
+
     async with get_session() as session:
-        repo = DomainRepository(session)
+        repo = DomainRepository(session, tenant_id=tenant_id)
         stats = await repo.get_stats()
         return StatsResponse(**stats)
 
 
 @router.get("/domains", response_model=list[DomainResponse])
 async def list_domains(
+    request: Request,
     limit: int = Query(20, ge=1, le=1000, description="Maximum domains to return"),
     category: str | None = Query(None, description="Filter by category"),
     risk_score: str | None = Query(None, description="Filter by risk score"),
 ) -> list[DomainResponse]:
-    """List recent domains from the database."""
+    """List recent domains from the database for the current tenant."""
+    # Get tenant_id from request state (set by TenantMiddleware)
+    tenant_id = getattr(request.state, "tenant_id", 1)  # Default to 1 for backward compatibility
+
     async with get_session() as session:
-        repo = DomainRepository(session)
+        repo = DomainRepository(session, tenant_id=tenant_id)
 
         if category:
             domains = await repo.get_domains_by_category(category, limit)

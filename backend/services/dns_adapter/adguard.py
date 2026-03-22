@@ -4,12 +4,11 @@ Implementation of DNSAdapter for AdGuard Home.
 """
 
 from datetime import UTC, datetime
-from typing import List, Optional
 
 import requests
 
 from backend.core.config import settings
-from backend.logic.ml_heuristics import is_valid_domain
+
 from .base import DNSAdapter
 from .models import DNSQuery
 
@@ -42,7 +41,7 @@ class AdGuardAdapter(DNSAdapter):
         except Exception:
             return False
 
-    def poll_logs(self, since: Optional[datetime] = None) -> List[DNSQuery]:
+    def poll_logs(self, since: datetime | None = None) -> list[DNSQuery]:
         """
         Poll AdGuard query logs since given time.
 
@@ -136,12 +135,21 @@ class AdGuardAdapter(DNSAdapter):
                 if len(self._processed_domains) > 5000:
                     self._processed_domains.clear()
 
+                log_time = log.get("time")
+                if log_time:
+                    try:
+                        timestamp = datetime.fromisoformat(log_time.replace("Z", "+00:00"))
+                    except (ValueError, AttributeError):
+                        timestamp = datetime.now(UTC)
+                else:
+                    timestamp = datetime.now(UTC)
+
                 dns_query = DNSQuery(
                     domain=domain,
-                    timestamp=datetime.fromtimestamp(question.get("timestamp", 0), UTC),
-                    client_ip=str(question.get("client", "")),
+                    timestamp=timestamp,
+                    client_ip=str(log.get("client", "")),
                     query_type=str(question.get("type", "A")),
-                    blocked=question.get("status") != "NoError",  # Simplified check
+                    blocked=log.get("status") != "NOERROR",
                     reason=log.get("reason", "NotFilteredNotFound"),
                     filter_id=log.get("filterId"),
                     rule=log.get("rule") or "",
@@ -190,7 +198,7 @@ class AdGuardAdapter(DNSAdapter):
                     return True, f"Connected to AdGuard at {url}"
                 elif r.status_code == 401:
                     return False, f"Authentication failed at {url}. Check credentials."
-            except requests.exceptions.RequestException as e:
+            except requests.exceptions.RequestException:
                 continue
 
         return False, "Could not connect to any AdGuard instance"
@@ -200,5 +208,5 @@ class AdGuardAdapter(DNSAdapter):
         return "AdGuard Home"
 
     @property
-    def supported_features(self) -> List[str]:
+    def supported_features(self) -> list[str]:
         return ["query_log", "blocking", "filter_rules"]

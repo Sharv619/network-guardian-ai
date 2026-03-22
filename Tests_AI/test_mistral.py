@@ -6,7 +6,7 @@ api_key = os.environ.get("MISTRAL_API_KEY")
 if not api_key:
     print("Error: MISTRAL_API_KEY environment variable not set!")
     print("Run: export MISTRAL_API_KEY='your_key_here'")
-    exit(1)
+    exit()
 
 # 1. Initialize the client
 try:

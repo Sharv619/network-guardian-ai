@@ -441,6 +441,11 @@ def analyze_with_knowledge_base(
             best_match, similarity = matches[0]
             if similarity > 0.85:  # High confidence match
                 logger.info(f"High confidence knowledge base match found for {domain}")
+                from .anomaly_engine import predict_anomaly
+                from .ml_heuristics import extract_domain_features
+
+                features = extract_domain_features(domain)
+                is_anomaly, anomaly_score = predict_anomaly(features)
                 return {
                     "risk_score": best_match.risk_score,
                     "category": best_match.category,
@@ -449,6 +454,8 @@ def analyze_with_knowledge_base(
                     "similarity_score": similarity,
                     "analysis_source": "knowledge_base",
                     "timestamp": datetime.now(UTC).isoformat(),
+                    "is_anomaly": is_anomaly,
+                    "anomaly_score": anomaly_score,
                 }
             elif similarity > 0.7:  # Medium confidence match
                 logger.info(f"Medium confidence knowledge base match found for {domain}")
@@ -460,7 +467,7 @@ def analyze_with_knowledge_base(
         if fallback_to_api:
             from ..services.gemini_analyzer import analyze_domain
             from .anomaly_engine import predict_anomaly
-            from .ml_heuristics import calculate_entropy, is_dga, extract_domain_features
+            from .ml_heuristics import calculate_entropy, extract_domain_features, is_dga
 
             # Calculate local features
             entropy = calculate_entropy(domain)

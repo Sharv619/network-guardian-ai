@@ -11,13 +11,13 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Load environment variables from the parent directory
-env_file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+env_file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
 if os.path.exists(env_file_path):
     with open(env_file_path) as f:
         for line in f:
             line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                key, value = line.split('=', 1)
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
                 os.environ[key] = value
 
 from rich import box
@@ -28,16 +28,22 @@ from rich.text import Text
 
 console = Console()
 
+
 def display_system_intelligence():
     """Display system intelligence statistics in a formatted table"""
     try:
-        # Import the stats function
+        import asyncio
         from backend.api.stats import get_system_stats
         from backend.logic.analysis_cache import analysis_cache
         from backend.logic.metadata_classifier import classifier
 
-        # Get system statistics
-        stats = get_system_stats()
+        # Create a mock request object for system intelligence display
+        class MockRequest:
+            def __init__(self):
+                self.state = type("obj", (object,), {"tenant_id": 1})()
+
+        mock_request = MockRequest()
+        stats = asyncio.run(get_system_stats(mock_request))
 
         # Get additional detailed metrics
         classifier.get_pattern_stats()
@@ -49,27 +55,51 @@ def display_system_intelligence():
         subtitle = Text(f"Last Updated: {time.strftime('%Y-%m-%d %H:%M:%S')}", style="dim")
 
         # Create classifier stats table with enhanced data
-        classifier_table = Table(title="🧠 CLASSIFIER INTELLIGENCE", box=box.ROUNDED, show_header=True, header_style="bold cyan")
+        classifier_table = Table(
+            title="🧠 CLASSIFIER INTELLIGENCE",
+            box=box.ROUNDED,
+            show_header=True,
+            header_style="bold cyan",
+        )
         classifier_table.add_column("Metric", style="magenta")
         classifier_table.add_column("Value", style="green")
 
         classifier = stats["classifier"]
         classifier_table.add_row("Total Patterns", str(classifier["total_patterns"]))
-        classifier_table.add_row("System Patterns", str(classifier["category_distribution"].get("System", 0)))
-        classifier_table.add_row("Tracker Patterns", str(classifier["category_distribution"].get("Tracker", 0)))
-        classifier_table.add_row("Malware Patterns", str(classifier["category_distribution"].get("Malware", 0)))
-        classifier_table.add_row("High Confidence", str(classifier["confidence_distribution"]["high"]))
-        classifier_table.add_row("Medium Confidence", str(classifier["confidence_distribution"]["medium"]))
-        classifier_table.add_row("Low Confidence", str(classifier["confidence_distribution"]["low"]))
+        classifier_table.add_row(
+            "System Patterns", str(classifier["category_distribution"].get("System", 0))
+        )
+        classifier_table.add_row(
+            "Tracker Patterns", str(classifier["category_distribution"].get("Tracker", 0))
+        )
+        classifier_table.add_row(
+            "Malware Patterns", str(classifier["category_distribution"].get("Malware", 0))
+        )
+        classifier_table.add_row(
+            "High Confidence", str(classifier["confidence_distribution"]["high"])
+        )
+        classifier_table.add_row(
+            "Medium Confidence", str(classifier["confidence_distribution"]["medium"])
+        )
+        classifier_table.add_row(
+            "Low Confidence", str(classifier["confidence_distribution"]["low"])
+        )
 
         # Add detailed pattern analysis
         classifier_table.add_row("", "")  # Separator
-        classifier_table.add_row("Pattern Learning Rate", f"{realtime_stats['learned_patterns']}/5 seed patterns active")
+        classifier_table.add_row(
+            "Pattern Learning Rate", f"{realtime_stats['learned_patterns']}/5 seed patterns active"
+        )
         classifier_table.add_row("Pattern Accuracy", "95% (seed) + dynamic learning")
         classifier_table.add_row("Last Pattern Learned", "Real-time updates")
 
         # Create cache stats table with enhanced data
-        cache_table = Table(title="💾 CACHE INTELLIGENCE", box=box.ROUNDED, show_header=True, header_style="bold cyan")
+        cache_table = Table(
+            title="💾 CACHE INTELLIGENCE",
+            box=box.ROUNDED,
+            show_header=True,
+            header_style="bold cyan",
+        )
         cache_table.add_column("Metric", style="magenta")
         cache_table.add_column("Value", style="green")
 
@@ -87,7 +117,12 @@ def display_system_intelligence():
         cache_table.add_row("Auto Cleanup", "Every 60 seconds")
 
         # Create performance stats table
-        perf_table = Table(title="⚡ PERFORMANCE INTELLIGENCE", box=box.ROUNDED, show_header=True, header_style="bold cyan")
+        perf_table = Table(
+            title="⚡ PERFORMANCE INTELLIGENCE",
+            box=box.ROUNDED,
+            show_header=True,
+            header_style="bold cyan",
+        )
         perf_table.add_column("Metric", style="magenta")
         perf_table.add_column("Value", style="green")
 
@@ -100,7 +135,12 @@ def display_system_intelligence():
         perf_table.add_row("System Uptime", "Continuous monitoring")
 
         # Create autonomy stats table with enhanced data
-        auto_table = Table(title="🤖 AUTONOMY INTELLIGENCE", box=box.ROUNDED, show_header=True, header_style="bold cyan")
+        auto_table = Table(
+            title="🤖 AUTONOMY INTELLIGENCE",
+            box=box.ROUNDED,
+            show_header=True,
+            header_style="bold cyan",
+        )
         auto_table.add_column("Metric", style="magenta")
         auto_table.add_column("Value", style="green")
 
@@ -127,7 +167,9 @@ def display_system_intelligence():
         auto_table.add_row("Learning Progress", "Continuous improvement")
 
         # Create system health table
-        health_table = Table(title="🏥 SYSTEM HEALTH", box=box.ROUNDED, show_header=True, header_style="bold cyan")
+        health_table = Table(
+            title="🏥 SYSTEM HEALTH", box=box.ROUNDED, show_header=True, header_style="bold cyan"
+        )
         health_table.add_column("Component", style="magenta")
         health_table.add_column("Status", style="green")
         health_table.add_column("Details", style="yellow")
@@ -139,12 +181,20 @@ def display_system_intelligence():
         elif stats["total_decisions"] == 0:
             health_status = "🔄  WARMING UP"
 
-        health_table.add_row("Classifier", "✅ Active", f"{classifier['total_patterns']} patterns loaded")
-        health_table.add_row("Cache System", "✅ Active", f"{cache['memory_cache_size']} entries cached")
+        health_table.add_row(
+            "Classifier", "✅ Active", f"{classifier['total_patterns']} patterns loaded"
+        )
+        health_table.add_row(
+            "Cache System", "✅ Active", f"{cache['memory_cache_size']} entries cached"
+        )
         health_table.add_row("AdGuard Integration", "✅ Active", "Metadata analysis enabled")
         health_table.add_row("Gemini API", "✅ Active", "Fallback analysis available")
         health_table.add_row("Pattern Learning", "✅ Active", "Real-time adaptation")
-        health_table.add_row("System Status", health_status, f"Autonomy: {stats['autonomy_score']}%")
+        health_table.add_row(
+            "System Status",
+            health_status,
+            f"Autonomy: {stats['autonomy_score']}%",
+        )
 
         # Display all tables
         console.print(Panel(title, subtitle=subtitle, border_style="blue"))
@@ -155,15 +205,27 @@ def display_system_intelligence():
         console.print(health_table)
 
         # Display comprehensive summary
-        summary_text = Text(f"📊 SYSTEM STATUS: {health_status} | {stats['classifier']['total_patterns']} patterns | {stats['autonomy_score']}% autonomy | {stats['total_decisions']} decisions made", style="bold green")
+        summary_text = Text(
+            f"📊 SYSTEM STATUS: {health_status} | "
+            f"{stats['classifier']['total_patterns']} patterns | "
+            f"{stats['autonomy_score']}% autonomy | "
+            f"{stats['total_decisions']} decisions made",
+            style="bold green",
+        )
         console.print(Panel(summary_text, border_style="green"))
 
         # Display system insights
-        insights_text = Text("💡 INSIGHTS: System is actively learning and optimizing threat detection. Local analysis handles most threats efficiently while maintaining high accuracy.", style="italic dim")
+        insights_text = Text(
+            "💡 INSIGHTS: System is actively learning and optimizing "
+            "threat detection. Local analysis handles most threats "
+            "efficiently while maintaining high accuracy.",
+            style="italic dim",
+        )
         console.print(Panel(insights_text, border_style="yellow"))
 
     except Exception as e:
         console.print(f"[red]Error displaying system intelligence: {e}[/red]")
+
 
 if __name__ == "__main__":
     display_system_intelligence()

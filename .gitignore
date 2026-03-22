@@ -31,3 +31,8 @@ linkedin_posts/
 # Test coverage
 *.cover
 coverage.xml
+docs/MULTI_TENANT_API.md
+docs/PRD.md
+tools/hackmyagent.yaml
+tools/duelist-config.yaml
+tools/agent-eval.yaml

@@ -6,6 +6,7 @@ Provides endpoints for:
 - Feature engineering insights
 - Adaptive threshold monitoring
 - Model retraining triggers
+Tenant-aware: All ML operations are scoped to the current tenant context
 """
 
 from typing import Any

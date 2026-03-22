@@ -5,7 +5,6 @@ Data transfer objects for DNS adapter communications.
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
@@ -17,7 +16,7 @@ class DNSQuery:
     client_ip: str
     query_type: str  # A, AAAA, CNAME, etc.
     blocked: bool
-    reason: Optional[str] = None
-    rule: Optional[str] = None
-    filter_id: Optional[int] = None
-    elapsed_ms: Optional[float] = None
+    reason: str | None = None
+    rule: str | None = None
+    filter_id: int | None = None
+    elapsed_ms: float | None = None

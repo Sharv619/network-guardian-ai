@@ -1,8 +1,7 @@
 import asyncio
-import numpy as np
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+
 from backend.logic.ml_heuristics import calculate_entropy
-from backend.db.models import ThreatEvent
 
 
 async def run_diagnostic_suite():

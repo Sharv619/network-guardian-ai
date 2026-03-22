@@ -8,8 +8,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from backend.db.models import ThreatEvent
-from backend.logic.vector_store import ThreatRecord, ThreatMatch
+from backend.db.models import ThreatEntry
+from backend.logic.vector_store import ThreatMatch, ThreatRecord
 
 
 @dataclass
@@ -25,8 +25,8 @@ class FormattedThreat:
     similarity: float | None = None
 
 
-def format_threat_event(threat: ThreatEvent) -> FormattedThreat:
-    """Format a ThreatEvent for context display."""
+def format_threat_entry(threat: ThreatEntry) -> FormattedThreat:
+    """Format a ThreatEntry for context display."""
     reason = ""
     if threat.threat_metadata and threat.threat_metadata.reason:
         reason = threat.threat_metadata.reason
@@ -115,7 +115,7 @@ def build_rag_context(
     Build a RAG context string from search results.
 
     Args:
-        results: List of ThreatEvent, ThreatMatch, or ThreatRecord
+        results: List of ThreatEntry, ThreatMatch, or ThreatRecord
         max_results: Maximum number of results to include
         include_header: Whether to include the header line
 
@@ -134,8 +134,8 @@ def build_rag_context(
     formatted_threats: list[FormattedThreat] = []
 
     for result in results[:max_results]:
-        if isinstance(result, ThreatEvent):
-            formatted_threats.append(format_threat_event(result))
+        if isinstance(result, ThreatEntry):
+            formatted_threats.append(format_threat_entry(result))
         elif isinstance(result, ThreatMatch):
             formatted_threats.append(format_threat_match(result))
         elif isinstance(result, ThreatRecord):
@@ -183,12 +183,12 @@ def build_rag_context_for_gemini(
     return context
 
 
-def format_threats_for_streaming(threats: list[ThreatEvent]) -> list[dict[str, Any]]:
+def format_threats_for_streaming(threats: list[ThreatEntry]) -> list[dict[str, Any]]:
     """
     Format threats for streaming response.
 
     Args:
-        threats: List of ThreatEvent objects
+        threats: List of ThreatEntry objects
 
     Returns:
         List of dictionaries suitable for JSON streaming

@@ -1,5 +1,33 @@
 {
   "devDependencies": {
     "@types/node": "^25.0.10"
-  }
+  },
+  "name": "network-guardian-ai",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Network security tool with AI-powered DNS analysis",
+  "scripts": {
+    "test:promptfoo": "npx promptfoo eval --config promptfooconfig.yaml",
+    "test:promptfoo:watch": "npx promptfoo eval --config promptfooconfig.yaml --watch",
+    "test:promptfoo:view": "npx promptfoo view",
+    "test:promptfoo:redteam": "npx promptfoo redteam --config promptfooconfig.yaml",
+    "test:hackmyagent": "npx hackmyagent secure",
+    "test:hackmyagent:full": "npx opena2a-cli review",
+    "test:agent-eval": "cd tools && npx @vercel/agent-eval@latest init agent-eval-temp && npx @vercel/agent-eval@latest run",
+    "test:agent-eval:init": "npx @vercel/agent-eval@latest init agent-eval-temp",
+    "test:gemini": "npx @google/gemini-cli",
+    "test:all": "npm run test:promptfoo && npm run test:hackmyagent",
+    "tools:info": "cat tools/README.md",
+    "mcp:start": "python network_guardian_mcp.py",
+    "mcp:client": "python network_guardian_mcp.py"
+  },
+  "keywords": [
+    "network-security",
+    "dns-analysis",
+    "ai-security",
+    "llm-evaluation",
+    "red-teaming"
+  ],
+  "author": "",
+  "license": "MIT"
 }

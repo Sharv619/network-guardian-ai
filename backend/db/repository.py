@@ -1,19 +1,20 @@
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Optional
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.logging_config import get_logger
-from .database import get_session_factory
-from .models import Domain, DomainFeatures, DomainMetadata
+from .database import get_session, get_session_factory
+from .models import Domain, DomainFeatures, DomainMetadata, Tenant
 
 logger = get_logger(__name__)
 
 
 class DomainRepository:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, tenant_id: Optional[int] = None):
         self.session = session
+        self.tenant_id = tenant_id
 
     async def create_domain(
         self,
@@ -30,6 +31,7 @@ class DomainRepository:
         features: dict[str, Any] | None = None,
     ) -> Domain:
         domain_obj = Domain(
+            tenant_id=self.tenant_id,
             domain=domain.lower().strip(),
             entropy=entropy,
             risk_score=risk_score,
@@ -46,6 +48,7 @@ class DomainRepository:
 
         if metadata:
             metadata_obj = DomainMetadata(
+                tenant_id=self.tenant_id,
                 domain_id=domain_obj.id,
                 reason=metadata.get("reason"),
                 filter_id=metadata.get("filter_id"),
@@ -56,6 +59,7 @@ class DomainRepository:
 
         if features:
             features_obj = DomainFeatures(
+                tenant_id=self.tenant_id,
                 domain_id=domain_obj.id,
                 length=features.get("length", 0),
                 digit_ratio=features.get("digit_ratio", 0.0),
@@ -114,63 +118,77 @@ class DomainRepository:
         return None
 
     async def get_domain(self, domain: str) -> Domain | None:
-        result = await self.session.execute(
-            select(Domain).where(Domain.domain == domain.lower().strip())
-        )
+        query = select(Domain).where(Domain.domain == domain.lower().strip())
+        if self.tenant_id is not None:
+            query = query.where(Domain.tenant_id == self.tenant_id)
+        result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
     async def get_domain_by_id(self, domain_id: int) -> Domain | None:
-        result = await self.session.execute(
-            select(Domain).where(Domain.id == domain_id)
-        )
+        query = select(Domain).where(Domain.id == domain_id)
+        if self.tenant_id is not None:
+            query = query.where(Domain.tenant_id == self.tenant_id)
+        result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
     async def get_recent_domains(self, limit: int = 20) -> list[Domain]:
-        result = await self.session.execute(
-            select(Domain)
-            .order_by(Domain.created_at.desc())
-            .limit(limit)
-        )
+        query = select(Domain).order_by(Domain.created_at.desc())
+        if self.tenant_id is not None:
+            query = query.where(Domain.tenant_id == self.tenant_id)
+        query = query.limit(limit)
+        result = await self.session.execute(query)
         return list(result.scalars().all())
 
     async def get_all_domains(self) -> list[Domain]:
-        result = await self.session.execute(
-            select(Domain).order_by(Domain.created_at.desc())
-        )
+        query = select(Domain).order_by(Domain.created_at.desc())
+        if self.tenant_id is not None:
+            query = query.where(Domain.tenant_id == self.tenant_id)
+        result = await self.session.execute(query)
         return list(result.scalars().all())
 
     async def get_all_domain_features(self) -> list[list[float]]:
-        result = await self.session.execute(
-            select(Domain.entropy, DomainFeatures.length, DomainFeatures.digit_ratio,
-                   DomainFeatures.vowel_ratio, DomainFeatures.non_alphanumeric)
+        query = (
+            select(
+                Domain.entropy,
+                DomainFeatures.length,
+                DomainFeatures.digit_ratio,
+                DomainFeatures.vowel_ratio,
+                DomainFeatures.non_alphanumeric,
+            )
             .join(DomainFeatures, Domain.id == DomainFeatures.domain_id, isouter=True)
-            .where(and_(
-                Domain.entropy.is_not(None),
-                DomainFeatures.length.is_not(None)
-            ))
+            .where(and_(Domain.entropy.is_not(None), DomainFeatures.length.is_not(None)))
         )
+        if self.tenant_id is not None:
+            query = query.where(Domain.tenant_id == self.tenant_id)
+        result = await self.session.execute(query)
         rows = result.all()
         return [[float(x) for x in row] for row in rows if all(x is not None for x in row)]
 
     async def get_stats(self) -> dict[str, Any]:
-        total_result = await self.session.execute(select(func.count(Domain.id)))
+        query = select(func.count(Domain.id))
+        if self.tenant_id is not None:
+            query = query.where(Domain.tenant_id == self.tenant_id)
+        total_result = await self.session.execute(query)
         total = total_result.scalar() or 0
 
-        anomaly_result = await self.session.execute(
-            select(func.count(Domain.id)).where(Domain.is_anomaly.is_(True))
-        )
+        anomaly_query = select(func.count(Domain.id)).where(Domain.is_anomaly.is_(True))
+        if self.tenant_id is not None:
+            anomaly_query = anomaly_query.where(Domain.tenant_id == self.tenant_id)
+        anomaly_result = await self.session.execute(anomaly_query)
         anomalies = anomaly_result.scalar() or 0
 
-        category_result = await self.session.execute(
-            select(Domain.category, func.count(Domain.id))
-            .group_by(Domain.category)
-        )
+        category_query = select(Domain.category, func.count(Domain.id)).group_by(Domain.category)
+        if self.tenant_id is not None:
+            category_query = category_query.where(Domain.tenant_id == self.tenant_id)
+        category_result = await self.session.execute(category_query)
         categories = {row[0]: row[1] for row in category_result.all()}
 
-        source_result = await self.session.execute(
-            select(Domain.analysis_source, func.count(Domain.id))
-            .group_by(Domain.analysis_source)
+        source_query = select(Domain.analysis_source, func.count(Domain.id)).group_by(
+            Domain.analysis_source
         )
+        if self.tenant_id is not None:
+            source_query = source_query.where(Domain.tenant_id == self.tenant_id)
+        source_result = await self.session.execute(source_query)
         sources = {row[0]: row[1] for row in source_result.all()}
 
         return {
@@ -181,9 +199,10 @@ class DomainRepository:
         }
 
     async def domain_exists(self, domain: str) -> bool:
-        result = await self.session.execute(
-            select(func.count(Domain.id)).where(Domain.domain == domain.lower().strip())
-        )
+        query = select(func.count(Domain.id)).where(Domain.domain == domain.lower().strip())
+        if self.tenant_id is not None:
+            query = query.where(Domain.tenant_id == self.tenant_id)
+        result = await self.session.execute(query)
         count = result.scalar() or 0
         return count > 0
 
@@ -224,7 +243,65 @@ class DomainRepository:
         return list(result.scalars().all())
 
 
-async def get_domain_repository() -> DomainRepository:
+async def get_domain_repository(tenant_id: Optional[int] = None) -> DomainRepository:
     factory = get_session_factory()
     session = factory()
-    return DomainRepository(session)
+    return DomainRepository(session, tenant_id)
+
+
+class TenantRepository:
+    def __init__(self, session: AsyncSession | None = None):
+        self._session = session
+
+    async def update_subscription_tier(self, tenant_id: int, tier: str) -> bool:
+        async with get_session() as session:
+            result = await session.execute(select(Tenant).where(Tenant.id == tenant_id))
+            tenant = result.scalar_one_or_none()
+            if tenant:
+                tenant.subscription_tier = tier
+                await session.commit()
+                logger.info(f"Updated tenant {tenant_id} subscription tier to {tier}")
+                return True
+            return False
+
+    async def update_stripe_customer_id(self, tenant_id: int, customer_id: str) -> bool:
+        async with get_session() as session:
+            result = await session.execute(select(Tenant).where(Tenant.id == tenant_id))
+            tenant = result.scalar_one_or_none()
+            if tenant:
+                tenant.stripe_customer_id = customer_id
+                await session.commit()
+                logger.info(f"Updated tenant {tenant_id} Stripe customer ID: {customer_id}")
+                return True
+            return False
+
+
+def get_domain_stats(tenant_id: int) -> dict[str, Any]:
+    import asyncio
+    from .database import engine
+    from sqlalchemy import text
+
+    async def _get_stats():
+        async with engine.connect() as conn:
+            total_query = text("SELECT COUNT(*) FROM domains WHERE tenant_id = :tenant_id")
+            total_result = await conn.execute(total_query, {"tenant_id": tenant_id})
+            total = total_result.scalar() or 0
+
+            threat_query = text(
+                "SELECT COUNT(*) FROM domains WHERE tenant_id = :tenant_id AND risk_score IN ('High', 'Critical')"
+            )
+            threat_result = await conn.execute(threat_query, {"tenant_id": tenant_id})
+            threats = threat_result.scalar() or 0
+
+            tenant_query = text("SELECT subscription_tier FROM tenants WHERE id = :tenant_id")
+            tenant_result = await conn.execute(tenant_query, {"tenant_id": tenant_id})
+            row = tenant_result.fetchone()
+            tier = row[0] if row else "free"
+
+            return {
+                "total_analyzed": total,
+                "threats_detected": threats,
+                "subscription_tier": tier,
+            }
+
+    return asyncio.run(_get_stats())

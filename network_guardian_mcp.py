@@ -19,7 +19,7 @@ from fastapi import HTTPException
 from mcp.server.fastmcp import FastMCP
 
 # Add the backend directory to the path so we can import modules
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
 
 from backend.core.config import settings
 from backend.logic.analysis_cache import analysis_cache
@@ -28,6 +28,7 @@ from backend.api.stats import get_system_stats as api_get_stats
 
 # Initialize MCP server
 mcp = FastMCP("network-guardian-ai")
+
 
 @mcp.tool()
 def analyze_domain(domain: str) -> Dict[str, Any]:
@@ -45,12 +46,7 @@ def analyze_domain(domain: str) -> Dict[str, Any]:
         from backend.logic.ml_heuristics import calculate_entropy
 
         # Get metadata classification
-        metadata = {
-            "reason": "Unknown",
-            "filter_id": None,
-            "rule": None,
-            "client": None
-        }
+        metadata = {"reason": "Unknown", "filter_id": None, "rule": None, "client": None}
         result = classifier.classify(metadata)
 
         # Calculate entropy
@@ -63,10 +59,11 @@ def analyze_domain(domain: str) -> Dict[str, Any]:
             "confidence": result.confidence,
             "entropy": entropy,
             "is_suspicious": entropy > 4.0,
-            "classification_source": result.source
+            "classification_source": result.source,
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @mcp.tool()
 def get_recent_threats(limit: int = 10) -> List[Dict[str, Any]]:
@@ -92,6 +89,7 @@ def get_recent_threats(limit: int = 10) -> List[Dict[str, Any]]:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @mcp.tool()
 def get_threat_stats() -> Dict[str, Any]:
     """
@@ -101,9 +99,12 @@ def get_threat_stats() -> Dict[str, Any]:
         Statistics including total threats, risk distribution, and trends
     """
     try:
-        return api_get_stats()
+        import asyncio
+
+        return asyncio.run(api_get_stats())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @mcp.tool()
 def get_system_status() -> Dict[str, Any]:
@@ -120,12 +121,13 @@ def get_system_status() -> Dict[str, Any]:
             "config": {
                 "has_adguard": settings.has_adguard,
                 "gemini_available": bool(settings.GEMINI_API_KEY),
-                "google_sheets_available": bool(settings.GOOGLE_SHEET_ID)
-            }
+                "google_sheets_available": bool(settings.GOOGLE_SHEET_ID),
+            },
         }
         return status
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @mcp.tool()
 def get_config() -> Dict[str, Any]:
@@ -142,11 +144,12 @@ def get_config() -> Dict[str, Any]:
             "adguard_url": settings.ADGUARD_URL if settings.ADGUARD_URL else "not configured",
             "gemini_available": bool(settings.GEMINI_API_KEY),
             "google_sheets_available": bool(settings.GOOGLE_SHEET_ID),
-            "allowed_origins": settings.allowed_origins_list
+            "allowed_origins": settings.allowed_origins_list,
         }
         return config
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @mcp.tool()
 def sync_to_google_sheets(domain: Optional[str] = None) -> Dict[str, Any]:
@@ -188,6 +191,7 @@ def sync_to_google_sheets(domain: Optional[str] = None) -> Dict[str, Any]:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @mcp.tool()
 def get_entropy_analysis(domain: str) -> Dict[str, Any]:
     """
@@ -201,14 +205,16 @@ def get_entropy_analysis(domain: str) -> Dict[str, Any]:
     """
     try:
         from backend.logic.ml_heuristics import calculate_entropy
+
         entropy = calculate_entropy(domain)
         return {
             "domain": domain,
             "entropy": entropy,
-            "is_suspicious": entropy > 4.0  # Typical threshold
+            "is_suspicious": entropy > 4.0,  # Typical threshold
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @mcp.tool()
 def find_similar_threats(domain: str, limit: int = 5) -> List[Dict[str, Any]]:
@@ -228,6 +234,7 @@ def find_similar_threats(domain: str, limit: int = 5) -> List[Dict[str, Any]]:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @mcp.tool()
 def get_threat_cluster(domain: str) -> List[Dict[str, Any]]:
     """
@@ -245,10 +252,12 @@ def get_threat_cluster(domain: str) -> List[Dict[str, Any]]:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 if __name__ == "__main__":
     # Load environment variables if .env file exists
     if os.path.exists(".env"):
         from dotenv import load_dotenv
+
         load_dotenv()
 
     # Validate configuration

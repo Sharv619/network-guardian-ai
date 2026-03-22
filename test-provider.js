@@ -1,33 +1,42 @@
 // Custom PromptFoo provider - calls the Network Guardian AI backend API
-async function callApi(domain) {
-  const response = await fetch('http://localhost:8000/analyze', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ domain }),
-  });
-  
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
-  }
-  
-  return response.json();
-}
+// Works with promptfoo 0.120+
 
-module.exports = {
-  id: 'network-guardian-api',
+export class NetworkGuardianProvider {
+  constructor() {
+    this.apiUrl = 'http://localhost:8000/analyze';
+  }
+
+  id() {
+    return 'network-guardian-api';
+  }
+
   async callApi(prompt, context) {
-    const domain = context.vars.domain;
+    const domain = context?.vars?.domain;
     if (!domain) {
-      throw new Error('No domain provided');
+      throw new Error('No domain provided in vars');
     }
-    
+
     try {
-      const result = await callApi(domain);
+      const response = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const result = await response.json();
       return JSON.stringify(result);
     } catch (error) {
       throw new Error(`Failed to analyze ${domain}: ${error.message}`);
     }
-  },
-};
+  }
+
+  async call(prompt, context) {
+    return this.callApi(prompt, context);
+  }
+}
+
+export default NetworkGuardianProvider;

@@ -3,15 +3,18 @@ import re
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from ..core.state import automated_threats, manual_scans
+from ..db.repository import get_domain_repository
 from ..logic.analysis_cache import analysis_cache, get_cached_analysis
-from ..logic.vector_store import vector_memory
-from ..logic.ml_heuristics import calculate_entropy, is_dga, extract_domain_features
 from ..logic.anomaly_engine import engine as anomaly_engine
+from ..logic.ml_heuristics import calculate_entropy, extract_domain_features, is_dga
+from ..logic.vector_store import vector_memory
+from ..services.gemini_analyzer import analyze_domain, chat_with_ai
+from ..services.sheets_logger import log_threat_to_sheet
 
 router = APIRouter()
 
@@ -190,12 +193,15 @@ def search_analysis_cache(domain: str) -> dict[str, Any] | None:
     return cached_result
 
 
-def generate_rag_response(query: str) -> dict[str, Any]:
+async def generate_rag_response(request: Request, query: str) -> dict[str, Any]:
     """Generate RAG response with context from multiple sources."""
     response_parts = []
     sources = []
     confidence = "medium"
     cached_analysis = None
+
+    # Get tenant_id from request state (set by TenantMiddleware)
+    tenant_id = getattr(request.state, "tenant_id", 1)  # Default to 1 for backward compatibility
 
     intents = recognize_intent(query)
     query_expansions = expand_query_semantically(query, intents)
@@ -247,7 +253,7 @@ def generate_rag_response(query: str) -> dict[str, Any]:
             response_parts.append(f"- Summary: {cached_analysis.get('summary', '')}")
         sources.append("analysis_cache")
 
-    # 4. Perform new analysis if domain found and not in cache
+        # 4. Perform new analysis if domain found and not in cache
     if domain and not cached_analysis:
         try:
             analysis = analyze_domain(domain)
@@ -266,6 +272,14 @@ def generate_rag_response(query: str) -> dict[str, Any]:
                 from ..logic.analysis_cache import cache_analysis_result
 
                 cache_analysis_result(domain, cache_metadata, analysis, "gemini_analysis")
+
+                # Store the analysis in the database for the current tenant
+                try:
+                    repo = await get_domain_repository(tenant_id=tenant_id)
+                    await repo.create_domain_from_analysis(analysis)
+                except Exception as e:
+                    # Log the error but don't fail the request because we still want to return the analysis
+                    print(f"Warning: Failed to store analysis for domain {domain}: {e}")
 
         except Exception as e:
             response_parts.append(f"Could not perform new analysis: {str(e)}")
@@ -317,16 +331,19 @@ def format_chat_response(result: dict[str, Any]) -> str:
 
 
 @router.post("/chat")
-async def chat_endpoint(chat_request: ChatMessage):
+async def chat_endpoint(request: Request, chat_request: ChatMessage):
     """Enhanced chat endpoint with RAG functionality."""
     message = chat_request.message.strip()
 
     if not message:
         raise HTTPException(status_code=422, detail="Message is required")
 
+    # Get tenant_id from request state (set by TenantMiddleware)
+    tenant_id = getattr(request.state, "tenant_id", 1)  # Default to 1 for backward compatibility
+
     try:
         # Generate RAG-enhanced response
-        rag_result = generate_rag_response(message)
+        rag_result = await generate_rag_response(request, message)
         formatted_response = format_chat_response(rag_result)
 
         # Log the chat interaction
@@ -343,13 +360,12 @@ async def chat_endpoint(chat_request: ChatMessage):
         try:
             query_summary = chat_log.get("query", "N/A")[:50]
             log_threat_to_sheet(
-                "Chat Interaction",
-                {
+                domain="Chat Interaction",
+                analysis={
                     "risk_score": rag_result.get("confidence", "N/A"),
                     "category": "Chat Analysis",
                     "summary": f"Query: {query_summary}...",
                     "confidence": rag_result.get("confidence", "N/A"),
-                    "domain_found": chat_log.get("domain_found", "N/A"),
                 },
             )
         except Exception as e:
@@ -555,7 +571,7 @@ def detect_threat_patterns(records: list[dict[str, Any]]) -> list[str]:
 
 
 @router.get("/chat/stream/{query}")
-async def stream_chat_response(query: str):
+async def stream_chat_response(request: Request, query: str):
     """Streaming chat response for real-time feedback."""
 
     async def generate():
@@ -570,7 +586,7 @@ async def stream_chat_response(query: str):
             if cached:
                 yield f"data: {json.dumps({'type': 'cache_hit', 'data': True})}\n\n"
 
-        rag_result = generate_rag_response(query)
+        rag_result = await generate_rag_response(request, query)
         formatted = format_chat_response(rag_result)
 
         yield f"data: {json.dumps({'type': 'response', 'data': formatted})}\n\n"
@@ -598,7 +614,7 @@ async def get_recent_threats(limit: int = 10, time_range: str | None = "day"):
 
 
 @router.post("/system-chat")
-async def system_chat_endpoint(chat_request: ChatMessage):
+async def system_chat_endpoint(request: Request, chat_request: ChatMessage):
     """System-aware chat endpoint with ML heuristics and vector store integration.
 
     This endpoint provides comprehensive network security analysis by integrating:
@@ -611,6 +627,9 @@ async def system_chat_endpoint(chat_request: ChatMessage):
 
     if not message:
         raise HTTPException(status_code=422, detail="Message is required")
+
+    # Get tenant_id from request state (set by TenantMiddleware)
+    tenant_id = getattr(request.state, "tenant_id", 1)  # Default to 1 for backward compatibility
 
     try:
         # Extract domain from query if present
@@ -689,15 +708,14 @@ async def system_chat_endpoint(chat_request: ChatMessage):
         # Log the interaction
         try:
             log_threat_to_sheet(
-                "System Chat Interaction",
-                {
+                domain="System Chat Interaction",
+                analysis={
                     "risk_score": "Info",
                     "category": "System Chat",
                     "summary": f"Query: {message[:100]}...",
-                    "domain_found": domain is not None,
-                    "entropy_score": analysis_data["ml_heuristics"].get("entropy_score", 0),
-                    "is_dga": analysis_data["ml_heuristics"].get("is_dga", False),
                 },
+                is_anomaly=analysis_data["ml_heuristics"].get("is_dga", False),
+                entropy=analysis_data["ml_heuristics"].get("entropy_score", 0),
             )
         except Exception as e:
             print(f"System chat logging error: {e}")
@@ -926,7 +944,7 @@ async def generate_conversational_response(message: str) -> str:
         return f"🧠 Vector Store: {vm_stats.get('total_embeddings', 0)} embeddings | Semantic search ready | RAG pipeline active | Ollama support in .env"
 
     if any(w in message_lower for w in ["adguard", "dns", "block", "filter"]):
-        return f"🛡️ AdGuard DNS: Active | Filtering malicious domains | Check http://localhost:8080 for dashboard | Logs all DNS queries"
+        return "🛡️ AdGuard DNS: Active | Filtering malicious domains | Check http://localhost:8080 for dashboard | Logs all DNS queries"
 
     if any(w in message_lower for w in ["gemini", "cloud", "ai", "api"]):
         cloud = stats.get("cloud_decisions", 0)

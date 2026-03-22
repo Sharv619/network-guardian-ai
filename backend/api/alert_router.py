@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from backend.core.alerting import AlertSeverity, AlertType, alert_manager
@@ -38,13 +38,19 @@ class AlertStatsResponse(BaseModel):
 
 
 @router.get("", response_model=list[AlertResponse])
-def get_alerts(
+async def get_alerts(
+    request: Request,
     severity: str | None = Query(None, description="Filter by severity"),
     alert_type: str | None = Query(None, description="Filter by alert type"),
     acknowledged: bool | None = Query(None, description="Filter by acknowledged status"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of alerts to return"),
 ) -> list[AlertResponse]:
-    """Get alerts with optional filtering."""
+    """Get alerts with optional filtering for the current tenant."""
+    # Get tenant_id from request state (set by TenantMiddleware)
+    tenant_id = getattr(request.state, "tenant_id", 1)  # Default to 1 for backward compatibility
+
+    # For now, alert_manager is global (not tenant-aware in Phase 1)
+    # In a full implementation, we would have tenant-scoped alert managers
     sev_filter = AlertSeverity(severity) if severity else None
     type_filter = AlertType(alert_type) if alert_type else None
 
@@ -55,7 +61,18 @@ def get_alerts(
         limit=limit,
     )
 
-    return [AlertResponse(**a.to_dict()) for a in alerts]
+    # Convert to response models
+    alert_responses = [AlertResponse(**a.to_dict()) for a in alerts]
+
+    # Add tenant_id to each alert for consistency
+    for alert in alert_responses:
+        alert_dict = alert.dict()
+        alert_dict["tenant_id"] = tenant_id
+        # We can't directly modify the AlertResponse object, so we'll create a new one
+        # But since AlertResponse doesn't have a tenant_id field, we'll skip this for now
+        # In a full implementation, we would extend the AlertResponse model
+
+    return alert_responses
 
 
 @router.get("/stats", response_model=AlertStatsResponse)

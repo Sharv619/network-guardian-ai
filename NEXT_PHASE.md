@@ -58,7 +58,7 @@ Optional improvements:
 
 1. **Set API Key for PromptFoo:**
    ```bash
-   export OPENAI_API_KEY=your_key_here
+   export GEMINI_API_KEY=your_key_here
    # or
    promptfoo eval
    ```

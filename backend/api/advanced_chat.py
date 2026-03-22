@@ -4,11 +4,12 @@ from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from ..core.state import automated_threats, manual_scans
 from ..core.validators import is_valid_domain
+from ..db.repository import get_domain_repository
 from ..logic.analysis_cache import get_cached_analysis
 from ..logic.vector_store import vector_memory
 from ..services.gemini_analyzer import analyze_domain, chat_with_ai
@@ -184,9 +185,15 @@ def get_behavioral_context(domain: str) -> dict[str, Any]:
     return context
 
 
-def generate_advanced_rag_response(
-    query: str, include_context: bool = True, search_radius: int = 5, min_similarity: float = 0.7
+async def generate_advanced_rag_response(
+    request: Request,
+    query: str,
+    include_context: bool = True,
+    search_radius: int = 5,
+    min_similarity: float = 0.7,
 ) -> dict[str, Any]:
+    # Get tenant_id from request state (set by TenantMiddleware)
+    tenant_id = getattr(request.state, "tenant_id", 1)  # Default to 1 for backward compatibility
     """Generate advanced RAG response with comprehensive context from multiple sources."""
     response_parts = []
     sources = []
@@ -279,6 +286,14 @@ def generate_advanced_rag_response(
 
                 cache_analysis_result(domain, cache_metadata, analysis, "gemini_analysis")
 
+                # Store the analysis in the database for the current tenant
+                try:
+                    repo = await get_domain_repository(tenant_id=tenant_id)
+                    await repo.create_domain_from_analysis(analysis)
+                except Exception as e:
+                    # Log the error but don't fail the request because we still want to return the analysis
+                    print(f"Warning: Failed to store analysis for domain {domain}: {e}")
+
         except Exception as e:
             response_parts.append(f"⚠️ Could not perform new analysis: {str(e)}")
 
@@ -334,16 +349,18 @@ def format_advanced_chat_response(result: dict[str, Any]) -> str:
 
 
 @router.post("/chat/advanced")
-async def advanced_chat_endpoint(chat_request: AdvancedChatMessage):
-    """Advanced chat endpoint with comprehensive RAG functionality and context awareness."""
+async def advanced_chat_endpoint(request: Request, chat_request: AdvancedChatMessage):
     message = chat_request.message.strip()
+    # Get tenant_id from request state (set by TenantMiddleware)
+    tenant_id = getattr(request.state, "tenant_id", 1)  # Default to 1 for backward compatibility
 
     if not message:
         raise HTTPException(status_code=422, detail="Message is required")
 
     try:
         # Generate advanced RAG-enhanced response
-        rag_result = generate_advanced_rag_response(
+        rag_result = await generate_advanced_rag_response(
+            request,
             message,
             include_context=chat_request.include_context,
             search_radius=chat_request.search_radius,

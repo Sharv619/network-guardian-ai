@@ -1,28 +1,28 @@
 {
-  "evalId": "eval-bot-2026-03-16T20:28:21",
+  "evalId": "eval-fH5-2026-03-19T00:03:21",
   "results": {
     "version": 3,
-    "timestamp": "2026-03-16T20:28:21.614Z",
+    "timestamp": "2026-03-19T00:03:21.933Z",
     "prompts": [
       {
         "id": "fedb7db3ed03546c8fdff8f4b386fd37618a723815cd0c398c25ec2d01fc11ac",
         "raw": "{{domain}}",
         "label": "{{domain}}",
-        "provider": "exec:curl",
+        "provider": "http://localhost:8000/analyze",
         "metrics": {
-          "score": 0,
-          "testPassCount": 0,
-          "testFailCount": 0,
-          "testErrorCount": 5,
-          "assertPassCount": 0,
-          "assertFailCount": 0,
-          "totalLatencyMs": 0,
+          "score": 4,
+          "testPassCount": 4,
+          "testFailCount": 1,
+          "testErrorCount": 0,
+          "assertPassCount": 4,
+          "assertFailCount": 1,
+          "totalLatencyMs": 8384,
           "tokenUsage": {
             "prompt": 0,
             "completion": 0,
             "cached": 0,
             "total": 0,
-            "numRequests": 0,
+            "numRequests": 5,
             "completionDetails": {
               "reasoning": 0,
               "acceptedPrediction": 0,
@@ -41,8 +41,12 @@
               }
             }
           },
-          "namedScores": {},
-          "namedScoresCount": {},
+          "namedScores": {
+            "risk_score": 2
+          },
+          "namedScoresCount": {
+            "risk_score": 3
+          },
           "cost": 0
         }
       }
@@ -50,11 +54,38 @@
     "results": [
       {
         "cost": 0,
-        "error": "Error: Command failed: curl google.com {\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}} {\"vars\":{\"domain\":\"google.com\"},\"prompt\":{\"raw\":\"{{domain}}\",\"label\":\"{{domain}}\",\"config\":{}},\"test\":{\"description\":\"Benign domain - google.com should return Low risk\",\"vars\":{\"domain\":\"google.com\"},\"assert\":[{\"type\":\"contains\",\"value\":\"Low\",\"metric\":\"risk_score\"},{\"type\":\"is-json\"}],\"options\":{},\"metadata\":{}},\"repeatIndex\":0}\n  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r100   219  100   219    0     0   1637      0 --:--:-- --:--:-- --:--:--  1646\ncurl: (3) nested brace in URL position 28:\n{\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}}\n                           ^\n\n    at genericNodeError (node:internal/errors:984:15)\n    at wrappedFn (node:internal/errors:538:14)\n    at ChildProcess.exithandler (node:child_process:422:12)\n    at ChildProcess.emit (node:events:524:28)\n    at maybeClose (node:internal/child_process:1104:16)\n    at ChildProcess._handle.onexit (node:internal/child_process:304:5)",
-        "gradingResult": null,
-        "id": "a9e78dfd-8434-4ca7-a61a-46eb2a482fd2",
-        "latencyMs": 0,
-        "namedScores": {},
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "risk_score": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "Low",
+                "metric": "risk_score"
+              }
+            }
+          ]
+        },
+        "id": "b4e1b3c9-6fd4-45cf-b25d-95afeab8d44c",
+        "latencyMs": 1606,
+        "namedScores": {
+          "risk_score": 1
+        },
         "prompt": {
           "raw": "google.com",
           "label": "{{domain}}",
@@ -63,11 +94,60 @@
         "promptId": "fedb7db3ed03546c8fdff8f4b386fd37618a723815cd0c398c25ec2d01fc11ac",
         "promptIdx": 0,
         "provider": {
-          "id": "exec:curl",
+          "id": "http://localhost:8000/analyze",
           "label": ""
         },
-        "score": 0,
-        "success": false,
+        "response": {
+          "raw": "{\"risk_score\":\"Low\",\"category\":\"General Traffic\",\"summary\":\"SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)\",\"is_anomaly\":false,\"anomaly_score\":0.0,\"timestamp\":\"2026-03-18T15:22:12.616610Z\"}",
+          "latencyMs": 1606,
+          "cached": true,
+          "metadata": {
+            "http": {
+              "status": 200,
+              "statusText": "OK",
+              "headers": {
+                "content-length": "255",
+                "content-type": "application/json",
+                "date": "Wed, 18 Mar 2026 15:22:10 GMT",
+                "server": "uvicorn"
+              }
+            }
+          },
+          "output": {
+            "risk_score": "Low",
+            "category": "General Traffic",
+            "summary": "SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+            "is_anomaly": false,
+            "anomaly_score": 0,
+            "timestamp": "2026-03-18T15:22:12.616610Z"
+          },
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          }
+        },
+        "score": 1,
+        "success": true,
         "testCase": {
           "description": "Benign domain - google.com should return Low risk",
           "vars": {
@@ -78,9 +158,6 @@
               "type": "contains",
               "value": "Low",
               "metric": "risk_score"
-            },
-            {
-              "type": "is-json"
             }
           ],
           "options": {},
@@ -91,20 +168,55 @@
           "domain": "google.com"
         },
         "metadata": {
-          "errorContext": {
-            "providerId": "exec:curl",
-            "providerLabel": ""
-          }
+          "http": {
+            "status": 200,
+            "statusText": "OK",
+            "headers": {
+              "content-length": "255",
+              "content-type": "application/json",
+              "date": "Wed, 18 Mar 2026 15:22:10 GMT",
+              "server": "uvicorn"
+            }
+          },
+          "_promptfooFileMetadata": {}
         },
-        "failureReason": 2
+        "failureReason": 0
       },
       {
         "cost": 0,
-        "error": "Error: Command failed: curl xkdhf8sj2dh.net {\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}} {\"vars\":{\"domain\":\"xkdhf8sj2dh.net\"},\"prompt\":{\"raw\":\"{{domain}}\",\"label\":\"{{domain}}\",\"config\":{}},\"test\":{\"description\":\"High entropy random domain - should return High risk\",\"vars\":{\"domain\":\"xkdhf8sj2dh.net\"},\"assert\":[{\"type\":\"contains\",\"value\":\"High\",\"metric\":\"risk_score\"}],\"options\":{},\"metadata\":{}},\"repeatIndex\":0}\n  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0curl: (6) Could not resolve host: xkdhf8sj2dh.net\ncurl: (3) nested brace in URL position 28:\n{\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}}\n                           ^\n\n    at genericNodeError (node:internal/errors:984:15)\n    at wrappedFn (node:internal/errors:538:14)\n    at ChildProcess.exithandler (node:child_process:422:12)\n    at ChildProcess.emit (node:events:524:28)\n    at maybeClose (node:internal/child_process:1104:16)\n    at ChildProcess._handle.onexit (node:internal/child_process:304:5)",
-        "gradingResult": null,
-        "id": "147c0c59-963f-4546-9e27-2152faad9a14",
-        "latencyMs": 0,
-        "namedScores": {},
+        "error": "Expected output to contain \"High\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0,
+          "reason": "Expected output to contain \"High\"",
+          "namedScores": {
+            "risk_score": 0
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"High\"",
+              "assertion": {
+                "type": "contains",
+                "value": "High",
+                "metric": "risk_score"
+              }
+            }
+          ]
+        },
+        "id": "33306cd9-dd99-4248-a3a9-8a8592b7755a",
+        "latencyMs": 1581,
+        "namedScores": {
+          "risk_score": 0
+        },
         "prompt": {
           "raw": "xkdhf8sj2dh.net",
           "label": "{{domain}}",
@@ -113,8 +225,57 @@
         "promptId": "fedb7db3ed03546c8fdff8f4b386fd37618a723815cd0c398c25ec2d01fc11ac",
         "promptIdx": 0,
         "provider": {
-          "id": "exec:curl",
+          "id": "http://localhost:8000/analyze",
           "label": ""
+        },
+        "response": {
+          "raw": "{\"risk_score\":\"Low\",\"category\":\"General Traffic\",\"summary\":\"SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)\",\"is_anomaly\":false,\"anomaly_score\":0.0,\"timestamp\":\"2026-03-18T15:22:12.592366Z\"}",
+          "latencyMs": 1581,
+          "cached": true,
+          "metadata": {
+            "http": {
+              "status": 200,
+              "statusText": "OK",
+              "headers": {
+                "content-length": "255",
+                "content-type": "application/json",
+                "date": "Wed, 18 Mar 2026 15:22:10 GMT",
+                "server": "uvicorn"
+              }
+            }
+          },
+          "output": {
+            "risk_score": "Low",
+            "category": "General Traffic",
+            "summary": "SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+            "is_anomaly": false,
+            "anomaly_score": 0,
+            "timestamp": "2026-03-18T15:22:12.592366Z"
+          },
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          }
         },
         "score": 0,
         "success": false,
@@ -138,20 +299,54 @@
           "domain": "xkdhf8sj2dh.net"
         },
         "metadata": {
-          "errorContext": {
-            "providerId": "exec:curl",
-            "providerLabel": ""
-          }
+          "http": {
+            "status": 200,
+            "statusText": "OK",
+            "headers": {
+              "content-length": "255",
+              "content-type": "application/json",
+              "date": "Wed, 18 Mar 2026 15:22:10 GMT",
+              "server": "uvicorn"
+            }
+          },
+          "_promptfooFileMetadata": {}
         },
-        "failureReason": 2
+        "failureReason": 1
       },
       {
         "cost": 0,
-        "error": "Error: Command failed: curl cdn.jsdelivr.net {\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}} {\"vars\":{\"domain\":\"cdn.jsdelivr.net\"},\"prompt\":{\"raw\":\"{{domain}}\",\"label\":\"{{domain}}\",\"config\":{}},\"test\":{\"description\":\"CDN/safe domain - should return Low risk\",\"vars\":{\"domain\":\"cdn.jsdelivr.net\"},\"assert\":[{\"type\":\"contains\",\"value\":\"Low\",\"metric\":\"risk_score\"}],\"options\":{},\"metadata\":{}},\"repeatIndex\":0}\n  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\ncurl: (3) nested brace in URL position 28:\n{\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}}\n                           ^\n\n    at genericNodeError (node:internal/errors:984:15)\n    at wrappedFn (node:internal/errors:538:14)\n    at ChildProcess.exithandler (node:child_process:422:12)\n    at ChildProcess.emit (node:events:524:28)\n    at maybeClose (node:internal/child_process:1104:16)\n    at ChildProcess._handle.onexit (node:internal/child_process:304:5)",
-        "gradingResult": null,
-        "id": "0e603065-db09-432e-b8a3-461125404de9",
-        "latencyMs": 0,
-        "namedScores": {},
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {
+            "risk_score": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "Low",
+                "metric": "risk_score"
+              }
+            }
+          ]
+        },
+        "id": "84407ea3-601e-48e9-a6d7-6d70edccac60",
+        "latencyMs": 1791,
+        "namedScores": {
+          "risk_score": 1
+        },
         "prompt": {
           "raw": "cdn.jsdelivr.net",
           "label": "{{domain}}",
@@ -160,11 +355,60 @@
         "promptId": "fedb7db3ed03546c8fdff8f4b386fd37618a723815cd0c398c25ec2d01fc11ac",
         "promptIdx": 0,
         "provider": {
-          "id": "exec:curl",
+          "id": "http://localhost:8000/analyze",
           "label": ""
         },
-        "score": 0,
-        "success": false,
+        "response": {
+          "raw": "{\"risk_score\":\"Low\",\"category\":\"General Traffic\",\"summary\":\"SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)\",\"is_anomaly\":false,\"anomaly_score\":0.0,\"timestamp\":\"2026-03-18T15:22:12.804925Z\"}",
+          "latencyMs": 1791,
+          "cached": true,
+          "metadata": {
+            "http": {
+              "status": 200,
+              "statusText": "OK",
+              "headers": {
+                "content-length": "255",
+                "content-type": "application/json",
+                "date": "Wed, 18 Mar 2026 15:22:10 GMT",
+                "server": "uvicorn"
+              }
+            }
+          },
+          "output": {
+            "risk_score": "Low",
+            "category": "General Traffic",
+            "summary": "SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+            "is_anomaly": false,
+            "anomaly_score": 0,
+            "timestamp": "2026-03-18T15:22:12.804925Z"
+          },
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          }
+        },
+        "score": 1,
+        "success": true,
         "testCase": {
           "description": "CDN/safe domain - should return Low risk",
           "vars": {
@@ -185,19 +429,47 @@
           "domain": "cdn.jsdelivr.net"
         },
         "metadata": {
-          "errorContext": {
-            "providerId": "exec:curl",
-            "providerLabel": ""
-          }
+          "http": {
+            "status": 200,
+            "statusText": "OK",
+            "headers": {
+              "content-length": "255",
+              "content-type": "application/json",
+              "date": "Wed, 18 Mar 2026 15:22:10 GMT",
+              "server": "uvicorn"
+            }
+          },
+          "_promptfooFileMetadata": {}
         },
-        "failureReason": 2
+        "failureReason": 0
       },
       {
         "cost": 0,
-        "error": "Error: Command failed: curl analytics.google.com {\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}} {\"vars\":{\"domain\":\"analytics.google.com\"},\"prompt\":{\"raw\":\"{{domain}}\",\"label\":\"{{domain}}\",\"config\":{}},\"test\":{\"description\":\"Known tracking domain - should return risk\",\"vars\":{\"domain\":\"analytics.google.com\"},\"assert\":[{\"type\":\"is-json\"}],\"options\":{},\"metadata\":{}},\"repeatIndex\":0}\n  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r100   240  100   240    0     0   5454      0 --:--:-- --:--:-- --:--:--  5581\ncurl: (3) nested brace in URL position 28:\n{\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}}\n                           ^\n\n    at genericNodeError (node:internal/errors:984:15)\n    at wrappedFn (node:internal/errors:538:14)\n    at ChildProcess.exithandler (node:child_process:422:12)\n    at ChildProcess.emit (node:events:524:28)\n    at maybeClose (node:internal/child_process:1104:16)\n    at ChildProcess._handle.onexit (node:internal/child_process:304:5)",
-        "gradingResult": null,
-        "id": "677136ca-a2ab-4677-96ba-83402f98ce2a",
-        "latencyMs": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "is-json"
+              }
+            }
+          ]
+        },
+        "id": "e862d7d0-7e4e-4bcb-8820-278221914a17",
+        "latencyMs": 1794,
         "namedScores": {},
         "prompt": {
           "raw": "analytics.google.com",
@@ -207,13 +479,62 @@
         "promptId": "fedb7db3ed03546c8fdff8f4b386fd37618a723815cd0c398c25ec2d01fc11ac",
         "promptIdx": 0,
         "provider": {
-          "id": "exec:curl",
+          "id": "http://localhost:8000/analyze",
           "label": ""
         },
-        "score": 0,
-        "success": false,
+        "response": {
+          "raw": "{\"risk_score\":\"Low\",\"category\":\"General Traffic\",\"summary\":\"SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)\",\"is_anomaly\":false,\"anomaly_score\":0.0,\"timestamp\":\"2026-03-18T15:22:12.807173Z\"}",
+          "latencyMs": 1794,
+          "cached": true,
+          "metadata": {
+            "http": {
+              "status": 200,
+              "statusText": "OK",
+              "headers": {
+                "content-length": "255",
+                "content-type": "application/json",
+                "date": "Wed, 18 Mar 2026 15:22:10 GMT",
+                "server": "uvicorn"
+              }
+            }
+          },
+          "output": {
+            "risk_score": "Low",
+            "category": "General Traffic",
+            "summary": "SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+            "is_anomaly": false,
+            "anomaly_score": 0,
+            "timestamp": "2026-03-18T15:22:12.807173Z"
+          },
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          }
+        },
+        "score": 1,
+        "success": true,
         "testCase": {
-          "description": "Known tracking domain - should return risk",
+          "description": "Known tracking domain - should return valid response",
           "vars": {
             "domain": "analytics.google.com"
           },
@@ -230,19 +551,47 @@
           "domain": "analytics.google.com"
         },
         "metadata": {
-          "errorContext": {
-            "providerId": "exec:curl",
-            "providerLabel": ""
-          }
+          "http": {
+            "status": 200,
+            "statusText": "OK",
+            "headers": {
+              "content-length": "255",
+              "content-type": "application/json",
+              "date": "Wed, 18 Mar 2026 15:22:10 GMT",
+              "server": "uvicorn"
+            }
+          },
+          "_promptfooFileMetadata": {}
         },
-        "failureReason": 2
+        "failureReason": 0
       },
       {
         "cost": 0,
-        "error": "Error: Command failed: curl abc.com {\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}} {\"vars\":{\"domain\":\"abc.com\"},\"prompt\":{\"raw\":\"{{domain}}\",\"label\":\"{{domain}}\",\"config\":{}},\"test\":{\"description\":\"Short domain - should return valid response\",\"vars\":{\"domain\":\"abc.com\"},\"assert\":[{\"type\":\"is-json\"}],\"options\":{},\"metadata\":{}},\"repeatIndex\":0}\n  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r100   167  100   167    0     0   4364      0 --:--:-- --:--:-- --:--:--  4394\ncurl: (3) nested brace in URL position 28:\n{\"id\":\"exec:curl\",\"config\":{\"command\":\"curl -s -X POST http://localhost:8000/analyze  -H \\\"Content-Type: application/json\\\"  -d '{\\\"domain\\\":\\\"{{domain}}\\\"}'\",\"parse\":\"json\",\"basePath\":\"\"},\"env\":{}}\n                           ^\n\n    at genericNodeError (node:internal/errors:984:15)\n    at wrappedFn (node:internal/errors:538:14)\n    at ChildProcess.exithandler (node:child_process:422:12)\n    at ChildProcess.emit (node:events:524:28)\n    at maybeClose (node:internal/child_process:1104:16)\n    at ChildProcess._handle.onexit (node:internal/child_process:304:5)",
-        "gradingResult": null,
-        "id": "02ec39bc-75be-4c56-b40a-b265d9738b10",
-        "latencyMs": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "is-json"
+              }
+            }
+          ]
+        },
+        "id": "ba92422b-2d87-4d22-89f8-a3e91615c171",
+        "latencyMs": 1612,
         "namedScores": {},
         "prompt": {
           "raw": "abc.com",
@@ -252,11 +601,60 @@
         "promptId": "fedb7db3ed03546c8fdff8f4b386fd37618a723815cd0c398c25ec2d01fc11ac",
         "promptIdx": 0,
         "provider": {
-          "id": "exec:curl",
+          "id": "http://localhost:8000/analyze",
           "label": ""
         },
-        "score": 0,
-        "success": false,
+        "response": {
+          "raw": "{\"risk_score\":\"Low\",\"category\":\"General Traffic\",\"summary\":\"SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)\",\"is_anomaly\":false,\"anomaly_score\":0.0,\"timestamp\":\"2026-03-18T15:22:14.346320Z\"}",
+          "latencyMs": 1612,
+          "cached": true,
+          "metadata": {
+            "http": {
+              "status": 200,
+              "statusText": "OK",
+              "headers": {
+                "content-length": "255",
+                "content-type": "application/json",
+                "date": "Wed, 18 Mar 2026 15:22:12 GMT",
+                "server": "uvicorn"
+              }
+            }
+          },
+          "output": {
+            "risk_score": "Low",
+            "category": "General Traffic",
+            "summary": "SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy. (Cloud Analysis Throttled)",
+            "is_anomaly": false,
+            "anomaly_score": 0,
+            "timestamp": "2026-03-18T15:22:14.346320Z"
+          },
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          }
+        },
+        "score": 1,
+        "success": true,
         "testCase": {
           "description": "Short domain - should return valid response",
           "vars": {
@@ -275,24 +673,31 @@
           "domain": "abc.com"
         },
         "metadata": {
-          "errorContext": {
-            "providerId": "exec:curl",
-            "providerLabel": ""
-          }
+          "http": {
+            "status": 200,
+            "statusText": "OK",
+            "headers": {
+              "content-length": "255",
+              "content-type": "application/json",
+              "date": "Wed, 18 Mar 2026 15:22:12 GMT",
+              "server": "uvicorn"
+            }
+          },
+          "_promptfooFileMetadata": {}
         },
-        "failureReason": 2
+        "failureReason": 0
       }
     ],
     "stats": {
-      "successes": 0,
-      "failures": 0,
-      "errors": 5,
+      "successes": 4,
+      "failures": 1,
+      "errors": 0,
       "tokenUsage": {
         "prompt": 0,
         "completion": 0,
         "cached": 0,
         "total": 0,
-        "numRequests": 0,
+        "numRequests": 5,
         "completionDetails": {
           "reasoning": 0,
           "acceptedPrediction": 0,
@@ -311,19 +716,23 @@
           }
         }
       },
-      "durationMs": 169
+      "durationMs": 89
     }
   },
   "config": {
+    "tags": {},
     "prompts": [
       "{{domain}}"
     ],
     "providers": [
       {
-        "id": "exec:curl",
+        "id": "http://localhost:8000/analyze",
         "config": {
-          "command": "curl -s -X POST http://localhost:8000/analyze  -H \"Content-Type: application/json\"  -d '{\"domain\":\"{{domain}}\"}'",
-          "parse": "json"
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": "{\"domain\": \"{{domain}}\"}\n"
         }
       }
     ],
@@ -338,9 +747,6 @@
             "type": "contains",
             "value": "Low",
             "metric": "risk_score"
-          },
-          {
-            "type": "is-json"
           }
         ]
       },
@@ -371,7 +777,7 @@
         ]
       },
       {
-        "description": "Known tracking domain - should return risk",
+        "description": "Known tracking domain - should return valid response",
         "vars": {
           "domain": "analytics.google.com"
         },
@@ -393,8 +799,14 @@
         ]
       }
     ],
-    "outputPath": "./promptfoo-results.json",
-    "extensions": []
+    "scenarios": [],
+    "env": {},
+    "outputPath": [
+      "./promptfoo-results.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {}
   },
   "shareableUrl": null,
   "metadata": {
@@ -402,7 +814,7 @@
     "nodeVersion": "v20.19.5",
     "platform": "linux",
     "arch": "x64",
-    "exportedAt": "2026-03-16T20:28:21.831Z",
-    "evaluationCreatedAt": "2026-03-16T20:28:21.614Z"
+    "exportedAt": "2026-03-19T00:03:22.074Z",
+    "evaluationCreatedAt": "2026-03-19T00:03:21.933Z"
   }
 }

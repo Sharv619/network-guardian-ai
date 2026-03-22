@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, String, func
+from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, String, func, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -9,11 +9,43 @@ class Base(DeclarativeBase):
     pass
 
 
+class Tenant(Base):
+    __tablename__ = "tenants"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    subdomain: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    api_key: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    subscription_tier: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="free"
+    )  # free, pro, enterprise
+    stripe_customer_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+    # Relationships would be defined in child models via foreign keys
+
+    __table_args__ = (
+        Index("idx_tenants_subdomain", "subdomain"),
+        Index("idx_tenants_api_key", "api_key"),
+    )
+
+
 class Domain(Base):
     __tablename__ = "domains"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    domain: Mapped[str] = mapped_column(String(253), unique=True, nullable=False)
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    domain: Mapped[str] = mapped_column(String(253), nullable=False)
     entropy: Mapped[float | None] = mapped_column(Float, nullable=True)
     risk_score: Mapped[str] = mapped_column(String(20), nullable=False, default="Unknown")
     category: Mapped[str] = mapped_column(String(50), nullable=False, default="Unknown")
@@ -47,6 +79,8 @@ class Domain(Base):
         Index("idx_domains_category", "category"),
         Index("idx_domains_risk_score", "risk_score"),
         Index("idx_domains_is_anomaly", "is_anomaly"),
+        Index("idx_domains_tenant_id", "tenant_id"),
+        Index("idx_domains_tenant_domain", "tenant_id", "domain", unique=True),
     )
 
     def to_dict(self) -> dict[str, Any]:
@@ -84,6 +118,7 @@ class DomainMetadata(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     domain_id: Mapped[int] = mapped_column(ForeignKey("domains.id"), nullable=False)
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     reason: Mapped[str | None] = mapped_column(String(100), nullable=True)
     filter_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     rule: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -91,7 +126,10 @@ class DomainMetadata(Base):
 
     domain: Mapped["Domain"] = relationship("Domain", back_populates="metadata_entry")
 
-    __table_args__ = (Index("idx_metadata_domain_id", "domain_id"),)
+    __table_args__ = (
+        Index("idx_metadata_domain_id", "domain_id"),
+        Index("idx_metadata_tenant_id", "tenant_id"),
+    )
 
 
 class DomainFeatures(Base):
@@ -99,6 +137,7 @@ class DomainFeatures(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     domain_id: Mapped[int] = mapped_column(ForeignKey("domains.id"), nullable=False)
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     length: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     digit_ratio: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     vowel_ratio: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
@@ -106,7 +145,10 @@ class DomainFeatures(Base):
 
     domain: Mapped["Domain"] = relationship("Domain", back_populates="features")
 
-    __table_args__ = (Index("idx_features_domain_id", "domain_id"),)
+    __table_args__ = (
+        Index("idx_features_domain_id", "domain_id"),
+        Index("idx_features_tenant_id", "tenant_id"),
+    )
 
 
 class FeedbackEntry(Base):
@@ -114,6 +156,7 @@ class FeedbackEntry(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     domain_id: Mapped[int] = mapped_column(ForeignKey("domains.id"), nullable=False)
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     feedback_type: Mapped[str] = mapped_column(String(20), nullable=False)
     original_category: Mapped[str] = mapped_column(String(50), nullable=False)
     original_risk_score: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -129,6 +172,7 @@ class FeedbackEntry(Base):
 
     __table_args__ = (
         Index("idx_feedback_domain_id", "domain_id"),
+        Index("idx_feedback_tenant_id", "tenant_id"),
         Index("idx_feedback_type", "feedback_type"),
         Index("idx_feedback_processed", "processed"),
     )
@@ -138,7 +182,8 @@ class TLDRReputation(Base):
     __tablename__ = "tld_reputation"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    tld: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    tld: Mapped[str] = mapped_column(String(20), nullable=False)
     reputation_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.5)
     threat_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     safe_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -148,13 +193,18 @@ class TLDRReputation(Base):
         onupdate=lambda: datetime.now(UTC),
     )
 
-    __table_args__ = (Index("idx_tld_reputation_tld", "tld"),)
+    __table_args__ = (
+        Index("idx_tld_reputation_tld", "tld"),
+        Index("idx_tld_reputation_tenant_id", "tenant_id"),
+        Index("idx_tld_reputation_tenant_tld", "tenant_id", "tld", unique=True),
+    )
 
 
 class TemporalPattern(Base):
     __tablename__ = "temporal_patterns"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     hour_of_day: Mapped[int] = mapped_column(Integer, nullable=False)
     day_of_week: Mapped[int] = mapped_column(Integer, nullable=False)
     threat_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -166,7 +216,17 @@ class TemporalPattern(Base):
         onupdate=lambda: datetime.now(UTC),
     )
 
-    __table_args__ = (Index("idx_temporal_hour_day", "hour_of_day", "day_of_week", unique=True),)
+    __table_args__ = (
+        Index("idx_temporal_hour_day", "hour_of_day", "day_of_week"),
+        Index("idx_temporalpattern_tenant_id", "tenant_id"),
+        Index(
+            "idx_temporalpattern_tenant_hour_day",
+            "tenant_id",
+            "hour_of_day",
+            "day_of_week",
+            unique=True,
+        ),
+    )
 
 
 class ThreatEntry:
@@ -177,4 +237,95 @@ class ThreatEntry:
             setattr(self, key, value)
 
     def dict(self):
-        return {key: value for key, value in self.__dict__.items() if not key.startswith('_')}
+        return {key: value for key, value in self.__dict__.items() if not key.startswith("_")}
+
+
+class BlocklistSource(Base):
+    __tablename__ = "blocklist_sources"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    url: Mapped[str] = mapped_column(String(500), nullable=False)
+    category: Mapped[str] = mapped_column(String(30), nullable=False, default="general")
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    last_sync: Mapped[datetime | None] = mapped_column(nullable=True)
+    entry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        server_default=func.now(),
+    )
+
+    __table_args__ = (
+        Index("idx_blocklist_source_name", "name"),
+        Index("idx_blocklist_source_tenant_id", "tenant_id"),
+        Index("idx_blocklist_source_tenant_name", "tenant_id", "name", unique=True),
+    )
+
+
+class BlocklistEntry(Base):
+    __tablename__ = "blocklist_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    domain: Mapped[str] = mapped_column(String(253), nullable=False)
+    category: Mapped[str] = mapped_column(String(50), nullable=False, default="general")
+    source: Mapped[str] = mapped_column(String(50), nullable=False)
+    rule: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    risk_level: Mapped[str] = mapped_column(String(20), nullable=False, default="medium")
+    first_seen: Mapped[datetime] = mapped_column(
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+    last_updated: Mapped[datetime] = mapped_column(
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+    __table_args__ = (
+        Index("idx_blocklist_domain", "domain"),
+        Index("idx_blocklist_category", "category"),
+        Index("idx_blocklist_source", "source"),
+        Index("idx_blocklist_domain_category", "domain", "category"),
+        Index("idx_blocklist_tenant_id", "tenant_id"),
+        Index("idx_blocklist_tenant_domain", "tenant_id", "domain"),
+    )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "domain": self.domain,
+            "category": self.category,
+            "source": self.source,
+            "rule": self.rule,
+            "risk_level": self.risk_level,
+            "first_seen": self.first_seen.isoformat() if self.first_seen else None,
+            "last_updated": self.last_updated.isoformat() if self.last_updated else None,
+        }
+
+
+class BlocklistStats(Base):
+    __tablename__ = "blocklist_stats"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    source_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    total_entries: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    new_entries: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    removed_entries: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    sync_duration_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    sync_status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    error_message: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        server_default=func.now(),
+    )
+
+    __table_args__ = (
+        Index("idx_blocklist_stats_source", "source_name"),
+        Index("idx_blocklist_stats_tenant_id", "tenant_id"),
+    )

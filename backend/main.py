@@ -1,3 +1,4 @@
+import asyncio
 import atexit
 import json
 import os
@@ -8,16 +9,16 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend.api.router import router
 from backend.api.auth_router import router as auth_router
+from backend.api.router import router
 from backend.core.config import settings
+from backend.db.database import close_db, init_db
 from backend.scripts.knowledge_persistence import load_knowledge_base, save_knowledge_base
 from backend.services.adguard_poller import poll_adguard
 from backend.system_intelligence import display_system_intelligence
-from backend.db.database import init_db, close_db
+from backend.core.tenant_middleware import TenantMiddleware
 
 from .core.websocket_manager import ws_manager
 
@@ -85,6 +86,96 @@ async def lifespan(app: FastAPI):
     print("Loading knowledge base...")
     load_knowledge_base()
 
+    # Seed demo data if no threats exist
+    from backend.core.state import automated_threats
+
+    if not automated_threats:
+        print("Seeding demo data...")
+        import time
+
+        from backend.core.utils import get_iso_timestamp
+
+        domains = [
+            (
+                "api.stripe.com",
+                "High",
+                "Malware Pattern",
+                "SOC GUARD ACTIVE: Suspicious payment gateway",
+            ),
+            ("cdn.jsdelivr.net", "Low", "Safe CDN", "Normal content delivery"),
+            ("graph.facebook.com", "Medium", "Tracker", "Cross-site tracking beacon"),
+            ("metrics.google.com", "Medium", "Analytics", "Usage telemetry detected"),
+            ("push.apple.com", "Low", "Service Notification", "Normal APNS traffic"),
+            ("tracker.ads.twitter.com", "High", "Adware", "Behavioral tracking detected"),
+            ("location.services.android.com", "High", "Privacy Risk", "GPS location exfiltration"),
+            ("firebaselogging.googleapis.com", "Medium", "Logger", "Firebase telemetry"),
+            ("crashlytics.com", "Low", "Developer Tool", "Crash reporting service"),
+            ("data.mongodb.com", "Medium", "Cloud Sync", "Database sync traffic"),
+        ]
+        for i, (domain, risk, category, summary) in enumerate(domains):
+            automated_threats.insert(
+                0,
+                {
+                    "domain": domain,
+                    "risk_score": risk,
+                    "category": category,
+                    "summary": summary,
+                    "timestamp": get_iso_timestamp(),
+                    "is_anomaly": i % 3 == 0,
+                    "anomaly_score": round(0.8 + i * 0.02, 4) if i % 3 == 0 else 0.0,
+                },
+            )
+            time.sleep(0.02)
+        print(f"Seeded {len(automated_threats)} demo threats")
+
+    # Blocklist Knowledge Base Initialization (non-blocking)
+    def run_blocklist_init():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            from backend.services.blocklist_loader import blocklist_loader
+
+            print("Starting initial blocklist sync (all sources)...")
+            results = loop.run_until_complete(blocklist_loader.sync_all())
+            for r in results:
+                if r.success:
+                    print(f"  ✓ {r.source}: {r.total_entries} entries")
+                else:
+                    print(f"  ✗ {r.source}: {r.error_message or 'Failed'}")
+            total = sum(r.total_entries for r in results)
+            print(f"Initial blocklist sync complete: {total} total entries")
+        except Exception as e:
+            print(f"Blocklist init error: {e}")
+        finally:
+            loop.close()
+
+    if settings.BLOCKLIST_ENABLED:
+        print("Blocklist knowledge base enabled. Initializing...")
+        init_thread = threading.Thread(
+            target=run_blocklist_init, daemon=True, name="blocklist-init"
+        )
+        init_thread.start()
+
+        # Start background scheduler
+        def blocklist_sync_loop():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            while True:
+                time.sleep(settings.BLOCKLIST_SYNC_INTERVAL)
+                try:
+                    from backend.services.blocklist_loader import blocklist_loader
+
+                    results = loop.run_until_complete(blocklist_loader.sync_all())
+                    total = sum(r.total_entries for r in results)
+                    print(f"[Blocklist Scheduler] Sync complete: {total} entries")
+                except Exception as e:
+                    print(f"[Blocklist Scheduler] Error: {e}")
+
+        scheduler_thread = threading.Thread(
+            target=blocklist_sync_loop, daemon=True, name="blocklist-sync"
+        )
+        scheduler_thread.start()
+
     # Start WebSocket manager
     print("Starting WebSocket manager...")
     await ws_manager.start()
@@ -116,6 +207,9 @@ app = FastAPI(title="Network Guardian AI Backend", lifespan=lifespan)
 # Add rate limiting middleware
 app.middleware("http")(rate_limit_middleware)
 
+# Add tenant identification middleware
+app.add_middleware(TenantMiddleware)
+
 # CORS Configuration - Use specific origins from config for security
 app.add_middleware(
     CORSMiddleware,
@@ -141,6 +235,60 @@ from .api.ws_router import router as ws_router
 
 app.include_router(ws_router, prefix="")
 
+# Include Blocklist Routes
+try:
+    from backend.api.blocklist_router import router as blocklist_router
+
+    app.include_router(blocklist_router, prefix="/blocklist")
+    print("Blocklist router included")
+except ImportError as e:
+    print(f"Blocklist router not available: {e}")
+
+# Include ML Enhancement Routes
+try:
+    from backend.api.ml_router import router as ml_router
+
+    app.include_router(ml_router)
+    print("ML router included")
+except ImportError as e:
+    print(f"ML router not available: {e}")
+
+# Include Tenant Management Routes
+try:
+    from backend.api.tenant_router import router as tenant_router
+
+    app.include_router(tenant_router)
+    print("Tenant router included")
+except ImportError as e:
+    print(f"Tenant router not available: {e}")
+
+# Include Billing Routes
+try:
+    from backend.api.billing_router import router as billing_router
+
+    app.include_router(billing_router)
+    print("Billing router included")
+except ImportError as e:
+    print(f"Billing router not available: {e}")
+
+# Include Registration Routes
+try:
+    from backend.api.registration_router import router as registration_router
+
+    app.include_router(registration_router)
+    print("Registration router included")
+except ImportError as e:
+    print(f"Registration router not available: {e}")
+
+# Include Developer Portal Routes
+try:
+    from backend.api.developer_router import router as developer_router
+
+    app.include_router(developer_router)
+    print("Developer router included")
+except ImportError as e:
+    print(f"Developer router not available: {e}")
+
 
 @app.get("/health")
 def health_check():
@@ -150,9 +298,9 @@ def health_check():
 @app.get("/models")
 def api_list_models():
     """SRE Discovery: List available models (Gemini + Ollama)."""
+    from backend.core.config import settings
     from backend.services.gemini_analyzer import get_available_models
     from backend.services.ollama_analyzer import get_ollama_models
-    from backend.core.config import settings
 
     models = []
 
@@ -171,11 +319,10 @@ def api_list_models():
 
 
 # Serve Frontend Static Files from Vite build output
-# Support both Docker (/app/backend/static) and local development (frontend/dist) paths
 backend_dir = os.path.dirname(__file__)
 possible_paths = [
-    os.path.join(backend_dir, "static"),  # Docker path
-    os.path.join(backend_dir, "..", "frontend", "dist"),  # Local dev path
+    os.path.join(backend_dir, "static"),
+    os.path.join(backend_dir, "..", "frontend", "dist"),
 ]
 frontend_dist = None
 for path in possible_paths:
@@ -185,40 +332,55 @@ for path in possible_paths:
 
 if frontend_dist:
     assets_dir = os.path.join(frontend_dist, "assets")
-    # Mount assets directory if it exists (Vite build output)
     if os.path.exists(assets_dir):
         app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+    vite_svg_path = os.path.join(frontend_dist, "vite.svg")
+    if os.path.exists(vite_svg_path):
 
-    @app.get("/{full_path:path}")
-    async def serve_react_app(full_path: str):
-        # Don't serve API routes - let them return 404 if not found
-        api_routes = [
-            "api/",
-            "alerts/",
-            "system-chat",
-            "analyze",
-            "chat",
-            "history",
-            "manual-history",
-            "test-report",
-            "health",
-            "models",
-        ]
-        if any(full_path.startswith(route) for route in api_routes):
-            return {"error": "API route not found"}
+        @app.get("/vite.svg")
+        async def serve_vite_svg():
+            from fastapi.responses import FileResponse
 
-        # Serve static files if they exist directly
-        file_path = os.path.join(frontend_dist, full_path) if frontend_dist else full_path
-        if file_path and os.path.exists(file_path) and os.path.isfile(file_path):
-            return FileResponse(file_path)
-
-        # Fallback to index.html for React Router (only for non-API paths)
-        index_path = os.path.join(frontend_dist, "index.html") if frontend_dist else "index.html"
-        return FileResponse(index_path)
+            return FileResponse(vite_svg_path)
 else:
     print(
         f"WARNING: Frontend dist directory not found. Checked paths: {possible_paths}. Frontend will not be served."
     )
+
+
+async def frontend_middleware(request: Request, call_next):
+    if request.method == "GET" and not any(
+        request.url.path.startswith(p)
+        for p in [
+            "/api/",
+            "/alerts/",
+            "/assets/",
+            "/blocklist",
+            "/database/",
+            "/auth/",
+            "/billing/",
+            "/developer/",
+            "/ws/",
+            "/health",
+            "/models",
+            "/analyze",
+            "/chat",
+            "/history",
+            "/system-chat",
+            "/tenants",
+            "/vite.svg",
+        ]
+    ):
+        if frontend_dist:
+            from fastapi.responses import FileResponse
+
+            index_path = os.path.join(frontend_dist, "index.html")
+            return FileResponse(index_path)
+    return await call_next(request)
+
+
+app.middleware("http")(frontend_middleware)
+
 
 if __name__ == "__main__":
     if not settings.is_valid:

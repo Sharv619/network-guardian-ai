@@ -64,6 +64,7 @@ class WebSocketMessage:
 class ConnectionInfo:
     websocket: WebSocket
     client_id: str
+    tenant_id: int = 1  # Default to tenant 1 for backward compatibility
     user: "AuthenticatedUser | None" = None
     connected_at: float = field(default_factory=time.time)
     last_heartbeat: float = field(default_factory=time.time)
@@ -180,6 +181,7 @@ class WebSocketManager:
         websocket: WebSocket,
         client_id: str,
         user: "AuthenticatedUser | None" = None,
+        tenant_id: int = 1,
     ) -> bool:
         """
         Accept and register a new WebSocket connection.
@@ -188,6 +190,7 @@ class WebSocketManager:
             websocket: The WebSocket connection object
             client_id: Unique identifier for this connection
             user: AuthenticatedUser object from the authentication dependency
+            tenant_id: Tenant ID for multi-tenancy support
 
         Returns:
             True if connection was accepted, False if rejected (max connections)
@@ -206,6 +209,7 @@ class WebSocketManager:
             conn_info = ConnectionInfo(
                 websocket=websocket,
                 client_id=client_id,
+                tenant_id=tenant_id,
                 user=user,
             )
             self._connections[client_id] = conn_info
@@ -214,6 +218,7 @@ class WebSocketManager:
             "WebSocket connected",
             extra={
                 "client_id": client_id,
+                "tenant_id": tenant_id,
                 "user_role": conn_info.user_role,
                 "username": conn_info.username,
                 "total_connections": len(self._connections),
@@ -224,6 +229,7 @@ class WebSocketManager:
             event_type=EventType.CONNECTION_ACK,
             data={
                 "client_id": client_id,
+                "tenant_id": tenant_id,
                 "message": "Connected to Network Guardian AI",
                 "subscriptions": list(conn_info.subscriptions),
                 "user_role": conn_info.user_role,
@@ -280,6 +286,7 @@ class WebSocketManager:
         channel: str = "all",
         exclude_client: str | None = None,
         min_role: str | None = None,
+        tenant_id: int | None = None,
     ) -> int:
         """
         Broadcast an event to all subscribed clients.
@@ -292,6 +299,8 @@ class WebSocketManager:
             min_role: Optional minimum role required to receive the message.
                       If provided, only users with this role or higher will receive it.
                       Role hierarchy: admin > user > viewer
+            tenant_id: Optional tenant ID to filter connections by. If provided, only connections
+                      matching this tenant ID will receive the broadcast.
 
         Returns:
             Number of clients that received the message
@@ -308,6 +317,10 @@ class WebSocketManager:
                     continue
 
                 if min_role and not has_role_or_higher(conn_info.user_role, min_role):
+                    continue
+
+                # If tenant_id is specified, only send to connections with matching tenant_id
+                if tenant_id is not None and conn_info.tenant_id != tenant_id:
                     continue
 
                 if channel in conn_info.subscriptions or "all" in conn_info.subscriptions:
@@ -327,20 +340,25 @@ class WebSocketManager:
                 "channel": channel,
                 "delivered_count": delivered_count,
                 "min_role": min_role,
+                "tenant_id": tenant_id,
             },
         )
         return delivered_count
 
-    async def broadcast_queued(self, event_type: EventType, data: dict[str, Any]) -> None:
+    async def broadcast_queued(
+        self, event_type: EventType, data: dict[str, Any], tenant_id: int | None = None
+    ) -> None:
         """Queue an event for broadcasting (non-blocking)."""
-        await self._broadcast_queue.put((event_type, data))
+        await self._broadcast_queue.put((event_type, data, tenant_id))
 
     async def _process_broadcast_queue(self) -> None:
         """Process queued broadcast messages."""
         while self._running:
             try:
-                event_type, data = await asyncio.wait_for(self._broadcast_queue.get(), timeout=1.0)
-                await self.broadcast(event_type, data)
+                event_type, data, tenant_id = await asyncio.wait_for(
+                    self._broadcast_queue.get(), timeout=1.0
+                )
+                await self.broadcast(event_type, data, tenant_id=tenant_id)
             except TimeoutError:
                 continue
             except asyncio.CancelledError:

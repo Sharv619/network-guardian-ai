@@ -5,7 +5,6 @@ Abstract base class for DNS server adapters.
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Any
 
 from .models import DNSQuery
 
@@ -24,7 +23,7 @@ class DNSAdapter(ABC):
         pass
 
     @abstractmethod
-    def poll_logs(self, since: datetime | None = None) -> List[DNSQuery]:
+    def poll_logs(self, since: datetime | None = None) -> list[DNSQuery]:
         """
         Poll DNS query logs since given time.
 
@@ -54,6 +53,6 @@ class DNSAdapter(ABC):
 
     @property
     @abstractmethod
-    def supported_features(self) -> List[str]:
+    def supported_features(self) -> list[str]:
         """List of supported features."""
         pass

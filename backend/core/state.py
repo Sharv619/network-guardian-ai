@@ -1,5 +1,6 @@
-from typing import Any, Callable
 import threading
+from collections.abc import Callable
+from typing import Any
 
 # In-memory buffers for threat events
 # Shared between the poller (writer) and the API (reader)

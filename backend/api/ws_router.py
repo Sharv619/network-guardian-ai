@@ -24,6 +24,105 @@ from backend.core.websocket_manager import EventType, WebSocketMessage, ws_manag
 
 logger = get_logger(__name__)
 
+
+async def _extract_tenant_id_from_websocket(websocket: WebSocket) -> int:
+    """
+    Extract tenant ID from a WebSocket connection using various methods.
+    Returns the tenant ID if found, defaults to 1 for backward compatibility.
+    """
+    # Method 1: Subdomain extraction
+    # Format: tenant1.app.domain.com -> tenant1
+    host = websocket.url.hostname or ""
+    if host and "." in host:
+        subdomain = host.split(".")[0]
+        if subdomain not in ["www", "app", "api", "localhost"]:
+            # Look up tenant by subdomain
+            try:
+                from sqlalchemy import select
+
+                from ..db.database import get_session
+                from ..db.models import Tenant
+
+                async def get_tenant_by_subdomain():
+                    async with get_session() as session:
+                        result = await session.execute(
+                            select(Tenant.id).where(Tenant.subdomain == subdomain, Tenant.is_active)
+                        )
+                        tenant = result.scalar_one_or_none()
+                        return tenant.id if tenant else None
+
+                # Run the async function
+                tenant_id = await get_tenant_by_subdomain()
+                if tenant_id:
+                    return tenant_id
+            except Exception:
+                # If database lookup fails, continue to other methods
+                pass
+
+    # Method 2: Custom headers
+    tenant_id_header = websocket.headers.get("X-Tenant-ID")
+    if tenant_id_header:
+        try:
+            return int(tenant_id_header)
+        except ValueError:
+            pass
+
+    api_key_header = websocket.headers.get("X-Tenant-API-Key")
+    if api_key_header:
+        try:
+            from sqlalchemy import select
+
+            from ..db.database import get_session
+            from ..db.models import Tenant
+
+            async def get_tenant_by_api_key():
+                async with get_session() as session:
+                    result = await session.execute(
+                        select(Tenant.id).where(Tenant.api_key == api_key_header, Tenant.is_active)
+                    )
+                    tenant = result.scalar_one_or_none()
+                    return tenant.id if tenant else None
+
+            tenant_id = await get_tenant_by_api_key()
+            if tenant_id:
+                return tenant_id
+        except Exception:
+            pass
+
+    # Method 3: Query parameter
+    api_key_param = websocket.query_params.get("api_key")
+    if api_key_param:
+        try:
+            from sqlalchemy import select
+
+            from ..db.database import get_session
+            from ..db.models import Tenant
+
+            async def get_tenant_by_api_key_param():
+                async with get_session() as session:
+                    result = await session.execute(
+                        select(Tenant.id).where(Tenant.api_key == api_key_param, Tenant.is_active)
+                    )
+                    tenant = result.scalar_one_or_none()
+                    return tenant.id if tenant else None
+
+            tenant_id = await get_tenant_by_api_key_param()
+            if tenant_id:
+                return tenant_id
+        except Exception:
+            pass
+
+    # Method 4: Default tenant for development/testing
+    # In production, this should be removed or disabled
+    import os
+
+    if os.getenv("ENVIRONMENT", "production").lower() == "development":
+        # Return a default tenant ID (1) for development
+        return 1
+
+    return 1
+
+
 router = APIRouter(tags=["websocket"])
 
 
@@ -43,7 +142,7 @@ async def websocket_endpoint(
     Message Format (Client -> Server):
     {
         "action": "subscribe" | "unsubscribe" | "ping",
-        "channels": ["threats", "alerts", "system"]  // for subscribe/unsubscribe
+        "channels": ["threats", "alerts", "system"]  # for subscribe/unsubscribe
     }
 
     Message Format (Server -> Client):
@@ -69,12 +168,16 @@ async def websocket_endpoint(
         logger.warning("WebSocket authentication failed", extra={"client_id": None})
         return
 
+    # Extract tenant ID from the WebSocket connection
+    tenant_id = await _extract_tenant_id_from_websocket(websocket)
+
     client_id = generate_client_id(user)
 
     connected = await ws_manager.connect(
         websocket=websocket,
         client_id=client_id,
         user=user,
+        tenant_id=tenant_id,
     )
 
     if not connected:

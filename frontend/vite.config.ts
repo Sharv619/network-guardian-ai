@@ -39,6 +39,30 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      '/auth': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/tenants': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/billing': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/developer': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/analyze': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/stats': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
     }
   },
   build: {
