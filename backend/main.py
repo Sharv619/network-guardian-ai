@@ -261,6 +261,16 @@ from .api.ws_router import router as ws_router
 
 app.include_router(ws_router, prefix="")
 
+# Include Database Routes
+from backend.api.database_router import router as database_router
+
+app.include_router(database_router, prefix="/api/database")
+
+# Include Alert Routes
+from backend.api.alert_router import router as alert_router
+
+app.include_router(alert_router, prefix="/api/alerts")
+
 # Include Blocklist Routes
 try:
     from backend.api.blocklist_router import router as blocklist_router

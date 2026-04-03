@@ -125,7 +125,6 @@ def log_threat_to_sheet(
 
 import time
 
-_client = None
 _history_cache = None
 _last_fetch_time = 0
 CACHE_TTL = 30  # seconds

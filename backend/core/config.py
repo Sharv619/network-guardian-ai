@@ -69,6 +69,11 @@ class Settings(BaseSettings):
         description="Confirmed Gemini models for analysis",
     )
 
+    # Gemini live feed enhancement
+    GEMINI_LIVE_FEED_ENABLED: bool = Field(
+        False, description="Enable Gemini AI enhancement in live feed polling"
+    )
+
     # Security configuration
     JWT_SECRET_KEY: str = Field("", description="JWT Secret Key for token generation")
     ENABLE_SECURITY_HEADERS: bool = Field(True, description="Enable security headers middleware")

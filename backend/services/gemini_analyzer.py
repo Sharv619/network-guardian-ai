@@ -17,7 +17,8 @@ if settings.GEMINI_API_KEY:
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
     except Exception:
         import logging
-logging.exception("SDK Init Error")
+
+        logging.exception("SDK Init Error")
 
 
 class ThreatVerdict(BaseModel):
@@ -115,7 +116,7 @@ def analyze_domain(
     target_model = model_id if model_id else "gemini-2.0-flash"
 
     if not client:
-        return _heuristic_fallback(domain, "SDK Not Initialized")
+        return _heuristic_fallback(domain, "SDK Not Initialized", is_anomaly, anomaly_score)
 
     try:
         # Use Dynamic Model Selection
@@ -245,7 +246,7 @@ def analyze_domain(
         except Exception as alert_e:
             print(f"Alert creation failed: {alert_e}")
 
-        return _heuristic_fallback(domain, str(last_error))
+        return _heuristic_fallback(domain, str(last_error), is_anomaly, anomaly_score)
     except Exception as e:
         logging.exception("Gemini Analysis Critical Failure")
 
@@ -269,7 +270,7 @@ def analyze_domain(
         except Exception as alert_e:
             print(f"Alert creation failed: {alert_e}")
 
-        return _heuristic_fallback(domain, str(e))
+        return _heuristic_fallback(domain, str(e), is_anomaly, anomaly_score)
 
 
 def chat_with_ai(message: str, model_id: str | None = None) -> str:
@@ -313,7 +314,12 @@ def chat_with_ai(message: str, model_id: str | None = None) -> str:
         return "Network Guardian AI: Chat service temporarily unavailable. Analysis services remain active."
 
 
-def _heuristic_fallback(domain: str, error: str) -> dict:
+def _heuristic_fallback(
+    domain: str,
+    error: str,
+    is_anomaly: bool = False,
+    anomaly_score: float = 0.0,
+) -> dict:
     """Fallback heuristic analysis when cloud APIs fail."""
     entropy = calculate_entropy(domain)
 

@@ -148,23 +148,21 @@ def run_local_first_pipeline(
 ) -> dict:
     """
     Local-first analysis pipeline for domain classification.
-    LOCAL HEURISTICS ARE THE CORE - Gemini is optional enhancement.
+    LOCAL HEURISTICS ARE THE CORE - Gemini enhances for unique per-domain insights.
 
     1. Metadata classification (if blocked by AdGuard)
     2. Entropy-based DGA detection
-    3. Shannon Entropy analysis
-    4. Anomaly detection (Isolation Forest)
-    5. Gemini AI (OPTIONAL enhancement - only if enabled)
+    3. Shannon Entropy + Anomaly analysis
+    4. Gemini AI enhancement (OPTIONAL - if enabled)
     """
+    from ..core.config import settings
     from ..core.metrics import metrics_collector
 
-    # Fetch AdGuard whitelist dynamically
+    # Stage 0: Known safe domain fast-path (skip Gemini for trusted domains)
     SAFE_DOMAINS = _get_adguard_whitelist()
 
     if not SAFE_DOMAINS:
-        # Fallback to hardcoded list if AdGuard API fails
         SAFE_DOMAINS = {
-            # Google
             "google.com",
             "googleusercontent.com",
             "gstatic.com",
@@ -173,90 +171,66 @@ def run_local_first_pipeline(
             "ytimg.com",
             "googlevideo.com",
             "youtube-nocookie.com",
-            # Facebook/Meta
             "facebook.com",
             "fbcdn.net",
             "instagram.com",
             "meta.ai",
-            # Microsoft
             "microsoft.com",
             "windows.net",
             "azure.com",
             "office.com",
-            # Amazon
             "amazon.com",
             "aws.amazon.com",
             "cloudfront.net",
-            # Apple
             "apple.com",
             "icloud.com",
             "mzstatic.com",
-            # GitHub
             "github.com",
             "githubusercontent.com",
             "githubassets.com",
-            # Hugging Face
             "huggingface.co",
             "hf.co",
             "huggingface.net",
-            # Cloudflare
             "cloudflare.com",
             "cdnjs.cloudflare.com",
             "cloudflare.net",
-            # Mozilla
             "mozilla.com",
             "mozilla.org",
             "firefox.com",
             "firefoxusercontent.com",
-            # Reddit
             "reddit.com",
             "redd.it",
             "redditmedia.com",
-            # Twitter/X
             "twitter.com",
             "twimg.com",
             "x.com",
-            # LinkedIn
             "linkedin.com",
             "licdn.com",
-            # Spotify
             "spotify.com",
             "scdn.co",
-            # Netflix
             "netflix.com",
             "nflxvideo.net",
-            # Stripe
             "stripe.com",
             "m.stripe.com",
-            # Vercel
             "vercel.com",
             "vercel.app",
             "now.sh",
-            # AWS
             "awswaf.com",
             "amazonaws.com",
-            # Telegram
             "telegram.org",
             "telegram.me",
-            # WhatsApp
             "whatsapp.com",
             "whatsapp.net",
         }
 
-    # Check if domain is known safe (exact match or parent domain)
     domain_lower = domain.lower()
     base_domain = domain_lower.split(".")[0] if "." in domain_lower else domain_lower
-
-    # Check exact match or if base domain is in safe list
     is_known_safe = (
         domain_lower in SAFE_DOMAINS
         or base_domain in SAFE_DOMAINS
         or any(safe in domain_lower for safe in SAFE_DOMAINS if "." in safe)
     )
 
-    analysis = None
-
-    # If domain is known safe, return Low risk immediately
     if is_known_safe:
         return {
             "risk_score": "Low",
@@ -268,6 +242,8 @@ def run_local_first_pipeline(
             "entropy_score": entropy,
             "analysis_source": "whitelist",
         }
+
+    analysis = None
 
     # Stage 1: Metadata classification (for blocked domains)
     metadata_result = classify_domain_metadata(adguard_metadata)
@@ -328,7 +304,7 @@ def run_local_first_pipeline(
         category = "General Traffic"
         summary = f"🛡️ SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy ({entropy:.2f}, {entropy_level}). Normal network behavior patterns consistent with legitimate traffic."
 
-    return {
+    local_analysis = {
         "risk_score": risk_score,
         "category": category,
         "summary": summary,
@@ -338,6 +314,43 @@ def run_local_first_pipeline(
         "entropy_score": entropy,
         "analysis_source": "local_heuristic",
     }
+
+    # STAGE 4: WIRE GEMINI FOR ENHANCED ANALYSIS (NEW)
+    # Only use Gemini if:
+    # - It's enabled in settings
+    # - Domain is Medium/High risk (skip for clear Low risk to save API quota)
+    if settings.GEMINI_LIVE_FEED_ENABLED and risk_score in ["Medium", "High"]:
+        try:
+            print(f"[GEMINI ENHANCEMENT] Analyzing {domain} with Gemini for unique insights...")
+            gemini_context = {
+                "reason": adguard_metadata.get("reason", ""),
+                "rule": adguard_metadata.get("rule", ""),
+                "local_entropy": entropy,
+                "local_anomaly": anomaly_score,
+            }
+
+            gemini_analysis = analyze_with_knowledge_base(
+                domain,
+                context=gemini_context,
+                fallback_to_api=True,
+            )
+
+            if gemini_analysis and gemini_analysis.get("risk_score"):
+                # Enhance local analysis with Gemini insights
+                local_analysis["summary"] = gemini_analysis.get(
+                    "summary", local_analysis["summary"]
+                )
+                local_analysis["analysis_source"] = "gemini_ai_enhanced"
+                local_analysis["confidence"] = gemini_analysis.get("confidence", 0.8)
+                print(
+                    f"[GEMINI ENHANCEMENT] ✅ Enhanced {domain}: {gemini_analysis.get('category')}"
+                )
+        except Exception as e:
+            print(f"[GEMINI ENHANCEMENT] Fallback to local analysis: {e}")
+            # If Gemini fails, continue with local analysis (graceful degradation)
+            pass
+
+    return local_analysis
 
 
 def poll_adguard():
