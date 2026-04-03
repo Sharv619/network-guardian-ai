@@ -150,7 +150,7 @@ def run_local_first_pipeline(
     Local-first analysis pipeline for domain classification.
     LOCAL HEURISTICS ARE THE CORE - Gemini enhances for unique per-domain insights.
 
-    1. Metadata classification (if blocked by AdGuard)
+    1. Metadata classification (uses adguard_metadata from DNS adapter)
     2. Entropy-based DGA detection
     3. Shannon Entropy + Anomaly analysis
     4. Gemini AI enhancement (OPTIONAL - if enabled)
@@ -158,94 +158,8 @@ def run_local_first_pipeline(
     from ..core.config import settings
     from ..core.metrics import metrics_collector
 
-    # Stage 0: Known safe domain fast-path (skip Gemini for trusted domains)
-    SAFE_DOMAINS = _get_adguard_whitelist()
-
-    if not SAFE_DOMAINS:
-        SAFE_DOMAINS = {
-            "google.com",
-            "googleusercontent.com",
-            "gstatic.com",
-            "googleapis.com",
-            "youtube.com",
-            "ytimg.com",
-            "googlevideo.com",
-            "youtube-nocookie.com",
-            "facebook.com",
-            "fbcdn.net",
-            "instagram.com",
-            "meta.ai",
-            "microsoft.com",
-            "windows.net",
-            "azure.com",
-            "office.com",
-            "amazon.com",
-            "aws.amazon.com",
-            "cloudfront.net",
-            "apple.com",
-            "icloud.com",
-            "mzstatic.com",
-            "github.com",
-            "githubusercontent.com",
-            "githubassets.com",
-            "huggingface.co",
-            "hf.co",
-            "huggingface.net",
-            "cloudflare.com",
-            "cdnjs.cloudflare.com",
-            "cloudflare.net",
-            "mozilla.com",
-            "mozilla.org",
-            "firefox.com",
-            "firefoxusercontent.com",
-            "reddit.com",
-            "redd.it",
-            "redditmedia.com",
-            "twitter.com",
-            "twimg.com",
-            "x.com",
-            "linkedin.com",
-            "licdn.com",
-            "spotify.com",
-            "scdn.co",
-            "netflix.com",
-            "nflxvideo.net",
-            "stripe.com",
-            "m.stripe.com",
-            "vercel.com",
-            "vercel.app",
-            "now.sh",
-            "awswaf.com",
-            "amazonaws.com",
-            "telegram.org",
-            "telegram.me",
-            "whatsapp.com",
-            "whatsapp.net",
-        }
-
-    domain_lower = domain.lower()
-    base_domain = domain_lower.split(".")[0] if "." in domain_lower else domain_lower
-    is_known_safe = (
-        domain_lower in SAFE_DOMAINS
-        or base_domain in SAFE_DOMAINS
-        or any(safe in domain_lower for safe in SAFE_DOMAINS if "." in safe)
-    )
-
-    if is_known_safe:
-        return {
-            "risk_score": "Low",
-            "category": "General Traffic",
-            "summary": f"🛡️ SOC GUARD ACTIVE: Known safe domain ({domain}). Normal network behavior.",
-            "timestamp": get_iso_timestamp(),
-            "is_anomaly": False,
-            "anomaly_score": 0.0,
-            "entropy_score": entropy,
-            "analysis_source": "whitelist",
-        }
-
-    analysis = None
-
     # Stage 1: Metadata classification (for blocked domains)
+    # Trusts adguard_metadata from the DNS adapter (reason, filter_id, rule)
     metadata_result = classify_domain_metadata(adguard_metadata)
     if metadata_result.confidence >= 0.8:
         classifier.increment_local_decision()
@@ -315,10 +229,9 @@ def run_local_first_pipeline(
         "analysis_source": "local_heuristic",
     }
 
-    # STAGE 4: WIRE GEMINI FOR ENHANCED ANALYSIS (NEW)
-    # Only use Gemini if:
-    # - It's enabled in settings
-    # - Domain is Medium/High risk (skip for clear Low risk to save API quota)
+    # STAGE 4: GEMINI ENHANCEMENT
+    # Call Gemini ONLY for Medium/High risk to get unique per-domain insights
+    # Trusts adguard_metadata from DNS adapter — no separate safe domain check needed
     if settings.GEMINI_LIVE_FEED_ENABLED and risk_score in ["Medium", "High"]:
         try:
             print(f"[GEMINI ENHANCEMENT] Analyzing {domain} with Gemini for unique insights...")
