@@ -35,7 +35,7 @@ class Settings(BaseSettings):
 
     # Embedding provider choice
     EMBEDDING_PROVIDER: str = Field(
-        "sentence-transformers", description="Provider: sentence-transformers, ollama, or mock"
+        "ollama", description="Provider: ollama (local), sentence-transformers, or mock"
     )
 
     # AdGuard is now optional

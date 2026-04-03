@@ -74,7 +74,7 @@ class VectorMemory:
 
     def __init__(
         self,
-        embedding_provider: str = "sentence-transformers",
+        embedding_provider: str = "ollama",
         embedding_service: EmbeddingService | None = None,
         index_path: str | None = None,
         similarity_threshold: float = 0.7,
@@ -82,7 +82,7 @@ class VectorMemory:
         """Initialize VectorMemory.
 
         Args:
-            embedding_provider: Provider name ("sentence-transformers", "gemini", "mock")
+            embedding_provider: Provider name ("ollama", "sentence-transformers", "mock")
             embedding_service: Optional pre-configured embedding service (for testing)
             index_path: Path for persistence (optional)
             similarity_threshold: Minimum similarity for matches
