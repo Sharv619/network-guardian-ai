@@ -203,12 +203,15 @@ async def get_system_stats(request: Request):
 
     # Add additional fields expected by the frontend with error handling
     try:
+        from ..logic.vector_store import vector_memory
+
+        vm_stats = vector_memory.get_stats()
         result["vector_memory"] = {
-            "total_embeddings": len(
-                automated_threats
-            ),  # Using threat count as proxy for embeddings
-            "memory_size": len(automated_threats),
-            "query_performance": 0.05,  # Mock performance metric
+            "total_embeddings": vm_stats.get("total_embeddings", 0),
+            "memory_size": vm_stats.get("total_embeddings", 0),
+            "query_performance": 0.05,
+            "is_available": vm_stats.get("is_available", False),
+            "dimension": vm_stats.get("dimension", 0),
         }
     except Exception as e:
         print(f"Warning: Could not add vector_memory: {e}")
@@ -226,8 +229,10 @@ async def get_system_stats(request: Request):
 
     try:
         result["adaptive_thresholds"] = {
-            "entropy_threshold": entropy_stats.get("avg_entropy", 3.5) + 0.5,  # Dynamic threshold
-            "anomaly_threshold": 0.1,  # Default threshold
+            "entropy_threshold": entropy_stats.get("avg_entropy", 3.5) + 0.5,
+            "anomaly_threshold": engine.anomaly_threshold
+            if hasattr(engine, "anomaly_threshold")
+            else 0.5,
         }
     except Exception as e:
         print(f"Warning: Could not add adaptive_thresholds: {e}")
@@ -240,6 +245,18 @@ async def get_system_stats(request: Request):
 def get_cache_stats_endpoint():
     """Get cache-specific statistics"""
     return get_cache_stats()
+
+
+@router.post("/cache/clear")
+def clear_cache_endpoint():
+    """Clear analysis cache and learned patterns (resets poisoned data)"""
+    from ..logic.analysis_cache import clear_analysis_cache
+    from ..logic.metadata_classifier import classifier
+
+    clear_analysis_cache()
+    classifier.patterns.clear()
+    classifier.pattern_counter.clear()
+    return {"status": "cleared", "message": "Analysis cache and learned patterns cleared"}
 
 
 @router.get("/stats/classifier")
@@ -263,21 +280,20 @@ def get_anomaly_stats_endpoint():
 @router.get("/alerts/stats")
 def get_alerts_stats():
     """Get alert statistics for the alerts dashboard"""
+    from backend.core.alerting import alert_manager
     from backend.core.state import automated_threats
 
-    # Count threats by severity
+    # Get real alert stats from AlertManager
+    alert_stats = alert_manager.get_stats()
+
+    # Also compute threat-based stats for the threat summary
     high_count = sum(1 for t in automated_threats if t.get("risk_score", "").lower() == "high")
     medium_count = sum(1 for t in automated_threats if t.get("risk_score", "").lower() == "medium")
     low_count = sum(1 for t in automated_threats if t.get("risk_score", "").lower() == "low")
-
-    # Count anomalies
     anomaly_count = sum(1 for t in automated_threats if t.get("is_anomaly", False))
 
-    # Calculate rates (per minute, assuming we have timestamps)
     total_threats = len(automated_threats)
     current_time = time.time()
-
-    # Count threats in last minute
     recent_threats = sum(
         1
         for t in automated_threats
@@ -290,17 +306,23 @@ def get_alerts_stats():
     )
 
     return {
-        "total_alerts": total_threats,
-        "critical_alerts": high_count,
+        "total_alerts": alert_stats["total_alerts"],
+        "critical_alerts": alert_stats["by_severity"].get("critical", 0),
         "high_alerts": high_count,
         "medium_alerts": medium_count,
         "low_alerts": low_count,
-        "resolved_alerts": 0,  # Not implemented yet
-        "pending_alerts": total_threats,
-        "alert_rate": recent_threats,
-        "current_threat_rate": recent_threats,
-        "current_anomaly_rate": anomaly_count,
-        "by_severity": {"high": high_count, "medium": medium_count, "low": low_count},
+        "resolved_alerts": alert_stats["acknowledged"],
+        "pending_alerts": alert_stats["unacknowledged"],
+        "alert_rate": alert_stats["current_threat_rate"],
+        "current_threat_rate": alert_stats["current_threat_rate"],
+        "current_anomaly_rate": alert_stats["current_anomaly_rate"],
+        "by_severity": alert_stats["by_severity"],
+        "threat_summary": {
+            "high": high_count,
+            "medium": medium_count,
+            "low": low_count,
+            "anomalies": anomaly_count,
+        },
         "top_threats": [
             {
                 "domain": t.get("domain", ""),
@@ -312,7 +334,7 @@ def get_alerts_stats():
                 "category": t.get("category", ""),
                 "count": 1,
             }
-            for t in automated_threats[:5]  # Top 5 threats
+            for t in automated_threats[:5]
         ],
     }
 
