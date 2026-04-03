@@ -163,3 +163,52 @@ def _ollama_fallback(domain: str, model: str) -> dict:
             "summary": f"Local ML: Normal entropy ({entropy:.2f})",
             "analysis_source": f"ollama:{model}_fallback",
         }
+
+
+def chat_with_ollama(message: str, context: dict[str, Any] | None = None) -> str:
+    """
+    Conversational chat using local Ollama model.
+
+    Args:
+        message: User message
+        context: Optional context about the system state
+
+    Returns:
+        Response string from Ollama
+    """
+    if not settings.OLLAMA_ENABLED:
+        return "Ollama is not enabled. Set OLLAMA_ENABLED=true to use local AI chat."
+
+    model = settings.OLLAMA_CHAT_MODEL
+    system_prompt = """You are Network Guardian AI, a cybersecurity assistant.
+You analyze DNS queries, detect threats, and explain security findings.
+Be concise and technical. Use data from the context when available."""
+
+    context_info = ""
+    if context:
+        context_info = f"\nContext: {json.dumps(context, indent=2)}"
+
+    prompt = f"""{system_prompt}
+
+User: {message}{context_info}
+
+Respond helpfully and concisely."""
+
+    try:
+        response = requests.post(
+            f"{settings.OLLAMA_BASE_URL}/api/generate",
+            json={
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+            },
+            timeout=30,
+        )
+
+        if response.ok:
+            data = response.json()
+            return data.get("response", "No response from Ollama.")
+        else:
+            return f"Ollama API error: {response.status_code}. Falling back to local analysis."
+    except Exception as e:
+        return f"Ollama chat failed: {e}. The local AI is currently unavailable."
