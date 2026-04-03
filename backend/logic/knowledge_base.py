@@ -215,6 +215,7 @@ class KnowledgeBase:
             # Store in database
             Domain = get_domain_model()
             domain_obj = Domain(
+                tenant_id=1,
                 domain=domain,
                 entropy=analysis_result.get("entropy_score"),
                 risk_score=analysis_result.get("risk_score", "Unknown"),
