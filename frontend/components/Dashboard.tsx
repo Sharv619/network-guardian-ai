@@ -187,7 +187,7 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                         console.log('Skipping duplicate threat:', message.data.domain);
                         return prev;
                     }
-                    return [message.data, ...prev.slice(0, 99)]; // Keep only latest 100 items
+                    return [message.data, ...prev]; // Keep ALL network logs
                 });
             }
             // Handle anomaly detection messages
@@ -202,7 +202,7 @@ const LiveFeed: React.FC<LiveFeedProps> = ({ onDomainSelect }) => {
                         console.log('Skipping duplicate anomaly:', message.data.domain);
                         return prev;
                     }
-                    return [message.data, ...prev.slice(0, 99)];
+                    return [message.data, ...prev];
                 });
             }
         },

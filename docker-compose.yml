@@ -1,5 +1,4 @@
 services:
-  # The Unified Network Guardian (Frontend + Backend)
   network-guardian:
     build:
       context: .
@@ -7,17 +6,16 @@ services:
     container_name: network-guardian
     restart: always
     environment:
+      - ENVIRONMENT=development
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - NOTION_TOKEN=${NOTION_TOKEN}
       - NOTION_DATABASE_ID=${NOTION_DATABASE_ID}
       - POLL_INTERVAL=${POLL_INTERVAL:-30}
       - GOOGLE_SHEET_ID=${GOOGLE_SHEET_ID}
       - GOOGLE_SHEETS_CREDENTIALS=${GOOGLE_SHEETS_CREDENTIALS}
-      # AdGuard - use Docker internal URL when running in compose
-      - ADGUARD_URL=http://adguard:80
-      - ADGUARD_USER=${ADGUARD_USER}
-      - ADGUARD_PASS=${ADGUARD_PASS}
-      # Ollama - use host.docker.internal to connect to host machine
+      - ADGUARD_URL=http://host.docker.internal:80
+      - ADGUARD_USER=user
+      - ADGUARD_PASS=user1234
       - OLLAMA_ENABLED=${OLLAMA_ENABLED:-false}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-nomic-embed-text}
@@ -27,40 +25,19 @@ services:
       - "8000:8000"
     volumes:
       - network_guardian_db:/app
-    networks:
-      - network-guardian-net
-    depends_on:
-      adguard:
-        condition: service_healthy
+      - ./backend:/app/backend:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5).read()\""]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+    network_mode: host
 
-  # AdGuard Home (DNS Server & Content Filter)
   adguard:
     image: adguard/adguardhome:latest
     container_name: adguard
     restart: always
-    ports:
-      - "8080:80/tcp"  # Web UI
-      - "53:53/tcp"   # DNS TCP
-      - "53:53/udp"   # DNS UDP
+    network_mode: host
     volumes:
       - adguard_work:/opt/adguardhome/work
       - adguard_conf:/opt/adguardhome/conf
-    networks:
-      - network-guardian-net
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
 volumes:
   adguard_work:

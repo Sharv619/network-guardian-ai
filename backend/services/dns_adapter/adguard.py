@@ -59,12 +59,12 @@ class AdGuardAdapter(DNSAdapter):
             configured_url = f"{settings.ADGUARD_URL}/control/querylog"
             target_urls.append(configured_url)
 
-        # Add fallback URLs - AdGuard Home typically runs on port 80 for the control API
+        # Add fallback URLs - AdGuard Home runs on port 3000 in Docker
         target_urls.extend(
             [
-                "http://adguard:80/control/querylog",
                 "http://adguard:3000/control/querylog",
-                "http://localhost:80/control/querylog",
+                "http://localhost:3000/control/querylog",
+                "http://adguard:80/control/querylog",
             ]
         )
 

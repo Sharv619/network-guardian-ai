@@ -71,17 +71,33 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
   const [syncingBlocklist, setSyncingBlocklist] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  const [trendData, setTrendData] = useState<any[]>([
+    { time: '1m', threats: 0, anomalies: 0, safe: 0 },
+    { time: '5m', threats: 0, anomalies: 0, safe: 0 },
+    { time: '10m', threats: 0, anomalies: 0, safe: 0 },
+    { time: '15m', threats: 0, anomalies: 0, safe: 0 },
+    { time: '20m', threats: 0, anomalies: 0, safe: 0 },
+  ]);
 
   const fetchAllData = async () => {
     try {
-      const [statsRes, alertsRes, mlRes, historyRes, modelsRes, blocklistRes] = await Promise.all([
+      const [statsRes, alertsRes, mlRes, historyRes, modelsRes, blocklistRes, trendRes] = await Promise.all([
         fetch(`${API_BASE}/api/stats/system`),
         fetch(`${API_BASE}/api/stats/alerts/stats`),
         fetch(`${API_BASE}/api/stats/ml/dashboard`),
         fetch(`${API_BASE}/history`),
         fetch(`${API_BASE}/models`),
         fetch(`${API_BASE}/blocklist/status`),
+        fetch(`${API_BASE}/api/stats/trend`),
       ]);
+
+      // Fetch trend data
+      if (trendRes.ok) {
+        const trendJson = await trendRes.json();
+        if (trendJson.trend && trendJson.trend.length > 0) {
+          setTrendData(trendJson.trend);
+        }
+      }
 
       if (statsRes.ok) {
         const statsData = await statsRes.json();
@@ -295,15 +311,6 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
           : 0,
       }))
     : [];
-
-  // Mock time-series data for demo (in real app, backend would provide this)
-  const trendData = [
-    { time: '1m', threats: 12, anomalies: 3, safe: 45 },
-    { time: '5m', threats: 18, anomalies: 5, safe: 52 },
-    { time: '10m', threats: 15, anomalies: 4, safe: 48 },
-    { time: '15m', threats: 22, anomalies: 7, safe: 61 },
-    { time: '20m', threats: 19, anomalies: 6, safe: 55 },
-  ];
 
   const riskDistribution = [
     { name: 'High', value: history.filter((h) => h.risk_score === 'High').length || 15, color: COLORS.danger },

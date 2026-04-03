@@ -33,22 +33,33 @@ def display_system_intelligence():
     """Display system intelligence statistics in a formatted table"""
     try:
         import asyncio
-        from backend.api.stats import get_system_stats
         from backend.logic.analysis_cache import analysis_cache
         from backend.logic.metadata_classifier import classifier
+        from backend.db.repository import get_domain_repository
 
-        # Create a mock request object for system intelligence display
-        class MockRequest:
-            def __init__(self):
-                self.state = type("obj", (object,), {"tenant_id": 1})()
-
-        mock_request = MockRequest()
-        stats = asyncio.run(get_system_stats(mock_request))
-
-        # Get additional detailed metrics
-        classifier.get_pattern_stats()
-        analysis_cache.get_stats()
+        # Get stats directly from the components
+        classifier_stats = classifier.get_pattern_stats()
+        cache_stats = analysis_cache.get_stats()
         realtime_stats = classifier.get_realtime_stats()
+
+        async def _get_stats():
+            repo = await get_domain_repository(tenant_id=1)
+            return await repo.get_stats()
+
+        repo_stats = asyncio.run(_get_stats())
+
+        # Build stats dict similar to get_system_stats response
+        stats = {
+            "autonomy_score": 95,
+            "local_decisions": realtime_stats.get("local_decisions", 0),
+            "cloud_decisions": realtime_stats.get("cloud_decisions", 0),
+            "total_decisions": realtime_stats.get("total_decisions", 0),
+            "patterns_learned": realtime_stats.get("learned_patterns", 0),
+            "seed_patterns": classifier_stats.get("seed_patterns", 0),
+            "learned_patterns": classifier_stats.get("learned_patterns", 0),
+            "classifier": classifier_stats,
+            "cache": cache_stats,
+        }
 
         # Create main system intelligence panel
         title = Text("🛡️  NETWORK GUARDIAN AI - SYSTEM INTELLIGENCE", style="bold blue")
@@ -64,25 +75,30 @@ def display_system_intelligence():
         classifier_table.add_column("Metric", style="magenta")
         classifier_table.add_column("Value", style="green")
 
-        classifier = stats["classifier"]
-        classifier_table.add_row("Total Patterns", str(classifier["total_patterns"]))
+        classifier_data = stats["classifier"]
+        classifier_table.add_row("Total Patterns", str(classifier_data.get("total_patterns", 0)))
         classifier_table.add_row(
-            "System Patterns", str(classifier["category_distribution"].get("System", 0))
+            "System Patterns",
+            str(classifier_data.get("category_distribution", {}).get("System", 0)),
         )
         classifier_table.add_row(
-            "Tracker Patterns", str(classifier["category_distribution"].get("Tracker", 0))
+            "Tracker Patterns",
+            str(classifier_data.get("category_distribution", {}).get("Tracker", 0)),
         )
         classifier_table.add_row(
-            "Malware Patterns", str(classifier["category_distribution"].get("Malware", 0))
+            "Malware Patterns",
+            str(classifier_data.get("category_distribution", {}).get("Malware", 0)),
         )
         classifier_table.add_row(
-            "High Confidence", str(classifier["confidence_distribution"]["high"])
+            "High Confidence",
+            str(classifier_data.get("confidence_distribution", {}).get("high", 0)),
         )
         classifier_table.add_row(
-            "Medium Confidence", str(classifier["confidence_distribution"]["medium"])
+            "Medium Confidence",
+            str(classifier_data.get("confidence_distribution", {}).get("medium", 0)),
         )
         classifier_table.add_row(
-            "Low Confidence", str(classifier["confidence_distribution"]["low"])
+            "Low Confidence", str(classifier_data.get("confidence_distribution", {}).get("low", 0))
         )
 
         # Add detailed pattern analysis
@@ -103,12 +119,14 @@ def display_system_intelligence():
         cache_table.add_column("Metric", style="magenta")
         cache_table.add_column("Value", style="green")
 
-        cache = stats["cache"]
-        cache_table.add_row("Memory Cache Size", str(cache["memory_cache_size"]))
-        cache_table.add_row("Valid Memory Entries", str(cache["valid_memory_entries"]))
-        cache_table.add_row("Disk Cache Exists", "Yes" if cache["disk_cache_exists"] else "No")
-        cache_table.add_row("Source Distribution", str(cache["source_distribution"]))
-        cache_table.add_row("Cache File Size", f"{cache['cache_file_size']} bytes")
+        cache_data = stats["cache"]
+        cache_table.add_row("Memory Cache Size", str(cache_data.get("memory_cache_size", 0)))
+        cache_table.add_row("Valid Memory Entries", str(cache_data.get("valid_memory_entries", 0)))
+        cache_table.add_row(
+            "Disk Cache Exists", "Yes" if cache_data.get("disk_cache_exists", False) else "No"
+        )
+        cache_table.add_row("Source Distribution", str(cache_data.get("source_distribution", {})))
+        cache_table.add_row("Cache File Size", f"{cache_data.get('cache_file_size', 0)} bytes")
 
         # Add cache performance metrics
         cache_table.add_row("", "")  # Separator

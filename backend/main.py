@@ -94,6 +94,7 @@ async def lifespan(app: FastAPI):
         import time
 
         from backend.core.utils import get_iso_timestamp
+        from backend.logic.ml_heuristics import calculate_entropy, extract_domain_features
 
         domains = [
             (
@@ -112,21 +113,46 @@ async def lifespan(app: FastAPI):
             ("crashlytics.com", "Low", "Developer Tool", "Crash reporting service"),
             ("data.mongodb.com", "Medium", "Cloud Sync", "Database sync traffic"),
         ]
-        for i, (domain, risk, category, summary) in enumerate(domains):
-            automated_threats.insert(
-                0,
-                {
-                    "domain": domain,
-                    "risk_score": risk,
-                    "category": category,
-                    "summary": summary,
-                    "timestamp": get_iso_timestamp(),
-                    "is_anomaly": i % 3 == 0,
-                    "anomaly_score": round(0.8 + i * 0.02, 4) if i % 3 == 0 else 0.0,
-                },
-            )
-            time.sleep(0.02)
-        print(f"Seeded {len(automated_threats)} demo threats")
+
+        # Also seed database for Isolation Forest training
+        from backend.db.database import get_session
+        from backend.db.repository import DomainRepository
+
+        async def seed_database():
+            async with get_session() as session:
+                repo = DomainRepository(session, tenant_id=1)
+                for i, (domain, risk, category, summary) in enumerate(domains):
+                    entropy = calculate_entropy(domain)
+                    features = extract_domain_features(domain)
+                    analysis = {
+                        "domain": domain,
+                        "entropy": entropy,
+                        "risk_score": risk,
+                        "category": category,
+                        "summary": summary,
+                        "is_anomaly": i % 3 == 0,
+                        "anomaly_score": round(0.8 + i * 0.02, 4) if i % 3 == 0 else 0.0,
+                        "analysis_source": "demo_seed",
+                        "timestamp": get_iso_timestamp(),
+                        "features": {
+                            "length": len(domain),
+                            "digit_ratio": sum(c.isdigit() for c in domain) / max(len(domain), 1),
+                            "vowel_ratio": sum(c.lower() in "aeiou" for c in domain)
+                            / max(len(domain), 1),
+                            "non_alphanumeric": sum(not c.isalnum() for c in domain),
+                        },
+                    }
+                    await repo.create_domain_from_analysis(analysis)
+                await session.commit()
+                print(f"Seeded {len(domains)} demo threats to database")
+
+        # Run database seeding in the existing event loop
+        try:
+            await seed_database()
+        except Exception as e:
+            print(f"Database seeding error: {e}")
+
+        # NOTE: Don't seed automated_threats - only show LIVE AdGuard data
 
     # Blocklist Knowledge Base Initialization (non-blocking)
     def run_blocklist_init():

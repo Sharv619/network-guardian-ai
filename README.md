@@ -1,5 +1,5 @@
-# 🛡️ Network Guardian AI: Project Antigravity
-### *Autonomous Network Threat Intelligence & Behavioral Audit Pipeline*
+# 🛡️ Network Guardian AI
+### *Multi-Tenant Security-as-a-Service Platform*
 
 ---
 
@@ -8,172 +8,282 @@
 2. [🕹️ Core Features](#-core-features)
 3. [🏗️ System Architecture](#-system-architecture)
 4. [🧠 Intelligence Layers](#-intelligence-layers)
-5. [📊 Google Sheets Integration](#-google-sheets-integration)
-6. [⚙️ Reliability & SRE Design](#-reliability--sre-design)
-7. [🚦 Getting Started](#-getting-started)
-8. [🧪 Technical Verification](#-technical-verification)
-9. [🎨 Enhanced UI Components](#-enhanced-ui-components)
+5. [👥 Multi-Tenancy](#-multi-tenancy)
+6. [💳 Billing & Subscriptions](#-billing--subscriptions)
+7. [🔑 Developer API](#-developer-api)
+8. [🎨 UI Components](#-ui-components)
+9. [🚀 Getting Started](#-getting-started)
+10. [🧪 Testing](#-testing)
 
 ---
 
 ## 🔍 Overview
-Network Guardian AI is a real-time security operations tool that unmasks hidden network telemetry. It intercepts background DNS requests, performs multi-layered behavioral and semantic analysis, and logs verdicts into a cloud-hosted audit trail. The system transforms cryptic logs into human-readable intelligence, identifying everything from standard tracking pixels to stealthy geolocation exfiltration attempts.
+Network Guardian AI is a real-time network security platform with multi-tenant support. It intercepts DNS queries via AdGuard, performs multi-layered behavioral analysis, and provides threat intelligence through a modern dashboard UI.
 
-Built with a Production-First mindset, this system provides enterprise-grade reliability while maintaining accessibility for personal use.
+**Security-as-a-Service**: Ready for commercial offering with tenant isolation, billing integration, and tier-based access control.
 
 ---
 
 ## 🕹️ Core Features
-*   **Live Threat Feed**: A real-time stream of network requests with color-coded risk assessments and pulsing alerts for privacy violations.
-*   **Manual Domain Audit**: An investigative laboratory for on-demand analysis of specific domains using multiple AI models.
-*   **Privacy Radar**: Specialized detection logic that flags background geolocation pings and telemetry spikes.
-*   **Cloud Data Lake**: Automatic synchronization of every security verdict to Google Sheets for permanent record-keeping and mobile access.
-*   **System Awareness Chat**: A technical agent capable of explaining the current network state and underlying architecture.
-*   **Enhanced AnalysisModal**: Comprehensive domain analysis with Google Sheets integration details and historical insights.
+*   **Real-time Threat Detection**: Live stream of DNS requests with risk assessments
+*   **Manual Domain Analysis**: On-demand analysis with Gemini AI and ML heuristics
+*   **12-Panel Stats Dashboard**: Comprehensive metrics overview (Overview, ML, Alerts, Blocklist, Settings)
+*   **Admin Dashboard**: CRM-style tenant management interface
+*   **Usage Tracking**: Per-tenant usage analytics and rate limiting
+*   **Developer Portal**: API key generation and endpoint documentation
 
 ---
 
 ## 🏗️ System Architecture
-The platform is deployed as a consolidated, multi-stage Docker environment.
 
-*   **Network Interceptor**: AdGuard Home (Intercepts DNS queries at the source).
-*   **Orchestration Engine**: Python 3.12 / FastAPI (Handles data polling and model coordination).
-*   **Persistence Layer**: Google Sheets API v4 (Provides a shared, immutable system of record).
-*   **Dashboard UI**: React / TypeScript / Tailwind CSS (Provides real-time observability).
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Docker Compose                          │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────┐    ┌─────────────────────────┐   │
+│  │  Network Guardian   │    │    AdGuard Home         │   │
+│  │  (Backend + UI)    │    │    (DNS Interceptor)    │   │
+│  │   Port: 8000       │    │    Port: 8080, 53       │   │
+│  └─────────────────────┘    └─────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Components:**
+- **Frontend**: React/TypeScript, served from backend static
+- **Backend**: Python 3.11 / FastAPI
+- **Database**: SQLite with multi-tenant support
+- **DNS Interceptor**: AdGuard Home
+- **AI**: Google Gemini (with local heuristic fallback)
 
 ---
 
 ## 🧠 Intelligence Layers
-Security verdicts are determined through a three-stage "Defense in Depth" pipeline:
 
 | Layer | Method | Purpose |
 | :--- | :--- | :--- |
-| **Layer 1** | Shannon Entropy (Base 2) | Detects random-looking DGA (Domain Generation Algorithm) strings locally. |
-| **Layer 2** | Isolation Forest (ML) | An unsupervised model that identifies structural outliers in network traffic. |
-| **Layer 3** | Google Gemini 3 (AI) | Performs high-level semantic reasoning to explain the threat in plain English. |
+| **Layer 1** | Shannon Entropy | Detects random DGA strings locally |
+| **Layer 2** | Isolation Forest (ML) | Unsupervised anomaly detection |
+| **Layer 3** | Gemini AI | Semantic threat analysis |
+| **Layer 4** | Blocklist Lookup | Known threat database |
 
 ---
 
-## 📊 Google Sheets Integration
-### Real-Time Threat Synchronization
-Every domain analysis is automatically logged to Google Sheets with comprehensive metadata:
+## 👥 Multi-Tenancy
 
-**Data Fields Logged:**
-- Domain name and classification
-- Risk assessment (Low/Medium/High/Critical)
-- Category (Tracker/System/Advertising/Malware/etc.)
-- AI-generated summary and reasoning
-- Anomaly detection scores
-- Timestamp and analysis method
+### Tenant Management
+- **Complete Isolation**: Each tenant has separate data, API keys, and configurations
+- **Tenant Middleware**: Automatic tenant identification via subdomain, headers, or API key
+- **Dashboard Switching**: TenantSelector component for quick context switching
 
-**Integration Features:**
-- **Real-time synchronization**: Domains like `rr8---sn-v2u0n-hxad.googlevideo.com` are logged immediately
-- **Error handling**: Robust retry mechanisms and fallback logging
-- **Mobile access**: View security audit trail from any device
-- **Historical analysis**: Track threat patterns over time
+### Subscription Tiers
+| Tier | Features | Rate Limit |
+|------|----------|------------|
+| **Free** | 100 requests/min | Basic ML heuristics |
+| **Pro** | Unlimited + Gemini AI | Full analysis pipeline |
+| **Enterprise** | Custom + SLA | Priority support |
 
-**Example Log Entry:**
+---
+
+## 💳 Billing & Subscriptions
+
+### Stripe Integration
+- **Checkout Sessions**: One-click subscription upgrade
+- **Customer Portal**: Self-service billing management
+- **Webhook Handling**: Automated tier updates on payment events
+- **Usage Tracking**: Daily and overall stats per tenant
+
+### API Endpoints
 ```
-Domain: rr8---sn-v2u0n-hxad.googlevideo.com
-Category: System/Tracker
-Risk Score: High
-Summary: YouTube video streaming domain - legitimate but tracks viewing behavior
-Anomaly Score: 0.0537
-Timestamp: 2026-10-02T09:08:15Z
+POST /billing/checkout     - Create Stripe checkout session
+POST /billing/portal       - Get customer portal URL
+POST /billing/webhook      - Stripe webhook handler
+GET  /billing/tiers        - List subscription tiers
 ```
 
 ---
 
-## ⚙️ Reliability & SRE Design
-The system is built to maintain 100% network observability through professional-grade patterns:
+## 🔑 Developer API
 
-*   **Circuit Breakers**: If cloud APIs are throttled or unreachable, the system automatically falls back to local heuristic math to maintain protection.
-*   **BFF Pattern**: The Backend-for-Frontend pattern centralizes all secrets and AI logic, ensuring API keys never leak to the client browser.
-*   **FinOps Logic**: Just-In-Time (JIT) context injection minimizes token usage by only sending system documentation to the AI when relevant.
-*   **Standardization**: All telemetry uses ISO-8601 UTC timestamps for accurate cross-system log correlation.
-*   **Graceful Degradation**: System continues operating with local analysis if cloud services are unavailable.
+### Authentication
+- **API Keys**: Per-tenant API key generation
+- **JWT Support**: Token-based authentication
+- **Rate Limiting**: Tier-based request limits
 
----
+### Endpoints
+```
+POST /api/v1/analyze       - Analyze domain
+GET  /api/v1/stats         - Get tenant statistics
+GET  /api/v1/history       - Get threat history
+WS   /ws/public            - Real-time updates
+```
 
-## 🎨 Enhanced UI Components
-### AnalysisModal Improvements
-The AnalysisModal has been enhanced with a comprehensive 4-column layout:
-
-1. **System Intelligence**: Displays autonomy score, local vs cloud decisions, and pattern counts
-2. **Cache Performance**: Shows memory cache status, valid entries, and disk cache information
-3. **System Usage Details**: Active integrations, tracker detection statistics, and learning progress
-4. **Google Sheets Integration**: Real-time synchronization status, total records, and domain-specific insights
-
-**Key Features:**
-- Professional dark theme with cyberpunk aesthetic
-- Real-time data visualization
-- Domain-specific analysis examples (e.g., googlevideo.com)
-- Historical context and trend analysis
+### Rate Limits
+| Tier | Requests/Minute |
+|------|----------------|
+| Free | 100 |
+| Pro | 1000 |
+| Enterprise | Unlimited |
 
 ---
 
-## 🚦 Getting Started
+## 🎨 UI Components
 
-### 1. Environment Configuration
-Create a `.env` file in the root directory with the following variables:
+### Stats Dashboard (12 Panels)
+1. Blocklist KB / Known Threats
+2. Ollama Models / Local AI
+3. Total Decisions / Analyzed Domains
+4. Autonomy Score / Local Analysis Rate
+5. Patterns Learned / ML Model
+6. Active Alerts / Pending
+7. Anomaly Model / Training Status
+8. Sources Active / Blocklist Sources
+9. Vector Embeddings / Threat Storage
+10. Entropy Threshold / Dynamic
+11. Activity Trend Chart
+12. Category Distribution Pie Chart
+
+### Pages
+- **Dashboard**: Main threat monitoring view
+- **Admin**: Tenant management, CRM interface
+- **Usage**: Per-tenant usage analytics
+- **Pricing**: Subscription tier information
+
+---
+
+## 🚀 Getting Started
+
+### 1. Environment Setup
 ```bash
-GEMINI_API_KEY='your_google_ai_studio_key'
-GOOGLE_SHEET_ID='your_spreadsheet_id'
-GOOGLE_SHEETS_CREDENTIALS='{ "type": "service_account", ... }'
-ADGUARD_USER='admin'
-ADGUARD_PASS='admin12345'
-ADGUARD_URL='http://172.17.0.1:8080'
+cp .env.example .env
+# Edit .env with your API keys:
+GEMINI_API_KEY=your_key
+STRIPE_API_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
-### 2. Deployment
-Build and launch the stack using Docker Compose:
+### 2. Start Services
 ```bash
-docker compose up -d --build
+# Build and start
+docker compose up --build -d
+
+# Or just start (if image exists)
+docker compose up -d
 ```
 
 ### 3. Access
-*   **Guardian Dashboard**: `http://localhost:8000`
-*   **AdGuard Management**: `http://localhost:8080`
+| Service | URL |
+|---------|-----|
+| **Dashboard** | http://localhost:8000 |
+| **AdGuard UI** | http://localhost:8080 |
+| **API Docs** | http://localhost:8000/docs |
 
----
-
-## 🧪 Technical Verification
-The system includes a suite of automated tests to verify mathematical logic and API resilience.
-
-**Run Logic Tests:**
+### 4. Environment Variables
 ```bash
-docker exec network-guardian pytest backend/tests/ -v
+# Core
+GEMINI_API_KEY=your_gemini_key
+ADGUARD_URL=http://adguard:80
+ADGUARD_USER=admin
+ADGUARD_PASS=your_password
+
+# Stripe Billing
+STRIPE_API_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRO_PRICE_ID=price_...
+STRIPE_ENTERPRISE_PRICE_ID=price_...
+
+# Ollama (optional)
+OLLAMA_ENABLED=false
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=nomic-embed-text
+OLLAMA_CHAT_MODEL=llama3.2
+
+# Multi-Tenancy
+ENVIRONMENT=development  # Set to production for production
+API_RATE_LIMIT_PER_TENANT=100
+DEFAULT_TENANT_ID=1
 ```
 
-**Current Coverage:**
-*   Shannon Entropy Accuracy (Base 2 Math)
-*   URL Sanitization & Regex Performance
-*   API Circuit Breaker & Fallback Veracity
-*   Data Serialization Consistency
-*   Google Sheets Integration Error Handling
-*   Anomaly Detection Algorithm Validation
+---
+
+## 🧪 Testing
+
+```bash
+# All tests
+PYTHONPATH=. python -m pytest Tests_AI/ -v
+
+# Single test
+PYTHONPATH=. python -m pytest Tests_AI/test_heuristics.py -v
+
+# With coverage
+PYTHONPATH=. pytest Tests_AI/ -v --cov=backend
+
+# Linting
+ruff check backend/ && ruff check backend/ --fix
+mypy backend/ --ignore-missing-imports
+```
 
 ---
 
-## 🤝 Open Source & Contributions
-This project is open-source and built with passion. It provides tools for digital sovereignty and network transparency.
-
-**Key Technologies:**
-- **AI/ML**: Google Gemini 3, Scikit-Learn (Isolation Forest), Shannon Entropy
-- **Backend**: Python 3.12, FastAPI, Docker
-- **Frontend**: React, TypeScript, Tailwind CSS
-- **Integration**: Google Sheets API v4, AdGuard Home
-
-**Built for the Google Gemini 3 Hackathon 2026.** 🛡️📊🚀🏁
+## 📊 Project Structure
+```
+network-guardian-ai/
+├── backend/
+│   ├── api/              # FastAPI routes
+│   │   ├── stats.py      # Statistics endpoints
+│   │   ├── chat.py       # Chatbot
+│   │   ├── billing.py    # Stripe billing
+│   │   ├── tenant_router.py
+│   │   └── developer_router.py
+│   ├── core/
+│   │   ├── config.py     # Settings
+│   │   ├── tenant_middleware.py
+│   │   └── websocket_manager.py
+│   ├── db/
+│   │   ├── models.py     # SQLAlchemy models
+│   │   ├── repository.py # Data access
+│   │   └── database.py   # DB connection
+│   ├── logic/
+│   │   ├── ml_heuristics.py
+│   │   ├── anomaly_engine.py
+│   │   └── metadata_classifier.py
+│   └── services/
+│       ├── adguard_poller.py
+│       ├── gemini_service.py
+│       └── blocklist_loader.py
+├── frontend/
+│   ├── components/
+│   │   ├── Dashboard.tsx
+│   │   ├── StatsPanel.tsx  # 12-panel overview
+│   │   ├── AdminDashboard.tsx
+│   │   ├── LoginPage.tsx
+│   │   └── TenantSelector.tsx
+│   ├── services/
+│   │   ├── tenantService.ts
+│   │   └── websocketService.ts
+│   └── App.tsx
+├── docker-compose.yml      # Production
+├── docker-compose.dev.yml  # Development with hot-reload
+├── Dockerfile              # Multi-stage build
+└── Tests_AI/              # pytest tests
+```
 
 ---
 
-## 📈 Current System Status
-- ✅ **20+ historical records** in the system
-- ✅ **Google Sheets integration** active and logging domains
-- ✅ **Enhanced AnalysisModal** displaying Google Sheets data
-- ✅ **Real-time threat detection** and logging working
-- ✅ **System serving** on http://localhost:8000
-- ✅ **Multi-layered intelligence** pipeline operational
+## 🤝 Built With
+- **AI/ML**: Google Gemini, Scikit-Learn, Shannon Entropy
+- **Backend**: Python 3.11, FastAPI, SQLAlchemy
+- **Frontend**: React 19, TypeScript, Tailwind CSS, Recharts
+- **Database**: SQLite (development), PostgreSQL-ready
+- **Billing**: Stripe
+- **DNS**: AdGuard Home
 
-The system successfully detects and logs domains like `rr8---sn-v2u0n-hxad.googlevideo.com` with comprehensive analysis including risk scores, anomaly detection, and AI-generated explanations.
+---
+
+## 📈 System Status
+- ✅ Multi-tenant isolation with complete data separation
+- ✅ Stripe billing integration with webhook handling
+- ✅ Developer API with rate limiting
+- ✅ 12-panel stats dashboard
+- ✅ Admin CRM interface
+- ✅ Real-time WebSocket updates
+- ✅ Production Docker deployment

@@ -87,6 +87,57 @@ def save_domain_to_repository(
         print(f"Warning: Could not save domain to repository: {e}")
 
 
+def _get_adguard_whitelist() -> set:
+    """Fetch whitelist from AdGuard's allowed domains via API."""
+    try:
+        import requests
+        from ..core.config import settings
+
+        if not settings.ADGUARD_URL:
+            return set()
+
+        # Try to fetch from AdGuard's safebrowsing API or filtering status
+        base_url = settings.ADGUARD_URL.replace("/control/querylog", "")
+        if "/control" in base_url:
+            base_url = base_url.split("/control")[0]
+
+        # Try filtering status endpoint
+        resp = requests.get(
+            f"{base_url}/control/filtering/status",
+            auth=(settings.ADGUARD_USER, settings.ADGUARD_PASS),
+            timeout=5,
+        )
+
+        if resp.status_code == 200:
+            data = resp.json()
+            whitelist = set()
+
+            # Check whitelist_filters
+            if data.get("whitelist_filters"):
+                for wf in data["whitelist_filters"]:
+                    if wf.get("url"):
+                        # Would need to fetch the filter list - skip for now
+                        pass
+
+            # Check user_rules
+            if data.get("user_rules"):
+                for rule in data["user_rules"]:
+                    if rule and isinstance(rule, str):
+                        # Extract domain from rule like "@@||example.com^"
+                        if rule.startswith("@@||"):
+                            domain = rule.replace("@@||", "").replace("^", "").replace("|", "")
+                            if domain:
+                                whitelist.add(domain)
+
+            if whitelist:
+                print(f"Loaded {len(whitelist)} domains from AdGuard allowlist")
+                return whitelist
+    except Exception as e:
+        print(f"Could not fetch AdGuard whitelist: {e}")
+
+    return set()
+
+
 def run_local_first_pipeline(
     domain: str,
     entropy: float,
@@ -107,7 +158,116 @@ def run_local_first_pipeline(
     """
     from ..core.metrics import metrics_collector
 
+    # Fetch AdGuard whitelist dynamically
+    SAFE_DOMAINS = _get_adguard_whitelist()
+
+    if not SAFE_DOMAINS:
+        # Fallback to hardcoded list if AdGuard API fails
+        SAFE_DOMAINS = {
+            # Google
+            "google.com",
+            "googleusercontent.com",
+            "gstatic.com",
+            "googleapis.com",
+            "youtube.com",
+            "ytimg.com",
+            "googlevideo.com",
+            "youtube-nocookie.com",
+            # Facebook/Meta
+            "facebook.com",
+            "fbcdn.net",
+            "instagram.com",
+            "meta.ai",
+            # Microsoft
+            "microsoft.com",
+            "windows.net",
+            "azure.com",
+            "office.com",
+            # Amazon
+            "amazon.com",
+            "aws.amazon.com",
+            "cloudfront.net",
+            # Apple
+            "apple.com",
+            "icloud.com",
+            "mzstatic.com",
+            # GitHub
+            "github.com",
+            "githubusercontent.com",
+            "githubassets.com",
+            # Hugging Face
+            "huggingface.co",
+            "hf.co",
+            "huggingface.net",
+            # Cloudflare
+            "cloudflare.com",
+            "cdnjs.cloudflare.com",
+            "cloudflare.net",
+            # Mozilla
+            "mozilla.com",
+            "mozilla.org",
+            "firefox.com",
+            "firefoxusercontent.com",
+            # Reddit
+            "reddit.com",
+            "redd.it",
+            "redditmedia.com",
+            # Twitter/X
+            "twitter.com",
+            "twimg.com",
+            "x.com",
+            # LinkedIn
+            "linkedin.com",
+            "licdn.com",
+            # Spotify
+            "spotify.com",
+            "scdn.co",
+            # Netflix
+            "netflix.com",
+            "nflxvideo.net",
+            # Stripe
+            "stripe.com",
+            "m.stripe.com",
+            # Vercel
+            "vercel.com",
+            "vercel.app",
+            "now.sh",
+            # AWS
+            "awswaf.com",
+            "amazonaws.com",
+            # Telegram
+            "telegram.org",
+            "telegram.me",
+            # WhatsApp
+            "whatsapp.com",
+            "whatsapp.net",
+        }
+
+    # Check if domain is known safe (exact match or parent domain)
+    domain_lower = domain.lower()
+    base_domain = domain_lower.split(".")[0] if "." in domain_lower else domain_lower
+
+    # Check exact match or if base domain is in safe list
+    is_known_safe = (
+        domain_lower in SAFE_DOMAINS
+        or base_domain in SAFE_DOMAINS
+        or any(safe in domain_lower for safe in SAFE_DOMAINS if "." in safe)
+    )
+
     analysis = None
+
+    # If domain is known safe, return Low risk immediately
+    if is_known_safe:
+        return {
+            "risk_score": "Low",
+            "category": "General Traffic",
+            "summary": f"🛡️ SOC GUARD ACTIVE: Known safe domain ({domain}). Normal network behavior.",
+            "timestamp": get_iso_timestamp(),
+            "is_anomaly": False,
+            "anomaly_score": 0.0,
+            "entropy_score": entropy,
+            "analysis_source": "whitelist",
+        }
 
     # Stage 1: Metadata classification (for blocked domains)
     metadata_result = classify_domain_metadata(adguard_metadata)
@@ -356,6 +516,15 @@ def poll_adguard():
                             "adguard_metadata": adguard_metadata,
                         },
                     )
+
+                    # Update real-time trend data
+                    from backend.core.state import update_trend_count
+
+                    risk = analysis.get("risk_score", "").lower()
+                    is_threat = risk in ["high", "medium"]
+                    is_anomaly = analysis.get("is_anomaly", False)
+                    is_safe = risk == "low"
+                    update_trend_count(is_threat=is_threat, is_anomaly=is_anomaly, is_safe=is_safe)
 
                     if len(automated_threats) > 50:
                         automated_threats.pop()

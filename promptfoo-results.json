@@ -1,8 +1,8 @@
 {
-  "evalId": "eval-fH5-2026-03-19T00:03:21",
+  "evalId": "eval-L6A-2026-03-22T12:08:24",
   "results": {
     "version": 3,
-    "timestamp": "2026-03-19T00:03:21.933Z",
+    "timestamp": "2026-03-22T12:08:24.145Z",
     "prompts": [
       {
         "id": "fedb7db3ed03546c8fdff8f4b386fd37618a723815cd0c398c25ec2d01fc11ac",
@@ -81,7 +81,7 @@
             }
           ]
         },
-        "id": "b4e1b3c9-6fd4-45cf-b25d-95afeab8d44c",
+        "id": "29bf3199-4654-41ec-8bd2-e69704030890",
         "latencyMs": 1606,
         "namedScores": {
           "risk_score": 1
@@ -212,7 +212,7 @@
             }
           ]
         },
-        "id": "33306cd9-dd99-4248-a3a9-8a8592b7755a",
+        "id": "caff3980-f509-461b-a4fb-7d1ffe224617",
         "latencyMs": 1581,
         "namedScores": {
           "risk_score": 0
@@ -342,7 +342,7 @@
             }
           ]
         },
-        "id": "84407ea3-601e-48e9-a6d7-6d70edccac60",
+        "id": "1e117cd4-f039-4c88-939f-02cb05fe2fb7",
         "latencyMs": 1791,
         "namedScores": {
           "risk_score": 1
@@ -468,7 +468,7 @@
             }
           ]
         },
-        "id": "e862d7d0-7e4e-4bcb-8820-278221914a17",
+        "id": "4b87d2ea-7354-4bc8-98fb-fa2072f7d4e1",
         "latencyMs": 1794,
         "namedScores": {},
         "prompt": {
@@ -590,7 +590,7 @@
             }
           ]
         },
-        "id": "ba92422b-2d87-4d22-89f8-a3e91615c171",
+        "id": "1b61a0f4-6070-48f0-bf15-704e8339feb0",
         "latencyMs": 1612,
         "namedScores": {},
         "prompt": {
@@ -720,7 +720,6 @@
     }
   },
   "config": {
-    "tags": {},
     "prompts": [
       "{{domain}}"
     ],
@@ -799,14 +798,8 @@
         ]
       }
     ],
-    "scenarios": [],
-    "env": {},
-    "outputPath": [
-      "./promptfoo-results.json"
-    ],
-    "extensions": [],
-    "metadata": {},
-    "evaluateOptions": {}
+    "outputPath": "./promptfoo-results.json",
+    "extensions": []
   },
   "shareableUrl": null,
   "metadata": {
@@ -814,7 +807,7 @@
     "nodeVersion": "v20.19.5",
     "platform": "linux",
     "arch": "x64",
-    "exportedAt": "2026-03-19T00:03:22.074Z",
-    "evaluationCreatedAt": "2026-03-19T00:03:21.933Z"
+    "exportedAt": "2026-03-22T12:08:24.287Z",
+    "evaluationCreatedAt": "2026-03-22T12:08:24.145Z"
   }
 }

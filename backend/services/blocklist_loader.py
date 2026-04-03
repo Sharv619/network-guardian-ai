@@ -186,6 +186,7 @@ class BlocklistLoader:
                         updated_count += 1
                     else:
                         new_entry = BlocklistEntry(
+                            tenant_id=1,
                             domain=entry.domain,
                             category=entry.category,
                             source=source_key,

@@ -31,32 +31,48 @@ def api_health():
 
 @router.get("/history")
 async def api_history(request: Request):
-    """Get recent threat history from automated threats for the current tenant."""
-    # Get tenant_id from request state (set by TenantMiddleware)
-    tenant_id = getattr(request.state, "tenant_id", 1)  # Default to 1 for backward compatibility
+    """Get all threat history - database + live combined."""
+    from ..core.state import automated_threats
 
-    # Get repository for the current tenant
+    # Get tenant_id from request state
+    tenant_id = getattr(request.state, "tenant_id", 1)
+
+    # Get repository for database domains
     repo = await get_domain_repository(tenant_id=tenant_id)
+    db_domains = await repo.get_all_domains()
 
-    # Get all domains from the repository
-    domains = await repo.get_all_domains()
-
-    # Convert each domain to a dictionary in the format of the threat entry
-    threat_list = []
-    for domain in domains:
-        threat_dict = {
+    # Convert database domains to dict (keyed by domain)
+    all_threats: dict[str, dict] = {}
+    for domain in db_domains:
+        ts = domain.timestamp.isoformat() if domain.timestamp else None
+        all_threats[domain.domain] = {
             "domain": domain.domain,
             "risk_score": domain.risk_score,
             "category": domain.category,
             "summary": domain.summary,
-            "timestamp": domain.timestamp.isoformat() if domain.timestamp else None,
+            "timestamp": ts,
             "is_anomaly": domain.is_anomaly,
             "anomaly_score": domain.anomaly_score,
             "entropy": domain.entropy,
         }
-        threat_list.append(threat_dict)
 
-    # Sort by timestamp (most recent first)
+    # Add live automated_threats - overwrites DB entries for same domain
+    for threat in automated_threats:
+        domain = threat.get("domain", "")
+        if domain:
+            all_threats[domain] = {
+                "domain": domain,
+                "risk_score": threat.get("risk_score", "Unknown"),
+                "category": threat.get("category", "Unknown"),
+                "summary": threat.get("summary"),
+                "timestamp": threat.get("timestamp"),
+                "is_anomaly": threat.get("is_anomaly", False),
+                "anomaly_score": threat.get("anomaly_score", 0.0),
+                "entropy": threat.get("entropy"),
+            }
+
+    # Convert to list and sort by timestamp (newest first)
+    threat_list = list(all_threats.values())
     threat_list.sort(key=lambda x: x["timestamp"] if x["timestamp"] else "", reverse=True)
 
     return threat_list
@@ -120,6 +136,15 @@ async def api_analyze(request: Request, analysis_request: dict[str, Any]):
 
     # Add tenant_id to the analysis for storage
     analysis["tenant_id"] = tenant_id
+
+    # Update real-time trend data
+    from backend.core.state import update_trend_count
+
+    risk = analysis.get("risk_score", "").lower()
+    is_threat = risk in ["high", "medium"]
+    is_anomaly = analysis.get("is_anomaly", False)
+    is_safe = risk == "low"
+    update_trend_count(is_threat=is_threat, is_anomaly=is_anomaly, is_safe=is_safe)
 
     # Store the analysis in the database for the current tenant
     try:

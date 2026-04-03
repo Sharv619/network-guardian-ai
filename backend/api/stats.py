@@ -4,7 +4,7 @@ Tenant-aware: All statistics are scoped to the current tenant context
 """
 
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Request
 
@@ -315,6 +315,48 @@ def get_alerts_stats():
             for t in automated_threats[:5]  # Top 5 threats
         ],
     }
+
+
+@router.get("/trend")
+def get_trend():
+    """Get real-time trend data for the activity chart"""
+    from backend.core.state import get_trend_data
+
+    trend_data = get_trend_data()
+
+    # Ensure we have at least 10 data points (fill with zeros if empty)
+    if not trend_data:
+        from datetime import datetime
+
+        now = datetime.now()
+        trend_data = [
+            {
+                "time": (now - timedelta(seconds=i * 5)).strftime("%H:%M:%S"),
+                "threats": 0,
+                "anomalies": 0,
+                "safe": 0,
+            }
+            for i in range(9, -1, -1)
+        ]
+    elif len(trend_data) < 10:
+        # Pad with zeros
+        from datetime import datetime
+
+        now = datetime.now()
+        while len(trend_data) < 10:
+            trend_data.insert(
+                0,
+                {
+                    "time": (now - timedelta(seconds=(10 - len(trend_data)) * 5)).strftime(
+                        "%H:%M:%S"
+                    ),
+                    "threats": 0,
+                    "anomalies": 0,
+                    "safe": 0,
+                },
+            )
+
+    return {"trend": trend_data}
 
 
 @router.get("/ml/dashboard")
