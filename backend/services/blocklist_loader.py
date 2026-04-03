@@ -218,6 +218,7 @@ class BlocklistLoader:
                     source.is_active = True
                 else:
                     source = BlocklistSource(
+                        tenant_id=1,
                         name=source_key,
                         url=BLOCKLIST_SOURCES[source_key]["url"],
                         category=BLOCKLIST_SOURCES[source_key]["category"],
@@ -229,6 +230,7 @@ class BlocklistLoader:
                     session.add(source)
 
                 stats = BlocklistStats(
+                    tenant_id=1,
                     source_name=source_key,
                     total_entries=len(parse_result.entries),
                     new_entries=0,
