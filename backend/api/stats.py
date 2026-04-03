@@ -129,7 +129,7 @@ async def get_system_stats(request: Request):
     autonomy_score = realtime_stats["autonomy_score"]
 
     adguard_status = "ACTIVE" if settings.has_adguard else "INACTIVE"
-    gemini_status = "ACTIVE" if settings.GEMINI_API_KEY else "INACTIVE"
+    ollama_status = "ACTIVE" if settings.OLLAMA_ENABLED else "INACTIVE"
     sheets_status = (
         "ACTIVE" if settings.GOOGLE_SHEETS_CREDENTIALS and settings.GOOGLE_SHEET_ID else "INACTIVE"
     )
@@ -153,9 +153,9 @@ async def get_system_stats(request: Request):
                 "description": "Pattern-based threat detection",
             },
             {
-                "name": "Gemini AI",
-                "status": gemini_status,
-                "description": "Fallback analysis for unknown threats",
+                "name": "Ollama AI (Local)",
+                "status": ollama_status,
+                "description": "Local LLM for domain analysis",
             },
             {
                 "name": "Google Sheets",

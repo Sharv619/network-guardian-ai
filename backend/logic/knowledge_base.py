@@ -51,7 +51,7 @@ class KnowledgeEntry:
     category: str
     summary: str
     confidence: float
-    source: str  # "gemini", "local_ml", "metadata", "heuristic", "human_feedback"
+    source: str  # "ollama", "local_ml", "metadata", "heuristic", "human_feedback"
     features: dict[str, Any]
     timestamp: str
     last_accessed: str = ""
@@ -185,16 +185,15 @@ class KnowledgeBase:
         results.sort(key=lambda x: x[1], reverse=True)
         return results[:k]
 
-    def store_knowledge(self, domain: str, analysis_result: dict[str, Any], source: str = "gemini"):
-        """Store new knowledge in both database and vector memory"""
-        try:
-            # Create knowledge entry
-            entry = KnowledgeEntry(
-                domain=domain,
-                risk_score=analysis_result.get("risk_score", "Unknown"),
-                category=analysis_result.get("category", "Unknown"),
-                summary=analysis_result.get("summary", ""),
-                confidence=analysis_result.get("confidence", 0.9) if source == "gemini" else 0.8,
+    def store_knowledge(self, domain: str, analysis_result: dict[str, Any], source: str = "ollama"):
+        """Store analysis result in knowledge base"""
+        # Create knowledge entry
+        entry = KnowledgeEntry(
+            domain=domain,
+            risk_score=analysis_result.get("risk_score", "Unknown"),
+            category=analysis_result.get("category", "Unknown"),
+            summary=analysis_result.get("summary", ""),
+            confidence=analysis_result.get("confidence", 0.9) if source == "ollama" else 0.8,
                 source=source,
                 features={
                     "entropy": analysis_result.get("entropy_score"),
@@ -466,7 +465,7 @@ def analyze_with_knowledge_base(
 
         # If no high confidence match or fallback allowed, proceed with normal analysis
         if fallback_to_api:
-            from ..services.gemini_analyzer import analyze_domain
+            from ..services.ollama_analyzer import analyze_with_ollama
             from .anomaly_engine import predict_anomaly
             from .ml_heuristics import calculate_entropy, extract_domain_features, is_dga
 
@@ -475,25 +474,23 @@ def analyze_with_knowledge_base(
             features = extract_domain_features(domain)
             is_anomaly_result, anomaly_score_result = predict_anomaly(features)
 
-            # Try Gemini analysis
+            # Try Ollama analysis
             try:
-                analysis = analyze_domain(
+                analysis = analyze_with_ollama(
                     domain,
                     context=context,
-                    is_anomaly=is_anomaly_result,
-                    anomaly_score=anomaly_score_result,
                 )
-                analysis["analysis_source"] = "gemini_api"
+                analysis["analysis_source"] = "ollama_api"
                 analysis["entropy_score"] = entropy
                 analysis["anomaly_score"] = anomaly_score_result
                 analysis["is_anomaly"] = is_anomaly_result
 
                 # Store in knowledge base
-                kb.store_knowledge(domain, analysis, "gemini")
+                kb.store_knowledge(domain, analysis, "ollama")
 
                 return analysis
             except Exception as e:
-                logger.warning(f"Gemini API failed: {e}, falling back to local heuristics")
+                logger.warning(f"Ollama API failed: {e}, falling back to local heuristics")
 
         # Local heuristic fallback
         from .ml_heuristics import calculate_entropy, is_dga

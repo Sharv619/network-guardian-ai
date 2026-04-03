@@ -115,17 +115,11 @@ async def api_analyze(request: Request, analysis_request: dict[str, Any]):
 
     model_id = analysis_request.get("model_id")
 
-    # Check if Ollama model selected
-    if model_id and model_id.startswith("ollama:"):
-        from backend.services.ollama_analyzer import analyze_with_ollama
+    # Use Ollama for analysis (fully local)
+    from backend.services.ollama_analyzer import analyze_with_ollama
 
-        ollama_model = model_id.replace("ollama:", "")
-        analysis = analyze_with_ollama(domain, model=ollama_model)
-    else:
-        # Use Gemini
-        from backend.services.gemini_analyzer import analyze_domain
-
-        analysis = analyze_domain(domain, model_id=model_id)
+    ollama_model = model_id.replace("ollama:", "") if model_id else None
+    analysis = analyze_with_ollama(domain, model=ollama_model)
 
     if not analysis:
         raise HTTPException(status_code=500, detail="Analysis failed")

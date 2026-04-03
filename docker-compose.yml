@@ -7,7 +7,6 @@ services:
     restart: always
     environment:
       - ENVIRONMENT=development
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - NOTION_TOKEN=${NOTION_TOKEN}
       - NOTION_DATABASE_ID=${NOTION_DATABASE_ID}
       - POLL_INTERVAL=${POLL_INTERVAL:-30}
@@ -16,12 +15,12 @@ services:
       - ADGUARD_URL=http://host.docker.internal:80
       - ADGUARD_USER=user
       - ADGUARD_PASS=user1234
-      - GEMINI_LIVE_FEED_ENABLED=${GEMINI_LIVE_FEED_ENABLED:-true}
-      - OLLAMA_ENABLED=${OLLAMA_ENABLED:-false}
+      - OLLAMA_LIVE_FEED_ENABLED=${OLLAMA_LIVE_FEED_ENABLED:-true}
+      - OLLAMA_ENABLED=${OLLAMA_ENABLED:-true}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-nomic-embed-text}
       - OLLAMA_CHAT_MODEL=${OLLAMA_CHAT_MODEL:-llama3.2}
-      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-mock}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
     ports:
       - "8000:8000"
     volumes:

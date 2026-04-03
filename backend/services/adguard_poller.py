@@ -11,7 +11,6 @@ from ..core.state import automated_threats
 from ..core.utils import get_iso_timestamp
 from ..logic.analysis_cache import cache_analysis_result, get_cached_analysis
 from ..logic.anomaly_engine import predict_anomaly
-from ..logic.knowledge_base import analyze_with_knowledge_base
 from ..logic.metadata_classifier import (
     classifier,
     classify_domain_metadata,
@@ -22,6 +21,7 @@ from ..logic.ml_heuristics import (
     extract_domain_features,
     is_dga,
 )
+from ..services.ollama_analyzer import analyze_with_ollama
 from ..logic.vector_store import vector_memory
 from .dns_adapter.adguard import AdGuardAdapter
 from .sheets_logger import log_threat_to_sheet
@@ -235,38 +235,38 @@ def run_local_first_pipeline(
         "analysis_source": "local_heuristic",
     }
 
-    # STAGE 4: GEMINI ENHANCEMENT
-    # Call Gemini ONLY for Medium/High risk to get unique per-domain insights
+    # STAGE 4: OLLAMA AI ENHANCEMENT
+    # Call Ollama ONLY for Medium/High risk to get unique per-domain insights
     # Trusts adguard_metadata from DNS adapter — no separate safe domain check needed
-    if settings.GEMINI_LIVE_FEED_ENABLED and risk_score in ["Medium", "High"]:
+    if settings.OLLAMA_LIVE_FEED_ENABLED and risk_score in ["Medium", "High"]:
         try:
-            print(f"[GEMINI ENHANCEMENT] Analyzing {domain} with Gemini for unique insights...")
-            gemini_context = {
+            print(f"[OLLAMA ENHANCEMENT] Analyzing {domain} with Ollama for unique insights...")
+            ollama_context = {
                 "reason": adguard_metadata.get("reason", ""),
                 "rule": adguard_metadata.get("rule", ""),
                 "local_entropy": entropy,
                 "local_anomaly": anomaly_score,
             }
 
-            gemini_analysis = analyze_with_knowledge_base(
+            ollama_analysis = analyze_with_ollama(
                 domain,
-                context=gemini_context,
-                fallback_to_api=True,
+                context=ollama_context,
+                model=settings.OLLAMA_CHAT_MODEL,
             )
 
-            if gemini_analysis and gemini_analysis.get("risk_score"):
-                # Enhance local analysis with Gemini insights
-                local_analysis["summary"] = gemini_analysis.get(
+            if ollama_analysis and ollama_analysis.get("risk_score"):
+                # Enhance local analysis with Ollama insights
+                local_analysis["summary"] = ollama_analysis.get(
                     "summary", local_analysis["summary"]
                 )
-                local_analysis["analysis_source"] = "gemini_ai_enhanced"
-                local_analysis["confidence"] = gemini_analysis.get("confidence", 0.8)
+                local_analysis["analysis_source"] = "ollama_ai_enhanced"
+                local_analysis["confidence"] = ollama_analysis.get("confidence", 0.8)
                 print(
-                    f"[GEMINI ENHANCEMENT] ✅ Enhanced {domain}: {gemini_analysis.get('category')}"
+                    f"[OLLAMA ENHANCEMENT] ✅ Enhanced {domain}: {ollama_analysis.get('category')}"
                 )
         except Exception as e:
-            print(f"[GEMINI ENHANCEMENT] Fallback to local analysis: {e}")
-            # If Gemini fails, continue with local analysis (graceful degradation)
+            print(f"[OLLAMA ENHANCEMENT] Fallback to local analysis: {e}")
+            # If Ollama fails, continue with local analysis (graceful degradation)
             pass
 
     return local_analysis
@@ -462,7 +462,11 @@ def poll_adguard():
                         automated_threats.pop()
 
                     if analysis and analysis.get("analysis_source") != "cached":
-                        cache_ttl = 1800 if analysis.get("analysis_source") == "gemini_ai" else 3600
+                        cache_ttl = (
+                            1800
+                            if analysis.get("analysis_source") == "ollama_ai_enhanced"
+                            else 3600
+                        )
                         cache_analysis_result(
                             dns_query.domain,
                             adguard_metadata,

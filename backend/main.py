@@ -333,19 +333,13 @@ def health_check():
 
 @app.get("/models")
 def api_list_models():
-    """SRE Discovery: List available models (Gemini + Ollama)."""
+    """SRE Discovery: List available Ollama models."""
     from backend.core.config import settings
-    from backend.services.gemini_analyzer import get_available_models
     from backend.services.ollama_analyzer import get_ollama_models
 
     models = []
 
-    # Add Gemini models
-    gemini_models = get_available_models()
-    for m in gemini_models:
-        models.append({"id": m, "provider": "gemini", "name": m})
-
-    # Add Ollama models (if enabled)
+    # Add Ollama models
     if settings.OLLAMA_ENABLED:
         ollama_models = get_ollama_models()
         for m in ollama_models:

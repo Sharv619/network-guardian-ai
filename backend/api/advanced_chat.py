@@ -12,7 +12,7 @@ from ..core.validators import is_valid_domain
 from ..db.repository import get_domain_repository
 from ..logic.analysis_cache import get_cached_analysis
 from ..logic.vector_store import vector_memory
-from ..services.gemini_analyzer import analyze_domain, chat_with_ai
+from ..services.ollama_analyzer import analyze_with_ollama, chat_with_ollama
 from ..services.sheets_logger import log_threat_to_sheet
 
 router = APIRouter()
@@ -270,7 +270,7 @@ async def generate_advanced_rag_response(
     # 5. Perform new analysis if domain found and not in cache
     if domain and not any("analysis_cache" in src for src in sources):
         try:
-            analysis = analyze_domain(domain)
+            analysis = analyze_with_ollama(domain)
             if analysis:
                 response_parts.append(f"⚡ New analysis for '{domain}':")
                 response_parts.append(f"  • Risk: {analysis.get('risk_score', 'Unknown')}")
@@ -284,7 +284,7 @@ async def generate_advanced_rag_response(
                 }
                 from ..logic.analysis_cache import cache_analysis_result
 
-                cache_analysis_result(domain, cache_metadata, analysis, "gemini_analysis")
+                cache_analysis_result(domain, cache_metadata, analysis, "ollama_analysis")
 
                 # Store the analysis in the database for the current tenant
                 try:
@@ -301,7 +301,7 @@ async def generate_advanced_rag_response(
     if not response_parts:
         # Enhance the query with security context
         enhanced_query = f"Security context: {query}. Provide relevant cybersecurity information and threat intelligence."
-        ai_response = chat_with_ai(enhanced_query)
+        ai_response = chat_with_ollama(enhanced_query)
         response_parts.append(ai_response)
         sources.append("ai_general")
         confidence = "low"
@@ -485,7 +485,7 @@ async def contextual_analyze_endpoint(chat_request: AdvancedChatMessage):
             response = f" Cached analysis for '{domain}':\n{json.dumps(cached_result, indent=2)}"
         else:
             # Perform new analysis
-            analysis = analyze_domain(domain)
+            analysis = analyze_with_ollama(domain)
 
             # Cache the result
             cache_metadata = {"query": message, "timestamp": datetime.now(UTC).isoformat()}

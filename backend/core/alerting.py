@@ -23,7 +23,7 @@ class AlertType(StrEnum):
     HIGH_THREAT_RATE = "high_threat_rate"
     ANOMALY_SPIKE = "anomaly_spike"
     API_FAILURE = "api_failure"
-    GEMINI_QUOTA_EXHAUSTED = "gemini_quota_exhausted"
+    OLLAMA_UNAVAILABLE = "ollama_unavailable"
     HIGH_ERROR_RATE = "high_error_rate"
     SYSTEM_RESOURCE = "system_resource"
 

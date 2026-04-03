@@ -275,7 +275,7 @@ class MetadataClassifier:
             return "OTHER_DEVICE"
 
     def learn_from_analysis(
-        self, domain: str, metadata: dict, category: str, system_used: str = "gemini"
+        self, domain: str, metadata: dict, category: str, system_used: str = "ollama"
     ):
         """Learn from a completed analysis to build patterns"""
         # Only learn from high-confidence analyses

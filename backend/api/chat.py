@@ -13,7 +13,7 @@ from ..logic.analysis_cache import analysis_cache, get_cached_analysis
 from ..logic.anomaly_engine import engine as anomaly_engine
 from ..logic.ml_heuristics import calculate_entropy, extract_domain_features, is_dga
 from ..logic.vector_store import vector_memory
-from ..services.gemini_analyzer import analyze_domain, chat_with_ai
+from ..services.ollama_analyzer import analyze_with_ollama, chat_with_ollama
 from ..services.sheets_logger import log_threat_to_sheet
 
 router = APIRouter()
@@ -256,7 +256,7 @@ async def generate_rag_response(request: Request, query: str) -> dict[str, Any]:
         # 4. Perform new analysis if domain found and not in cache
     if domain and not cached_analysis:
         try:
-            analysis = analyze_domain(domain)
+            analysis = analyze_with_ollama(domain)
             if analysis:
                 response_parts.append(f"New analysis for '{domain}':")
                 response_parts.append(f"- Risk: {analysis.get('risk_score', 'Unknown')}")
@@ -271,7 +271,7 @@ async def generate_rag_response(request: Request, query: str) -> dict[str, Any]:
                 }
                 from ..logic.analysis_cache import cache_analysis_result
 
-                cache_analysis_result(domain, cache_metadata, analysis, "gemini_analysis")
+                cache_analysis_result(domain, cache_metadata, analysis, "ollama_analysis")
 
                 # Store the analysis in the database for the current tenant
                 try:
@@ -298,7 +298,7 @@ async def generate_rag_response(request: Request, query: str) -> dict[str, Any]:
 
     # 6. If no specific domain found, use general AI chat
     if not response_parts:
-        ai_response = chat_with_ai(query)
+        ai_response = chat_with_ollama(query)
         response_parts.append(ai_response)
         sources.append("ai_general")
         confidence = "low"
@@ -461,7 +461,7 @@ async def analyze_domain_chat(chat_request: ChatMessage):
             response = f" Cached analysis for '{domain}':\n{json.dumps(cached_result, indent=2)}"
         else:
             # Perform new analysis
-            analysis = analyze_domain(domain)
+            analysis = analyze_with_ollama(domain)
 
             # Cache the result
             cache_metadata = {"query": message, "timestamp": datetime.now(UTC).isoformat()}
@@ -946,14 +946,10 @@ async def generate_conversational_response(message: str) -> str:
     if any(w in message_lower for w in ["adguard", "dns", "block", "filter"]):
         return "🛡️ AdGuard DNS: Active | Filtering malicious domains | Check http://localhost:8080 for dashboard | Logs all DNS queries"
 
-    if any(w in message_lower for w in ["gemini", "cloud", "ai", "api"]):
+    if any(w in message_lower for w in ["ollama", "local ai", "ai", "api"]):
         cloud = stats.get("cloud_decisions", 0)
         local = stats.get("local_decisions", 0)
-        return (
-            f"☁️ Gemini AI: {cloud} decisions | Local ML: {local} decisions | Hybrid analysis active"
-        )
-        sources = stats.get("cache", {}).get("source_distribution", {})
-        return f"🤖 AI Stack: {cloud} Gemini calls | {local} local ML | {sources.get('gemini_api', 0)} API | {sources.get('knowledge_base', 0)} KB | Falls back to heuristics when quota exceeded"
+        return f"🤖 Ollama AI (Local): {cloud} decisions | Local ML: {local} decisions | 100% offline analysis"
 
     if any(w in message_lower for w in ["threat", "attack", "malware", "suspicious"]):
         high_risks = (

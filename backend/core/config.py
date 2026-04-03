@@ -23,15 +23,22 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    GEMINI_API_KEY: str = Field("", description="Google Gemini API Key")
+    GEMINI_API_KEY: str = Field("", description="Google Gemini API Key (deprecated, use Ollama)")
     NOTION_TOKEN: str | None = Field(None, description="Notion API Token (optional)")
     NOTION_DATABASE_ID: str | None = Field(None, description="Notion Database ID (optional)")
 
     # Ollama Configuration (Local LLM)
-    OLLAMA_ENABLED: bool = Field(False, description="Enable Ollama for local embeddings")
+    OLLAMA_ENABLED: bool = Field(
+        True, description="Enable Ollama for local embeddings and analysis"
+    )
     OLLAMA_BASE_URL: str = Field("http://localhost:11434", description="Ollama API base URL")
     OLLAMA_MODEL: str = Field("nomic-embed-text", description="Ollama embedding model")
-    OLLAMA_CHAT_MODEL: str = Field("llama3.2", description="Ollama chat model for RAG")
+    OLLAMA_CHAT_MODEL: str = Field("llama3.2", description="Ollama chat model for domain analysis")
+
+    # Ollama live feed enhancement
+    OLLAMA_LIVE_FEED_ENABLED: bool = Field(
+        True, description="Enable Ollama AI enhancement in live feed polling"
+    )
 
     # Embedding provider choice
     EMBEDDING_PROVIDER: str = Field(
@@ -63,17 +70,6 @@ class Settings(BaseSettings):
     DATABASE_POOL_SIZE: int = Field(5, description="Database connection pool size")
     DATABASE_MAX_OVERFLOW: int = Field(10, description="Database maximum overflow connections")
 
-    # Gemini model configuration
-    GEMINI_CONFIRMED_MODELS: list[str] = Field(
-        ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"],
-        description="Confirmed Gemini models for analysis",
-    )
-
-    # Gemini live feed enhancement
-    GEMINI_LIVE_FEED_ENABLED: bool = Field(
-        False, description="Enable Gemini AI enhancement in live feed polling"
-    )
-
     # Security configuration
     JWT_SECRET_KEY: str = Field("", description="JWT Secret Key for token generation")
     ENABLE_SECURITY_HEADERS: bool = Field(True, description="Enable security headers middleware")
@@ -104,11 +100,7 @@ class Settings(BaseSettings):
     @property
     def is_valid(self) -> bool:
         """Check if minimum required configuration is present."""
-        return (
-            bool(self.GEMINI_API_KEY)
-            and bool(self.GOOGLE_SHEETS_CREDENTIALS)
-            and bool(self.GOOGLE_SHEET_ID)
-        )
+        return bool(self.GOOGLE_SHEETS_CREDENTIALS) and bool(self.GOOGLE_SHEET_ID)
 
     @property
     def has_adguard(self) -> bool:
