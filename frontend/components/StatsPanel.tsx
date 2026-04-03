@@ -83,7 +83,7 @@ const StatsPanel: React.FC<StatsPanelProps> = () => {
     try {
       const [statsRes, alertsRes, mlRes, historyRes, modelsRes, blocklistRes, trendRes] = await Promise.all([
         fetch(`${API_BASE}/api/stats/system`),
-        fetch(`${API_BASE}/api/stats/alerts/stats`),
+        fetch(`${API_BASE}/alerts/stats`),
         fetch(`${API_BASE}/api/stats/ml/dashboard`),
         fetch(`${API_BASE}/history`),
         fetch(`${API_BASE}/models`),
