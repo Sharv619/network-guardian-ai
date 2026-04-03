@@ -237,10 +237,9 @@ def run_local_first_pipeline(
 
     # STAGE 4: OLLAMA AI ENHANCEMENT
     # Call Ollama ONLY for Medium/High risk to get unique per-domain insights
-    # Trusts adguard_metadata from DNS adapter — no separate safe domain check needed
+    # Falls back to local heuristics if Ollama is unavailable (e.g., insufficient RAM)
     if settings.OLLAMA_LIVE_FEED_ENABLED and risk_score in ["Medium", "High"]:
         try:
-            print(f"[OLLAMA ENHANCEMENT] Analyzing {domain} with Ollama for unique insights...")
             ollama_context = {
                 "reason": adguard_metadata.get("reason", ""),
                 "rule": adguard_metadata.get("rule", ""),
@@ -255,18 +254,19 @@ def run_local_first_pipeline(
             )
 
             if ollama_analysis and ollama_analysis.get("risk_score"):
-                # Enhance local analysis with Ollama insights
-                local_analysis["summary"] = ollama_analysis.get(
-                    "summary", local_analysis["summary"]
-                )
-                local_analysis["analysis_source"] = "ollama_ai_enhanced"
-                local_analysis["confidence"] = ollama_analysis.get("confidence", 0.8)
-                print(
-                    f"[OLLAMA ENHANCEMENT] ✅ Enhanced {domain}: {ollama_analysis.get('category')}"
-                )
+                # Only use Ollama result if it's not the fallback heuristic
+                source = ollama_analysis.get("analysis_source", "")
+                if "fallback" not in source:
+                    local_analysis["summary"] = ollama_analysis.get(
+                        "summary", local_analysis["summary"]
+                    )
+                    local_analysis["analysis_source"] = "ollama_ai_enhanced"
+                    local_analysis["confidence"] = ollama_analysis.get("confidence", 0.8)
+                    print(
+                        f"[OLLAMA ENHANCEMENT] ✅ Enhanced {domain}: {ollama_analysis.get('category')}"
+                    )
         except Exception as e:
             print(f"[OLLAMA ENHANCEMENT] Fallback to local analysis: {e}")
-            # If Ollama fails, continue with local analysis (graceful degradation)
             pass
 
     return local_analysis

@@ -33,7 +33,9 @@ class Settings(BaseSettings):
     )
     OLLAMA_BASE_URL: str = Field("http://localhost:11434", description="Ollama API base URL")
     OLLAMA_MODEL: str = Field("nomic-embed-text", description="Ollama embedding model")
-    OLLAMA_CHAT_MODEL: str = Field("llama3.2", description="Ollama chat model for domain analysis")
+    OLLAMA_CHAT_MODEL: str = Field(
+        "llama3.2:1b", description="Ollama chat model for domain analysis"
+    )
 
     # Ollama live feed enhancement
     OLLAMA_LIVE_FEED_ENABLED: bool = Field(
