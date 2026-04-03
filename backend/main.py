@@ -269,7 +269,7 @@ app.include_router(database_router, prefix="/api/database")
 # Include Alert Routes
 from backend.api.alert_router import router as alert_router
 
-app.include_router(alert_router, prefix="/api/alerts")
+app.include_router(alert_router)
 
 # Include Blocklist Routes
 try:
