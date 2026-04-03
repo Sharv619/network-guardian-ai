@@ -158,24 +158,30 @@ def run_local_first_pipeline(
     from ..core.config import settings
     from ..core.metrics import metrics_collector
 
-    # Stage 1: Metadata classification (for blocked domains)
-    # Trusts adguard_metadata from the DNS adapter (reason, filter_id, rule)
-    metadata_result = classify_domain_metadata(adguard_metadata)
-    if metadata_result.confidence >= 0.8:
-        classifier.increment_local_decision()
-        try:
-            metrics_collector.record_classifier_decision("metadata")
-        except Exception:
-            pass
-        return {
-            "risk_score": "High" if metadata_result.confidence > 0.9 else "Medium",
-            "category": metadata_result.category,
-            "summary": f"🛡️ SOC GUARD ACTIVE: Local heuristic audit completed. Metadata pattern matched ({metadata_result.category})",
-            "timestamp": get_iso_timestamp(),
-            "is_anomaly": is_anomaly,
-            "anomaly_score": anomaly_score,
-            "analysis_source": "metadata_classifier",
-        }
+    # Stage 1: Metadata classification (ONLY for blocked domains)
+    # Only use metadata classification when AdGuard actually filtered/blocked the domain
+    # For domains that passed through normally, skip to entropy/local analysis
+    reason = adguard_metadata.get("reason", "")
+    filter_id = adguard_metadata.get("filter_id")
+    is_blocked = filter_id is not None or (reason and reason.startswith("Filtered"))
+
+    if is_blocked:
+        metadata_result = classify_domain_metadata(adguard_metadata)
+        if metadata_result.confidence >= 0.8:
+            classifier.increment_local_decision()
+            try:
+                metrics_collector.record_classifier_decision("metadata")
+            except Exception:
+                pass
+            return {
+                "risk_score": "High" if metadata_result.confidence > 0.9 else "Medium",
+                "category": metadata_result.category,
+                "summary": f"🛡️ SOC GUARD ACTIVE: Local heuristic audit completed. Metadata pattern matched ({metadata_result.category})",
+                "timestamp": get_iso_timestamp(),
+                "is_anomaly": is_anomaly,
+                "anomaly_score": anomaly_score,
+                "analysis_source": "metadata_classifier",
+            }
 
     # Stage 2: Entropy-based DGA detection (HIGH priority)
     if is_dga(domain) or entropy > 3.8:
