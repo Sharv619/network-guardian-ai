@@ -1,3 +1,4 @@
+import json
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -109,6 +110,9 @@ class AlertManager:
 
         self._http_client: httpx.AsyncClient | None = None
 
+        # Load persisted alerts on startup
+        self._load_alerts_async()
+
     async def init_client(self) -> None:
         """Initialize HTTP client for webhook calls."""
         if self.webhook_url and not self._http_client:
@@ -160,6 +164,7 @@ class AlertManager:
 
         try:
             import requests
+
             payload = {
                 "alert": alert.to_dict(),
                 "source": "network-guardian-ai",
@@ -168,7 +173,7 @@ class AlertManager:
                 self.webhook_url,
                 json=payload,
                 headers={"Content-Type": "application/json"},
-                timeout=10
+                timeout=10,
             )
             if response.status_code >= 200 and response.status_code < 300:
                 logger.info("Webhook alert sent", extra={"alert_id": alert.id})
@@ -237,6 +242,9 @@ class AlertManager:
         await _broadcast_alert(alert)
         await self._send_notifications(alert)
 
+        # Persist to DB (non-blocking)
+        self._save_alerts_async()
+
         return alert
 
     def create_alert_sync(
@@ -274,6 +282,9 @@ class AlertManager:
 
         # Use sync webhook version
         self._send_webhook_sync(alert)
+
+        # Persist to DB (non-blocking)
+        self._save_alerts_async()
 
         # Note: WebSocket broadcasting and notifications are async-only
         # In sync contexts, we skip these for simplicity
@@ -378,9 +389,7 @@ class AlertManager:
 
         return alerts
 
-    def acknowledge_alert(
-        self, alert_id: str, acknowledged_by: str | None = None
-    ) -> Alert | None:
+    def acknowledge_alert(self, alert_id: str, acknowledged_by: str | None = None) -> Alert | None:
         """Acknowledge an alert."""
         for alert in self.alerts:
             if alert.id == alert_id:
@@ -449,6 +458,85 @@ class AlertManager:
         """Clear all alerts."""
         self.alerts.clear()
         logger.info("All alerts cleared")
+
+    async def save_alerts(self):
+        """Persist recent alerts to database."""
+        from backend.db.database import get_session
+        from backend.db.models import SystemStats
+        from sqlalchemy import select
+
+        try:
+            async with get_session() as session:
+                alert_dicts = [a.to_dict() for a in self.alerts[:200]]
+                alerts_json = json.dumps(alert_dicts)
+                result = await session.execute(
+                    select(SystemStats).where(
+                        SystemStats.tenant_id == 1,
+                        SystemStats.key == "recent_alerts",
+                    )
+                )
+                existing = result.scalar_one_or_none()
+                if existing:
+                    existing.value = alerts_json
+                else:
+                    session.add(SystemStats(tenant_id=1, key="recent_alerts", value=alerts_json))
+                await session.commit()
+        except Exception as e:
+            logger.warning(f"Could not save alerts: {e}")
+
+    def _save_alerts_async(self):
+        """Non-blocking alert save."""
+        import asyncio
+
+        try:
+            asyncio.ensure_future(self.save_alerts())
+        except Exception:
+            pass
+
+    async def load_alerts(self):
+        """Load recent alerts from database."""
+        from backend.db.database import get_session
+        from backend.db.models import SystemStats
+        from sqlalchemy import select
+
+        try:
+            async with get_session() as session:
+                result = await session.execute(
+                    select(SystemStats).where(
+                        SystemStats.tenant_id == 1,
+                        SystemStats.key == "recent_alerts",
+                    )
+                )
+                row = result.scalar_one_or_none()
+                if row:
+                    alert_dicts = json.loads(row.value)
+                    for ad in alert_dicts:
+                        alert = Alert(
+                            id=ad["id"],
+                            alert_type=AlertType(ad["alert_type"]),
+                            severity=AlertSeverity(ad["severity"]),
+                            message=ad["message"],
+                            details=ad.get("details", {}),
+                            timestamp=datetime.fromisoformat(ad["timestamp"]),
+                            acknowledged=ad.get("acknowledged", False),
+                            acknowledged_at=datetime.fromisoformat(ad["acknowledged_at"])
+                            if ad.get("acknowledged_at")
+                            else None,
+                            acknowledged_by=ad.get("acknowledged_by"),
+                        )
+                        self.alerts.append(alert)
+                    logger.info(f"Restored {len(self.alerts)} alerts from DB")
+        except Exception as e:
+            logger.warning(f"Could not load alerts: {e}")
+
+    def _load_alerts_async(self):
+        """Non-blocking alert load."""
+        import asyncio
+
+        try:
+            asyncio.ensure_future(self.load_alerts())
+        except Exception:
+            pass
 
 
 alert_manager = AlertManager()

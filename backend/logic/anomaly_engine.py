@@ -1,3 +1,4 @@
+import json
 
 import numpy as np
 from sklearn.ensemble import IsolationForest
@@ -15,6 +16,9 @@ class AnomalyEngine:
         self.min_samples = 5
         self.max_history = max_history
         self.contamination = contamination
+
+        # Load persisted history on startup
+        self._load_history_async()
 
     def predict_anomaly(self, features: list[float]) -> tuple[bool, float]:
         # Add to history for future learning
@@ -36,8 +40,8 @@ class AnomalyEngine:
                         "training_samples": len(self.history),
                         "min_samples_required": self.min_samples * 2,
                         "model_status": "cold_start",
-                        "analysis_source": "anomaly_engine"
-                    }
+                        "analysis_source": "anomaly_engine",
+                    },
                 )
             except Exception as e:
                 print(f"Alert creation failed: {e}")
@@ -60,8 +64,8 @@ class AnomalyEngine:
                             "error": str(e),
                             "training_samples": len(self.history),
                             "model_status": "training_failed",
-                            "analysis_source": "anomaly_engine"
-                        }
+                            "analysis_source": "anomaly_engine",
+                        },
                     )
                 except Exception as alert_e:
                     print(f"Alert creation failed: {alert_e}")
@@ -87,12 +91,82 @@ class AnomalyEngine:
                         "error": str(e),
                         "features": features,
                         "model_status": "prediction_failed",
-                        "analysis_source": "anomaly_engine"
-                    }
+                        "analysis_source": "anomaly_engine",
+                    },
                 )
             except Exception as alert_e:
                 print(f"Alert creation failed: {alert_e}")
             return False, 0.0
+
+    async def save_history(self):
+        """Persist anomaly history to database."""
+        from ..db.database import get_session
+        from ..db.models import SystemStats
+        from sqlalchemy import select
+
+        try:
+            async with get_session() as session:
+                history_json = json.dumps(self.history[-1000:])
+                result = await session.execute(
+                    select(SystemStats).where(
+                        SystemStats.tenant_id == 1,
+                        SystemStats.key == "anomaly_history",
+                    )
+                )
+                existing = result.scalar_one_or_none()
+                if existing:
+                    existing.value = history_json
+                else:
+                    session.add(SystemStats(tenant_id=1, key="anomaly_history", value=history_json))
+                await session.commit()
+        except Exception as e:
+            print(f"Warning: Could not save anomaly history: {e}")
+
+    def _save_history_async(self):
+        """Non-blocking history save."""
+        import asyncio
+
+        try:
+            asyncio.ensure_future(self.save_history())
+        except Exception:
+            pass
+
+    async def load_history(self):
+        """Load anomaly history from database."""
+        from ..db.database import get_session
+        from ..db.models import SystemStats
+        from sqlalchemy import select
+
+        try:
+            async with get_session() as session:
+                result = await session.execute(
+                    select(SystemStats).where(
+                        SystemStats.tenant_id == 1,
+                        SystemStats.key == "anomaly_history",
+                    )
+                )
+                row = result.scalar_one_or_none()
+                if row:
+                    self.history = json.loads(row.value)
+                    # Retrain model on loaded history
+                    if len(self.history) >= self.min_samples * 2:
+                        X = np.array(self.history)
+                        self.model.fit(X)
+                        self.is_trained = True
+                        print(
+                            f"AnomalyEngine: Restored {len(self.history)} samples from DB, model retrained"
+                        )
+        except Exception as e:
+            print(f"Warning: Could not load anomaly history: {e}")
+
+    def _load_history_async(self):
+        """Non-blocking history load."""
+        import asyncio
+
+        try:
+            asyncio.ensure_future(self.load_history())
+        except Exception:
+            pass
 
     def get_stats(self) -> dict:
         """Get anomaly engine statistics"""

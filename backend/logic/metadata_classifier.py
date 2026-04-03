@@ -115,6 +115,14 @@ class MetadataClassifier:
         # Load existing patterns
         self.load_patterns()
 
+        # Load persisted counters (async, fire-and-forget)
+        import asyncio
+
+        try:
+            asyncio.ensure_future(self.load_stats())
+        except Exception:
+            pass
+
         # Seed Intelligence: Pre-learned patterns for cold-start resilience
         self._seed_patterns()
 
@@ -410,16 +418,79 @@ class MetadataClassifier:
         }
 
     def increment_local_decision(self):
-        """Track when a domain is classified locally (without Gemini)"""
+        """Track when a domain is classified locally (without cloud AI)"""
         self.local_decisions_count += 1
+        if self.local_decisions_count % 20 == 0:
+            self._save_stats_async()
 
     def increment_cloud_decision(self):
-        """Track when Gemini API is called"""
+        """Track when cloud AI is called"""
         self.cloud_decisions_count += 1
+        if self.cloud_decisions_count % 20 == 0:
+            self._save_stats_async()
 
     def increment_pattern_learned(self):
         """Track when a new pattern is learned"""
         self.total_patterns_learned += 1
+
+    async def save_stats(self):
+        """Persist counters to database."""
+        from ..db.database import get_session
+        from ..db.models import SystemStats
+        from sqlalchemy import select
+
+        try:
+            async with get_session() as session:
+                stats = {
+                    "local_decisions_count": self.local_decisions_count,
+                    "cloud_decisions_count": self.cloud_decisions_count,
+                    "total_patterns_learned": self.total_patterns_learned,
+                }
+                for key, value in stats.items():
+                    result = await session.execute(
+                        select(SystemStats).where(
+                            SystemStats.tenant_id == 1,
+                            SystemStats.key == key,
+                        )
+                    )
+                    existing = result.scalar_one_or_none()
+                    if existing:
+                        existing.value = str(value)
+                    else:
+                        session.add(SystemStats(tenant_id=1, key=key, value=str(value)))
+                await session.commit()
+        except Exception as e:
+            print(f"Warning: Could not save classifier stats: {e}")
+
+    def _save_stats_async(self):
+        """Non-blocking stats save."""
+        import asyncio
+
+        try:
+            asyncio.ensure_future(self.save_stats())
+        except Exception:
+            pass
+
+    async def load_stats(self):
+        """Load counters from database."""
+        from ..db.database import get_session
+        from ..db.models import SystemStats
+        from sqlalchemy import select
+
+        try:
+            async with get_session() as session:
+                result = await session.execute(
+                    select(SystemStats).where(SystemStats.tenant_id == 1)
+                )
+                for row in result.scalars().all():
+                    if row.key == "local_decisions_count":
+                        self.local_decisions_count = int(row.value)
+                    elif row.key == "cloud_decisions_count":
+                        self.cloud_decisions_count = int(row.value)
+                    elif row.key == "total_patterns_learned":
+                        self.total_patterns_learned = int(row.value)
+        except Exception as e:
+            print(f"Warning: Could not load classifier stats: {e}")
 
     def get_realtime_stats(self) -> dict:
         """Get real-time metrics for the dashboard"""

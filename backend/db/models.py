@@ -329,3 +329,22 @@ class BlocklistStats(Base):
         Index("idx_blocklist_stats_source", "source_name"),
         Index("idx_blocklist_stats_tenant_id", "tenant_id"),
     )
+
+
+class SystemStats(Base):
+    """Persistent key-value store for in-memory counters that need to survive restarts."""
+
+    __tablename__ = "system_stats"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    key: Mapped[str] = mapped_column(String(100), nullable=False)
+    value: Mapped[str] = mapped_column(String(4000), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        server_default=func.now(),
+    )
+
+    __table_args__ = (Index("idx_system_stats_tenant_key", "tenant_id", "key", unique=True),)
