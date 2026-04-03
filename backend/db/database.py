@@ -48,7 +48,9 @@ def get_engine() -> AsyncEngine:
             "Database engine created",
             extra={
                 "url_scheme": database_url.split(":")[0] if database_url else "none",
-                "pool_size": settings.DATABASE_POOL_SIZE if "postgresql" in database_url else "none",
+                "pool_size": settings.DATABASE_POOL_SIZE
+                if "postgresql" in database_url
+                else "none",
             },
         )
 
@@ -68,10 +70,52 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
     return async_session_factory
 
 
+async def _migrate_existing_tables(engine) -> None:
+    """Add missing columns to existing tables (SQLite doesn't support ALTER COLUMN)."""
+    import sqlite3
+
+    db_path = settings.DATABASE_URL.replace("sqlite+aiosqlite:///", "").replace("./", "")
+    if not db_path or db_path == settings.DATABASE_URL:
+        return
+
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Check and add tenant_id to domains table
+        cursor.execute("PRAGMA table_info(domains)")
+        domain_cols = [col[1] for col in cursor.fetchall()]
+        if "tenant_id" not in domain_cols:
+            cursor.execute("ALTER TABLE domains ADD COLUMN tenant_id INTEGER NOT NULL DEFAULT 1")
+            logger.info("Migration: Added tenant_id to domains table")
+
+        # Check and add tenant_id to metadata table
+        cursor.execute("PRAGMA table_info(metadata)")
+        meta_cols = [col[1] for col in cursor.fetchall()]
+        if "tenant_id" not in meta_cols:
+            cursor.execute("ALTER TABLE metadata ADD COLUMN tenant_id INTEGER NOT NULL DEFAULT 1")
+            logger.info("Migration: Added tenant_id to metadata table")
+
+        # Check and add tenant_id to features table
+        cursor.execute("PRAGMA table_info(features)")
+        feat_cols = [col[1] for col in cursor.fetchall()]
+        if "tenant_id" not in feat_cols:
+            cursor.execute("ALTER TABLE features ADD COLUMN tenant_id INTEGER NOT NULL DEFAULT 1")
+            logger.info("Migration: Added tenant_id to features table")
+
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.warning(f"Schema migration skipped or failed: {e}")
+
+
 async def init_db() -> None:
     eng = get_engine()
     async with eng.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Run schema migration for existing tables
+    await _migrate_existing_tables(eng)
 
     logger.info("Database initialized")
 

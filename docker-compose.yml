@@ -16,6 +16,7 @@ services:
       - ADGUARD_URL=http://host.docker.internal:80
       - ADGUARD_USER=user
       - ADGUARD_PASS=user1234
+      - GEMINI_LIVE_FEED_ENABLED=${GEMINI_LIVE_FEED_ENABLED:-true}
       - OLLAMA_ENABLED=${OLLAMA_ENABLED:-false}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-nomic-embed-text}
