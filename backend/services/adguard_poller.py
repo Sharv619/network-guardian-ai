@@ -3,11 +3,12 @@ AdGuard Poller - Refactored to use DNS Adapter System
 """
 
 import time
+from collections import deque
 from datetime import UTC, datetime
 
 from ..core.alerting import AlertSeverity, AlertType, alert_manager
 from ..core.config import settings
-from ..core.state import automated_threats
+from ..core.state import append_threat, get_threat_count, pop_threat
 from ..core.utils import get_iso_timestamp
 from ..logic.analysis_cache import cache_analysis_result, get_cached_analysis
 from ..logic.anomaly_engine import predict_anomaly
@@ -26,8 +27,8 @@ from ..logic.vector_store import vector_memory
 from .dns_adapter.adguard import AdGuardAdapter
 from .sheets_logger import log_threat_to_sheet
 
-# In-memory deduplication set (kept for backward compatibility with existing code)
-processed_domains = set()
+# In-memory deduplication with bounded size (LRU eviction via deque)
+processed_domains: deque[str] = deque(maxlen=5000)
 
 
 def save_domain_to_repository(
@@ -82,6 +83,8 @@ def save_domain_to_repository(
             loop = asyncio.get_running_loop()
             loop.create_task(_save())
         except RuntimeError:
+            # No running loop — poller thread has no event loop.
+            # Create a temporary one to run the save.
             asyncio.run(_save())
     except Exception as e:
         print(f"Warning: Could not save domain to repository: {e}")
@@ -211,11 +214,30 @@ def run_local_first_pipeline(
     # Build comprehensive local analysis
     entropy_level = "LOW" if entropy < 2.5 else "MEDIUM" if entropy < 3.5 else "HIGH"
 
-    if anomaly_score > 0.5:
+    # Known-safe domains that should never reach Ollama
+    # CDNs, major services, and common subdomains with naturally high entropy
+    safe_tlds = (
+        "googlevideo.com",
+        "googleapis.com",
+        "gstatic.com",
+        "fastly.net",
+        "fastly-edge.com",
+        "cloudfront.net",
+        "akamai.net",
+        "azureedge.net",
+    )
+    domain_lower = domain.lower()
+    is_known_safe = any(domain_lower.endswith(tld) for tld in safe_tlds)
+
+    if is_known_safe:
+        risk_score = "Low"
+        category = "General Traffic"
+        summary = f"🛡️ SOC GUARD ACTIVE: Known-safe CDN/service domain. Entropy ({entropy:.2f}, {entropy_level}) is normal for this infrastructure."
+    elif anomaly_score > 0.5:
         risk_score = "High"
         category = "Suspicious Activity"
         summary = f"🛡️ SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy ({entropy:.2f}, {entropy_level}). Anomaly score: {anomaly_score:.4f} - Potential threat pattern detected."
-    elif entropy > 3.0:
+    elif entropy > 3.5:
         risk_score = "Medium"
         category = "Suspicious Activity"
         summary = f"🛡️ SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy ({entropy:.2f}, {entropy_level}). Elevated entropy detected."
@@ -265,6 +287,7 @@ def run_local_first_pipeline(
                     print(
                         f"[OLLAMA ENHANCEMENT] ✅ Enhanced {domain}: {ollama_analysis.get('category')}"
                     )
+                    time.sleep(settings.OLLAMA_CALL_COOLDOWN)
         except Exception as e:
             print(f"[OLLAMA ENHANCEMENT] Fallback to local analysis: {e}")
             pass
@@ -373,19 +396,17 @@ def poll_adguard():
                         import asyncio
 
                         try:
-                            asyncio.create_task(
-                                alert_manager.create_alert(
-                                    alert_type=AlertType.ANOMALY_SPIKE,
-                                    severity=AlertSeverity.CRITICAL,
-                                    message=f"Zero-day suspect detected: {dns_query.domain} (anomaly_score: {anomaly_score:.4f})",
-                                    details={
-                                        "domain": dns_query.domain,
-                                        "anomaly_score": anomaly_score,
-                                        "is_anomaly": is_anomaly,
-                                        "adguard_metadata": adguard_metadata,
-                                        "analysis_source": "poller_zero_day_detection",
-                                    },
-                                )
+                            alert_manager.create_alert_sync(
+                                alert_type=AlertType.ANOMALY_SPIKE,
+                                severity=AlertSeverity.CRITICAL,
+                                message=f"Zero-day suspect detected: {dns_query.domain} (anomaly_score: {anomaly_score:.4f})",
+                                details={
+                                    "domain": dns_query.domain,
+                                    "anomaly_score": anomaly_score,
+                                    "is_anomaly": is_anomaly,
+                                    "adguard_metadata": adguard_metadata,
+                                    "analysis_source": "poller_zero_day_detection",
+                                },
                             )
                         except Exception as e:
                             print(f"Alert creation failed: {e}")
@@ -435,8 +456,7 @@ def poll_adguard():
                         adguard_metadata=adguard_metadata,
                     )
 
-                    automated_threats.insert(
-                        0,
+                    append_threat(
                         {
                             "domain": dns_query.domain,
                             "risk_score": analysis.get("risk_score"),
@@ -457,9 +477,6 @@ def poll_adguard():
                     is_anomaly = analysis.get("is_anomaly", False)
                     is_safe = risk == "low"
                     update_trend_count(is_threat=is_threat, is_anomaly=is_anomaly, is_safe=is_safe)
-
-                    if len(automated_threats) > 50:
-                        automated_threats.pop()
 
                     if analysis and analysis.get("analysis_source") != "cached":
                         cache_ttl = (
@@ -519,9 +536,7 @@ def poll_adguard():
                     except Exception as ws_error:
                         print(f"Threat notification error: {ws_error}", flush=True)
 
-                    processed_domains.add(dns_query.domain)
-                    if len(processed_domains) > 5000:
-                        processed_domains.clear()
+                    processed_domains.append(dns_query.domain)
 
                 except Exception as e:
                     import traceback as tb

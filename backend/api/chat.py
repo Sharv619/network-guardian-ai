@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from ..core.state import automated_threats, manual_scans
+from ..core.state import get_all_scans, get_all_threats, get_threat_count
 from ..db.repository import get_domain_repository
 from ..logic.analysis_cache import analysis_cache, get_cached_analysis
 from ..logic.anomaly_engine import engine as anomaly_engine
@@ -160,12 +160,12 @@ def search_threat_history(domain: str) -> list[dict[str, Any]]:
     results = []
 
     # Search automated threats
-    for threat in automated_threats:
+    for threat in get_all_threats():
         if domain.lower() in threat.get("domain", "").lower():
             results.append(threat)
 
     # Search manual scans
-    for scan in manual_scans:
+    for scan in get_all_scans():
         if domain.lower() in scan.get("domain", "").lower():
             results.append(scan)
 
@@ -275,8 +275,8 @@ async def generate_rag_response(request: Request, query: str) -> dict[str, Any]:
 
                 # Store the analysis in the database for the current tenant
                 try:
-                    repo = await get_domain_repository(tenant_id=tenant_id)
-                    await repo.create_domain_from_analysis(analysis)
+                    async with get_domain_repository(tenant_id=tenant_id) as repo:
+                        await repo.create_domain_from_analysis(analysis)
                 except Exception as e:
                     # Log the error but don't fail the request because we still want to return the analysis
                     print(f"Warning: Failed to store analysis for domain {domain}: {e}")
@@ -286,7 +286,7 @@ async def generate_rag_response(request: Request, query: str) -> dict[str, Any]:
 
     # 5. Add intent-specific responses
     if "statistics" in intents and not domain:
-        total_threats = len(automated_threats) + len(manual_scans)
+        total_threats = get_threat_count() + len(get_all_scans())
         response_parts.append(f"\n📊 **System Statistics**: {total_threats} total threat records")
         sources.append("system_stats")
 
@@ -393,9 +393,9 @@ async def get_memory_stats():
     return {
         "analysis_cache": cache_stats,
         "vector_memory": vector_stats,
-        "automated_threats_count": len(automated_threats),
-        "manual_scans_count": len(manual_scans),
-        "total_threat_records": len(automated_threats) + len(manual_scans),
+        "automated_threats_count": get_threat_count(),
+        "manual_scans_count": len(get_all_scans()),
+        "total_threat_records": get_threat_count() + len(get_all_scans()),
     }
 
 
@@ -598,7 +598,7 @@ async def stream_chat_response(request: Request, query: str):
 @router.get("/chat/threats/recent")
 async def get_recent_threats(limit: int = 10, time_range: str | None = "day"):
     """Get recent threats with optional time filtering."""
-    all_threats = list(automated_threats) + list(manual_scans)
+    all_threats = get_all_threats() + get_all_scans()
 
     if time_range:
         all_threats = filter_by_time_range(all_threats, time_range)

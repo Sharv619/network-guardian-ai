@@ -239,15 +239,14 @@ class BillingService:
             logger.error(f"Failed to update subscription tier: {e}")
             raise
 
-    def get_usage_for_tenant(
+    async def get_usage_for_tenant(
         self, tenant_id: int, period_start: datetime, period_end: datetime
     ) -> dict[str, Any]:
         """Get usage statistics for a tenant."""
         try:
-            from backend.db.repository import DomainRepository
+            from backend.db.repository import get_domain_stats
 
-            repo = DomainRepository()
-            stats = repo.get_domain_stats(tenant_id)
+            stats = await get_domain_stats(tenant_id)
 
             tier_config = SubscriptionTier.get_tier_config(
                 stats.get("subscription_tier", SubscriptionTier.FREE)

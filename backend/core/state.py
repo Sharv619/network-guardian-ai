@@ -6,8 +6,9 @@ from typing import Any
 
 # In-memory buffers for threat events
 # Shared between the poller (writer) and the API (reader)
-automated_threats: list[dict[str, Any]] = []
-manual_scans: list[dict[str, Any]] = []
+automated_threats: deque[dict[str, Any]] = deque(maxlen=500)
+manual_scans: deque[dict[str, Any]] = deque(maxlen=100)
+_data_lock = threading.Lock()
 
 # Real-time time-series data for trend chart
 # Tracks: threats, anomalies, safe in 5-second buckets
@@ -74,3 +75,57 @@ def update_trend_count(is_threat: bool = False, is_anomaly: bool = False, is_saf
                 bucket["anomalies"] += 1
             if is_safe:
                 bucket["safe"] += 1
+
+
+def append_threat(threat: dict[str, Any]) -> None:
+    """Thread-safe: add a threat to the front of the deque."""
+    with _data_lock:
+        automated_threats.appendleft(threat)
+
+
+def pop_threat() -> dict[str, Any] | None:
+    """Thread-safe: remove and return the oldest threat."""
+    with _data_lock:
+        if automated_threats:
+            return automated_threats.pop()
+        return None
+
+
+def get_threats(limit: int = 50) -> list[dict[str, Any]]:
+    """Thread-safe: get a copy of the threat list."""
+    with _data_lock:
+        from itertools import islice
+
+        return list(islice(automated_threats, limit))
+
+
+def get_threat_count() -> int:
+    """Thread-safe: get the number of threats."""
+    with _data_lock:
+        return len(automated_threats)
+
+
+def append_scan(scan: dict[str, Any]) -> None:
+    """Thread-safe: add a manual scan to the front of the deque."""
+    with _data_lock:
+        manual_scans.appendleft(scan)
+
+
+def get_scans(limit: int = 50) -> list[dict[str, Any]]:
+    """Thread-safe: get a copy of the manual scans list."""
+    with _data_lock:
+        from itertools import islice
+
+        return list(islice(manual_scans, limit))
+
+
+def get_all_threats() -> list[dict[str, Any]]:
+    """Thread-safe: get a full copy of all threats."""
+    with _data_lock:
+        return list(automated_threats)
+
+
+def get_all_scans() -> list[dict[str, Any]]:
+    """Thread-safe: get a full copy of all scans."""
+    with _data_lock:
+        return list(manual_scans)

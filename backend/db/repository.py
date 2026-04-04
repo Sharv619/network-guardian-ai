@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from datetime import UTC, datetime
 from typing import Any, Optional
 
@@ -15,6 +17,10 @@ class DomainRepository:
     def __init__(self, session: AsyncSession, tenant_id: Optional[int] = None):
         self.session = session
         self.tenant_id = tenant_id
+
+    async def close(self):
+        """Close the session when done with the repository."""
+        await self.session.close()
 
     async def create_domain(
         self,
@@ -243,10 +249,16 @@ class DomainRepository:
         return list(result.scalars().all())
 
 
-async def get_domain_repository(tenant_id: Optional[int] = None) -> DomainRepository:
+@asynccontextmanager
+async def get_domain_repository(tenant_id: Optional[int] = None):
+    """Async context manager that yields a repository and ensures session cleanup."""
     factory = get_session_factory()
     session = factory()
-    return DomainRepository(session, tenant_id)
+    repo = DomainRepository(session, tenant_id)
+    try:
+        yield repo
+    finally:
+        await session.close()
 
 
 class TenantRepository:
@@ -276,32 +288,28 @@ class TenantRepository:
             return False
 
 
-def get_domain_stats(tenant_id: int) -> dict[str, Any]:
-    import asyncio
+async def get_domain_stats(tenant_id: int) -> dict[str, Any]:
     from .database import engine
     from sqlalchemy import text
 
-    async def _get_stats():
-        async with engine.connect() as conn:
-            total_query = text("SELECT COUNT(*) FROM domains WHERE tenant_id = :tenant_id")
-            total_result = await conn.execute(total_query, {"tenant_id": tenant_id})
-            total = total_result.scalar() or 0
+    async with engine.connect() as conn:
+        total_query = text("SELECT COUNT(*) FROM domains WHERE tenant_id = :tenant_id")
+        total_result = await conn.execute(total_query, {"tenant_id": tenant_id})
+        total = total_result.scalar() or 0
 
-            threat_query = text(
-                "SELECT COUNT(*) FROM domains WHERE tenant_id = :tenant_id AND risk_score IN ('High', 'Critical')"
-            )
-            threat_result = await conn.execute(threat_query, {"tenant_id": tenant_id})
-            threats = threat_result.scalar() or 0
+        threat_query = text(
+            "SELECT COUNT(*) FROM domains WHERE tenant_id = :tenant_id AND risk_score IN ('High', 'Critical')"
+        )
+        threat_result = await conn.execute(threat_query, {"tenant_id": tenant_id})
+        threats = threat_result.scalar() or 0
 
-            tenant_query = text("SELECT subscription_tier FROM tenants WHERE id = :tenant_id")
-            tenant_result = await conn.execute(tenant_query, {"tenant_id": tenant_id})
-            row = tenant_result.fetchone()
-            tier = row[0] if row else "free"
+        tenant_query = text("SELECT subscription_tier FROM tenants WHERE id = :tenant_id")
+        tenant_result = await conn.execute(tenant_query, {"tenant_id": tenant_id})
+        row = tenant_result.fetchone()
+        tier = row[0] if row else "free"
 
-            return {
-                "total_analyzed": total,
-                "threats_detected": threats,
-                "subscription_tier": tier,
-            }
-
-    return asyncio.run(_get_stats())
+        return {
+            "total_analyzed": total,
+            "threats_detected": threats,
+            "subscription_tier": tier,
+        }

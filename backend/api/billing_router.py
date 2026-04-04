@@ -216,7 +216,7 @@ async def get_usage(
     period_start = now - timedelta(days=1)
     period_end = now
 
-    usage = billing_service.get_usage_for_tenant(tenant_id, period_start, period_end)
+    usage = await billing_service.get_usage_for_tenant(tenant_id, period_start, period_end)
 
     return UsageResponse(**usage)
 

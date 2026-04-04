@@ -41,6 +41,12 @@ class Settings(BaseSettings):
     OLLAMA_LIVE_FEED_ENABLED: bool = Field(
         True, description="Enable Ollama AI enhancement in live feed polling"
     )
+    OLLAMA_MAX_CONCURRENT: int = Field(
+        2, ge=1, le=10, description="Max concurrent Ollama requests (prevents resource exhaustion)"
+    )
+    OLLAMA_CALL_COOLDOWN: float = Field(
+        2.0, ge=0, description="Seconds between Ollama calls in poller"
+    )
 
     # Embedding provider choice
     EMBEDDING_PROVIDER: str = Field(

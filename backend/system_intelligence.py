@@ -3,6 +3,7 @@ System Intelligence Display Module
 Displays API stats data in a formatted table using Rich
 """
 
+import asyncio
 import os
 import sys
 import time
@@ -29,7 +30,7 @@ from rich.text import Text
 console = Console()
 
 
-def display_system_intelligence():
+async def display_system_intelligence():
     """Display system intelligence statistics in a formatted table"""
     try:
         import asyncio
@@ -43,10 +44,10 @@ def display_system_intelligence():
         realtime_stats = classifier.get_realtime_stats()
 
         async def _get_stats():
-            repo = await get_domain_repository(tenant_id=1)
-            return await repo.get_stats()
+            async with get_domain_repository(tenant_id=1) as repo:
+                return await repo.get_stats()
 
-        repo_stats = asyncio.run(_get_stats())
+        repo_stats = await _get_stats()
 
         # Build stats dict similar to get_system_stats response
         stats = {

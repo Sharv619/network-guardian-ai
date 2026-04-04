@@ -9,7 +9,6 @@ from starlette.responses import Response
 
 from ..db.database import get_session
 from ..db.models import Tenant
-from ..db.repository import get_domain_repository
 
 logger = logging.getLogger(__name__)
 
@@ -73,9 +72,6 @@ class TenantMiddleware(BaseHTTPMiddleware):
 
         # Inject tenant_id into request state for use in endpoints
         request.state.tenant_id = tenant_id
-
-        # Also inject the tenant repository for convenience
-        request.state.tenant_repo = await get_domain_repository(tenant_id=tenant_id)
 
         response = await call_next(request)
         return response

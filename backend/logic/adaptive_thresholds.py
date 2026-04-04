@@ -7,6 +7,7 @@ This module provides:
 - Statistical threshold adjustment
 - Threshold history tracking for dashboard visualization
 """
+
 import json
 import time
 from collections import deque
@@ -59,7 +60,7 @@ class AdaptiveThresholds:
     entropy_history: deque = field(default_factory=lambda: deque(maxlen=ADAPTATION_WINDOW))
     anomaly_scores: deque = field(default_factory=lambda: deque(maxlen=ADAPTATION_WINDOW))
 
-    adjustments: list[ThresholdAdjustment] = field(default_factory=list)
+    adjustments: deque[ThresholdAdjustment] = field(default_factory=lambda: deque(maxlen=1000))
 
     last_adjustment_time: float = 0.0
     adjustment_cooldown: float = 3600.0
@@ -127,7 +128,7 @@ class AdaptiveThresholds:
                     "old_threshold": old_threshold,
                     "new_threshold": suggested_threshold,
                     "samples_analyzed": len(history_list),
-                }
+                },
             )
 
         self._adjust_contamination_rate()
@@ -173,7 +174,7 @@ class AdaptiveThresholds:
                     "old_rate": old_rate,
                     "new_rate": new_rate,
                     "observed_rate": observed_rate,
-                }
+                },
             )
 
     def _percentile(self, data: list[float], percentile: float) -> float:
@@ -223,15 +224,35 @@ class AdaptiveThresholds:
     def _get_high_risk_tlds(self) -> set[str]:
         """Get set of high-risk TLDs."""
         return {
-            "xyz", "top", "click", "link", "work", "date", "racing",
-            "stream", "gdn", "mom", "loan", "tk", "ml", "ga", "cf",
+            "xyz",
+            "top",
+            "click",
+            "link",
+            "work",
+            "date",
+            "racing",
+            "stream",
+            "gdn",
+            "mom",
+            "loan",
+            "tk",
+            "ml",
+            "ga",
+            "cf",
         }
 
     def _get_low_risk_tlds(self) -> set[str]:
         """Get set of low-risk TLDs."""
         return {
-            "gov", "edu", "mil", "org", "ac", "int",
-            "edu.au", "gov.uk", "ac.uk",
+            "gov",
+            "edu",
+            "mil",
+            "org",
+            "ac",
+            "int",
+            "edu.au",
+            "gov.uk",
+            "ac.uk",
         }
 
     def get_stats(self) -> dict[str, Any]:
@@ -244,9 +265,7 @@ class AdaptiveThresholds:
             "entropy_samples": len(history_list),
             "anomaly_samples": len(self.anomaly_scores),
             "adjustments_count": len(self.adjustments),
-            "recent_adjustments": [
-                adj.to_dict() for adj in self.adjustments[-5:]
-            ],
+            "recent_adjustments": [adj.to_dict() for adj in self.adjustments[-5:]],
             "entropy_distribution": {
                 "min": min(history_list) if history_list else 0,
                 "max": max(history_list) if history_list else 0,
@@ -254,9 +273,7 @@ class AdaptiveThresholds:
                 "p95": self._percentile(history_list, 95) if history_list else 0,
                 "p5": self._percentile(history_list, 5) if history_list else 0,
             },
-            "last_adjustment": (
-                self.adjustments[-1].to_dict() if self.adjustments else None
-            ),
+            "last_adjustment": (self.adjustments[-1].to_dict() if self.adjustments else None),
         }
 
     def _persist(self) -> None:
@@ -293,21 +310,23 @@ class AdaptiveThresholds:
             self.last_adjustment_time = data.get("last_adjustment_time", 0.0)
 
             for adj_data in data.get("adjustments", []):
-                self.adjustments.append(ThresholdAdjustment(
-                    timestamp=adj_data["timestamp"],
-                    threshold_type=adj_data["threshold_type"],
-                    old_value=adj_data["old_value"],
-                    new_value=adj_data["new_value"],
-                    reason=adj_data["reason"],
-                    samples_analyzed=adj_data["samples_analyzed"],
-                ))
+                self.adjustments.append(
+                    ThresholdAdjustment(
+                        timestamp=adj_data["timestamp"],
+                        threshold_type=adj_data["threshold_type"],
+                        old_value=adj_data["old_value"],
+                        new_value=adj_data["new_value"],
+                        reason=adj_data["reason"],
+                        samples_analyzed=adj_data["samples_analyzed"],
+                    )
+                )
 
             logger.info(
                 "Loaded persisted thresholds",
                 extra={
                     "entropy_threshold": self.entropy_threshold,
                     "contamination_rate": self.contamination_rate,
-                }
+                },
             )
 
         except Exception as e:

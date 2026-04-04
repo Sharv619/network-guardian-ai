@@ -4,6 +4,7 @@ Handles: AdGuard DNS Filter, EasyList, Steven Black hosts, etc.
 """
 
 import time
+from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -65,7 +66,7 @@ class SyncResult:
 class BlocklistLoader:
     def __init__(self):
         self.session: httpx.AsyncClient | None = None
-        self._sync_stats: list[SyncResult] = []
+        self._sync_stats: deque[SyncResult] = deque(maxlen=100)
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self.session is None or self.session.is_closed:

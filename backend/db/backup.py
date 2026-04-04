@@ -147,7 +147,9 @@ class BackupManager:
             return backups
 
         for file_path in self.backup_path.iterdir():
-            if file_path.is_file() and (file_path.suffix == ".db" or file_path.name.endswith(".db.gz")):
+            if file_path.is_file() and (
+                file_path.suffix == ".db" or file_path.name.endswith(".db.gz")
+            ):
                 stat = file_path.stat()
                 backup_info = BackupInfo(
                     name=file_path.name,
@@ -173,7 +175,9 @@ class BackupManager:
             logger.info("Backup deleted", extra={"backup_name": backup_name})
             return True
         except Exception as e:
-            logger.error("Failed to delete backup", extra={"error": str(e), "backup_name": backup_name})
+            logger.error(
+                "Failed to delete backup", extra={"error": str(e), "backup_name": backup_name}
+            )
             return False
 
     async def _cleanup_old_backups(self) -> int:
@@ -184,7 +188,9 @@ class BackupManager:
         deleted_count = 0
 
         for file_path in self.backup_path.iterdir():
-            if file_path.is_file() and (file_path.suffix == ".db" or file_path.name.endswith(".db.gz")):
+            if file_path.is_file() and (
+                file_path.suffix == ".db" or file_path.name.endswith(".db.gz")
+            ):
                 if file_path.stat().st_mtime < cutoff:
                     try:
                         file_path.unlink()
@@ -205,10 +211,11 @@ class BackupManager:
         from .repository import get_domain_repository
 
         try:
-            repo = await get_domain_repository()
-            domains = await repo.get_all_domains()
+            async with get_domain_repository() as repo:
+                domains = await repo.get_all_domains()
 
             import json
+
             data = {
                 "exported_at": datetime.now(UTC).isoformat(),
                 "total_domains": len(domains),
@@ -218,7 +225,9 @@ class BackupManager:
             with open(output_path, "w") as f:
                 json.dump(data, f, indent=2, default=str)
 
-            logger.info("Database exported to JSON", extra={"path": output_path, "count": len(domains)})
+            logger.info(
+                "Database exported to JSON", extra={"path": output_path, "count": len(domains)}
+            )
             return True
         except Exception as e:
             logger.error("Failed to export database", extra={"error": str(e)})

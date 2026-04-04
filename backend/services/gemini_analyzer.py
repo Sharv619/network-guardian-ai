@@ -251,21 +251,17 @@ def analyze_domain(
         logging.exception("Gemini Analysis Critical Failure")
 
         # Trigger alert for critical failure
-        import asyncio
-
         try:
-            asyncio.create_task(
-                alert_manager.create_alert(
-                    alert_type=AlertType.API_FAILURE,
-                    severity=AlertSeverity.CRITICAL,
-                    message=f"Gemini API critical failure: {str(e)}",
-                    details={
-                        "domain": domain,
-                        "error": str(e),
-                        "analysis_source": "gemini_analyzer",
-                        "context": context,
-                    },
-                )
+            alert_manager.create_alert_sync(
+                alert_type=AlertType.API_FAILURE,
+                severity=AlertSeverity.CRITICAL,
+                message=f"Gemini API critical failure: {str(e)}",
+                details={
+                    "domain": domain,
+                    "error": str(e),
+                    "analysis_source": "gemini_analyzer",
+                    "context": context,
+                },
             )
         except Exception as alert_e:
             print(f"Alert creation failed: {alert_e}")

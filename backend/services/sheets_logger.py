@@ -12,26 +12,45 @@ _client = None
 def get_sheets_service():
     """
     SRE Pattern: Singleton Client to prevent Quota Exceeded (429) errors.
+    Reads credentials from GOOGLE_SHEETS_CREDENTIALS env var (JSON string).
+    Falls back to GOOGLE_SHEETS_CREDENTIALS_FILE env var (file path) for compatibility.
     """
     global _client
     if _client:
         return _client
 
-    # Try to read from credentials.json file
-    creds_file = os.getenv("GOOGLE_SHEETS_CREDENTIALS_FILE", "credentials.json")
-    if not os.path.isabs(creds_file):
-        creds_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), creds_file)
+    creds_dict = None
 
-    creds_file = os.path.normpath(creds_file)
+    # Primary: read from JSON string env var (Docker-friendly)
+    creds_json = os.getenv("GOOGLE_SHEETS_CREDENTIALS", "")
+    if creds_json:
+        try:
+            creds_dict = json.loads(creds_json)
+        except json.JSONDecodeError:
+            print("⚠️ Config Error: GOOGLE_SHEETS_CREDENTIALS is malformed JSON.")
+            return None
 
-    if not os.path.exists(creds_file):
-        print(f"⚠️ Config Error: Credentials file not found: {creds_file}")
-        return None
+    # Fallback: read from file path env var (local dev compatibility)
+    if not creds_dict:
+        creds_file = os.getenv("GOOGLE_SHEETS_CREDENTIALS_FILE", "credentials.json")
+        if not os.path.isabs(creds_file):
+            creds_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), creds_file)
+        creds_file = os.path.normpath(creds_file)
+
+        if not os.path.exists(creds_file):
+            print(
+                f"⚠️ Config Error: Credentials not found. Set GOOGLE_SHEETS_CREDENTIALS (JSON string) or place file at {creds_file}"
+            )
+            return None
+
+        try:
+            with open(creds_file, "r") as f:
+                creds_dict = json.load(f)
+        except json.JSONDecodeError:
+            print(f"⚠️ Config Error: Credentials file is malformed: {creds_file}")
+            return None
 
     try:
-        with open(creds_file, "r") as f:
-            creds_dict = json.load(f)
-
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive",
@@ -42,9 +61,6 @@ def get_sheets_service():
         _client = client
         print("DEBUG: Google Sheets Data Pipeline is ACTIVE.")
         return client
-    except json.JSONDecodeError as je:
-        print(f"⚠️ Auth Error: GOOGLE_SHEETS_CREDENTIALS is malformed JSON. {je}")
-        return None
     except Exception as e:
         print(f"⚠️ Auth Error: Could not parse Google Credentials. {e}")
         return None

@@ -22,30 +22,35 @@ def _load_blocklist_cache():
     if _blocklist_cache_loaded:
         return
 
-    try:
-        import asyncio
+        try:
+            import asyncio
 
-        from sqlalchemy import select
+            from sqlalchemy import select
 
-        from backend.db.database import get_session
-        from backend.db.models import BlocklistEntry
+            from backend.db.database import get_session
+            from backend.db.models import BlocklistEntry
 
-        async def _load():
-            async with get_session() as session:
-                result = await session.execute(select(BlocklistEntry).limit(500000))
-                entries = result.scalars().all()
-                for entry in entries:
-                    _blocklist_cache[entry.domain] = {
-                        "category": entry.category,
-                        "source": entry.source,
-                        "risk_level": entry.risk_level,
-                    }
-                print(f"Blocklist cache loaded: {len(_blocklist_cache)} domains")
+            async def _load():
+                async with get_session() as session:
+                    result = await session.execute(select(BlocklistEntry).limit(500000))
+                    entries = result.scalars().all()
+                    for entry in entries:
+                        _blocklist_cache[entry.domain] = {
+                            "category": entry.category,
+                            "source": entry.source,
+                            "risk_level": entry.risk_level,
+                        }
+                    print(f"Blocklist cache loaded: {len(_blocklist_cache)} domains")
 
-        asyncio.run(_load())
-        _blocklist_cache_loaded = True
-    except Exception as e:
-        print(f"Warning: Could not load blocklist cache: {e}")
+            try:
+                loop = asyncio.get_running_loop()
+                future = asyncio.run_coroutine_threadsafe(_load(), loop)
+                future.result(timeout=30)
+            except RuntimeError:
+                asyncio.run(_load())
+            _blocklist_cache_loaded = True
+        except Exception as e:
+            print(f"Warning: Could not load blocklist cache: {e}")
 
 
 def check_blocklist(domain: str) -> dict | None:
@@ -115,13 +120,11 @@ class MetadataClassifier:
         # Load existing patterns
         self.load_patterns()
 
-        # Load persisted counters (async, fire-and-forget)
-        import asyncio
+        # Deferred: call async def init() from lifespan startup
 
-        try:
-            asyncio.ensure_future(self.load_stats())
-        except Exception:
-            pass
+    async def init(self):
+        """Load persisted counters. Call from lifespan startup."""
+        await self.load_stats()
 
         # Seed Intelligence: Pre-learned patterns for cold-start resilience
         self._seed_patterns()
@@ -467,8 +470,10 @@ class MetadataClassifier:
         import asyncio
 
         try:
-            asyncio.ensure_future(self.save_stats())
-        except Exception:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self.save_stats())
+        except RuntimeError:
+            # No running event loop — save will happen on next async call
             pass
 
     async def load_stats(self):

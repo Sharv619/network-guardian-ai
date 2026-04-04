@@ -17,8 +17,11 @@ class AnomalyEngine:
         self.max_history = max_history
         self.contamination = contamination
 
-        # Load persisted history on startup
-        self._load_history_async()
+        # Deferred: call async def init() from lifespan startup
+
+    async def init(self):
+        """Load persisted history. Call from lifespan startup."""
+        await self.load_history()
 
     def predict_anomaly(self, features: list[float]) -> tuple[bool, float]:
         # Add to history for future learning

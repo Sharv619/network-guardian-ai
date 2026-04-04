@@ -120,7 +120,7 @@ class WebSocketManager:
             return
 
         self._running = True
-        self._event_loop = asyncio.get_event_loop()
+        self._event_loop = asyncio.get_running_loop()
         self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
         self._broadcast_task = asyncio.create_task(self._process_broadcast_queue())
 

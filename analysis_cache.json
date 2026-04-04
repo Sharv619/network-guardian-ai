@@ -1,121 +1,52 @@
 {
-  "7024294a7c5df9a43f220ea794fba7c1": {
-    "domain": "instagram.com",
-    "metadata_signature": "7024294a7c5df9a43f220ea794fba7c1",
+  "059cfc6393b259b01ef999f8d8f3bbcb": {
+    "domain": "cleanup0.com",
+    "metadata_signature": "059cfc6393b259b01ef999f8d8f3bbcb",
     "result": {
-      "risk_score": "Low",
-      "category": "General Traffic",
-      "summary": "\ud83d\udee1\ufe0f SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy (2.95, MEDIUM). Normal network behavior patterns consistent with legitimate traffic.",
-      "timestamp": "2026-03-29T14:36:16+11:00",
-      "is_anomaly": false,
-      "anomaly_score": 0.0,
-      "entropy_score": 2.95,
-      "analysis_source": "local_heuristic"
+      "risk_score": "Low"
     },
-    "source": "local_heuristic",
-    "timestamp": "2026-03-29T14:36:16+11:00",
-    "ttl": 3600
+    "source": "test",
+    "timestamp": "2026-04-04T16:20:55+11:00",
+    "ttl": 1
   },
-  "82dfaad1613ce8b5568da6f81cb663b9": {
-    "domain": "facebook.com",
-    "metadata_signature": "82dfaad1613ce8b5568da6f81cb663b9",
+  "d1a5f5a54e33109c5eeedc3eca66951f": {
+    "domain": "cleanup1.com",
+    "metadata_signature": "d1a5f5a54e33109c5eeedc3eca66951f",
     "result": {
-      "risk_score": "Low",
-      "category": "General Traffic",
-      "summary": "\ud83d\udee1\ufe0f SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy (2.75, MEDIUM). Normal network behavior patterns consistent with legitimate traffic.",
-      "timestamp": "2026-03-29T14:36:16+11:00",
-      "is_anomaly": false,
-      "anomaly_score": 0.0,
-      "entropy_score": 2.75,
-      "analysis_source": "local_heuristic"
+      "risk_score": "Low"
     },
-    "source": "local_heuristic",
-    "timestamp": "2026-03-29T14:36:16+11:00",
-    "ttl": 3600
+    "source": "test",
+    "timestamp": "2026-04-04T16:20:55+11:00",
+    "ttl": 1
   },
-  "3cc7eeb9f6583b983a63d9d329236de0": {
-    "domain": "twitter.com",
-    "metadata_signature": "3cc7eeb9f6583b983a63d9d329236de0",
+  "0c51d0b5d518c008e3fea09d1780d34f": {
+    "domain": "cleanup2.com",
+    "metadata_signature": "0c51d0b5d518c008e3fea09d1780d34f",
     "result": {
-      "risk_score": "Low",
-      "category": "General Traffic",
-      "summary": "\ud83d\udee1\ufe0f SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy (2.13, LOW). Normal network behavior patterns consistent with legitimate traffic.",
-      "timestamp": "2026-03-29T14:36:16+11:00",
-      "is_anomaly": false,
-      "anomaly_score": 0.0,
-      "entropy_score": 2.13,
-      "analysis_source": "local_heuristic"
+      "risk_score": "Low"
     },
-    "source": "local_heuristic",
-    "timestamp": "2026-03-29T14:36:16+11:00",
-    "ttl": 3600
+    "source": "test",
+    "timestamp": "2026-04-04T16:20:55+11:00",
+    "ttl": 1
   },
-  "c511b827a74c2cc63e0ce9f40f7c0428": {
-    "domain": "amazon.com",
-    "metadata_signature": "c511b827a74c2cc63e0ce9f40f7c0428",
+  "b51306ee30326b15f53d8d02ff4fc348": {
+    "domain": "cleanup3.com",
+    "metadata_signature": "b51306ee30326b15f53d8d02ff4fc348",
     "result": {
-      "risk_score": "Low",
-      "category": "General Traffic",
-      "summary": "\ud83d\udee1\ufe0f SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy (2.25, LOW). Normal network behavior patterns consistent with legitimate traffic.",
-      "timestamp": "2026-03-29T14:36:16+11:00",
-      "is_anomaly": false,
-      "anomaly_score": 0.0,
-      "entropy_score": 2.25,
-      "analysis_source": "local_heuristic"
+      "risk_score": "Low"
     },
-    "source": "local_heuristic",
-    "timestamp": "2026-03-29T14:36:16+11:00",
-    "ttl": 3600
+    "source": "test",
+    "timestamp": "2026-04-04T16:20:55+11:00",
+    "ttl": 1
   },
-  "dbdce4b1148d6cb353b2f67b18995b19": {
-    "domain": "youtube.com",
-    "metadata_signature": "dbdce4b1148d6cb353b2f67b18995b19",
+  "5b60b51f3f6a5d17189740a5380bb1fd": {
+    "domain": "cleanup4.com",
+    "metadata_signature": "5b60b51f3f6a5d17189740a5380bb1fd",
     "result": {
-      "risk_score": "Low",
-      "category": "General Traffic",
-      "summary": "\ud83d\udee1\ufe0f SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy (2.52, MEDIUM). Normal network behavior patterns consistent with legitimate traffic.",
-      "timestamp": "2026-03-29T14:36:16+11:00",
-      "is_anomaly": false,
-      "anomaly_score": 0.0,
-      "entropy_score": 2.52,
-      "analysis_source": "local_heuristic"
+      "risk_score": "Low"
     },
-    "source": "local_heuristic",
-    "timestamp": "2026-03-29T14:36:16+11:00",
-    "ttl": 3600
-  },
-  "39037a1204c564cac2499b63cbe7d3b4": {
-    "domain": "github.com",
-    "metadata_signature": "39037a1204c564cac2499b63cbe7d3b4",
-    "result": {
-      "risk_score": "Low",
-      "category": "General Traffic",
-      "summary": "\ud83d\udee1\ufe0f SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy (2.58, MEDIUM). Normal network behavior patterns consistent with legitimate traffic.",
-      "timestamp": "2026-03-29T14:36:16+11:00",
-      "is_anomaly": false,
-      "anomaly_score": 0.0,
-      "entropy_score": 2.58,
-      "analysis_source": "local_heuristic"
-    },
-    "source": "local_heuristic",
-    "timestamp": "2026-03-29T14:36:16+11:00",
-    "ttl": 3600
-  },
-  "10ded7ecb4fa926c5bb7ec51679847df": {
-    "domain": "google.com",
-    "metadata_signature": "10ded7ecb4fa926c5bb7ec51679847df",
-    "result": {
-      "risk_score": "Low",
-      "category": "General Traffic",
-      "summary": "\ud83d\udee1\ufe0f SOC GUARD ACTIVE: Local heuristic audit completed. Risk verified via Shannon Entropy (1.92, LOW). Normal network behavior patterns consistent with legitimate traffic.",
-      "timestamp": "2026-03-29T14:36:16+11:00",
-      "is_anomaly": false,
-      "anomaly_score": 0.0,
-      "entropy_score": 1.92,
-      "analysis_source": "local_heuristic"
-    },
-    "source": "local_heuristic",
-    "timestamp": "2026-03-29T14:36:16+11:00",
-    "ttl": 3600
+    "source": "test",
+    "timestamp": "2026-04-04T16:20:55+11:00",
+    "ttl": 1
   }
 }

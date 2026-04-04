@@ -110,13 +110,13 @@ class AlertManager:
 
         self._http_client: httpx.AsyncClient | None = None
 
-        # Load persisted alerts on startup
-        self._load_alerts_async()
+        # Deferred: call async def init() from lifespan startup
 
     async def init_client(self) -> None:
-        """Initialize HTTP client for webhook calls."""
+        """Initialize HTTP client and load persisted alerts. Call from lifespan startup."""
         if self.webhook_url and not self._http_client:
             self._http_client = httpx.AsyncClient(timeout=10.0)
+        await self.load_alerts()
 
     async def close_client(self) -> None:
         """Close HTTP client."""
@@ -489,8 +489,10 @@ class AlertManager:
         import asyncio
 
         try:
-            asyncio.ensure_future(self.save_alerts())
-        except Exception:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self.save_alerts())
+        except RuntimeError:
+            # No running event loop -- save will happen on next async call or at shutdown
             pass
 
     async def load_alerts(self):
@@ -534,8 +536,10 @@ class AlertManager:
         import asyncio
 
         try:
-            asyncio.ensure_future(self.load_alerts())
-        except Exception:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self.load_alerts())
+        except RuntimeError:
+            # No running event loop -- load will happen on next async call
             pass
 
 

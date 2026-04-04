@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from ..core.state import automated_threats, manual_scans
+from ..core.state import get_all_scans, get_all_threats, get_threat_count
 from ..core.validators import is_valid_domain
 from ..db.repository import get_domain_repository
 from ..logic.analysis_cache import get_cached_analysis
@@ -51,12 +51,12 @@ def search_threat_history(domain: str) -> list[dict[str, Any]]:
     results = []
 
     # Search automated threats
-    for threat in automated_threats:
+    for threat in get_all_threats():
         if domain.lower() in threat.get("domain", "").lower():
             results.append(threat)
 
     # Search manual scans
-    for scan in manual_scans:
+    for scan in get_all_scans():
         if domain.lower() in scan.get("domain", "").lower():
             results.append(scan)
 
@@ -97,7 +97,7 @@ def get_temporal_context(domain: str) -> dict[str, Any]:
     }
 
     # Search through threat history for temporal patterns
-    all_records = automated_threats + manual_scans
+    all_records = get_all_threats() + get_all_scans()
     domain_records = [r for r in all_records if domain.lower() in r.get("domain", "").lower()]
 
     if domain_records:
@@ -145,7 +145,9 @@ def get_behavioral_context(domain: str) -> dict[str, Any]:
     }
 
     domain_records = [
-        r for r in automated_threats + manual_scans if domain.lower() in r.get("domain", "").lower()
+        r
+        for r in get_all_threats() + get_all_scans()
+        if domain.lower() in r.get("domain", "").lower()
     ]
 
     if domain_records:
@@ -288,8 +290,8 @@ async def generate_advanced_rag_response(
 
                 # Store the analysis in the database for the current tenant
                 try:
-                    repo = await get_domain_repository(tenant_id=tenant_id)
-                    await repo.create_domain_from_analysis(analysis)
+                    async with get_domain_repository(tenant_id=tenant_id) as repo:
+                        await repo.create_domain_from_analysis(analysis)
                 except Exception as e:
                     # Log the error but don't fail the request because we still want to return the analysis
                     print(f"Warning: Failed to store analysis for domain {domain}: {e}")

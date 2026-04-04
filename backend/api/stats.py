@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Request
 
-from ..core.state import automated_threats
+from ..core.state import get_all_threats, get_threat_count
 from ..logic.analysis_cache import get_cache_stats
 from ..logic.anomaly_engine import engine
 from ..logic.metadata_classifier import classifier, get_classifier_stats
@@ -18,7 +18,8 @@ router = APIRouter()
 
 def get_entropy_stats():
     """Calculate entropy statistics from processed domains"""
-    if not automated_threats:
+    threats = get_all_threats()
+    if not threats:
         return {
             "total_analyzed": 0,
             "avg_entropy": 0.0,
@@ -29,14 +30,14 @@ def get_entropy_stats():
         }
 
     entropies = []
-    for threat in automated_threats:
+    for threat in threats:
         ent = threat.get("entropy", 0)
         if ent > 0:
             entropies.append(ent)
 
     if not entropies:
         return {
-            "total_analyzed": len(automated_threats),
+            "total_analyzed": get_threat_count(),
             "avg_entropy": 0.0,
             "high_entropy_count": 0,
             "low_entropy_count": 0,
@@ -65,8 +66,8 @@ def get_anomaly_stats():
         elif isinstance(entry, (int, float)):
             recent_scores.append(round(float(entry), 4))
 
-    anomalies_detected = sum(1 for t in automated_threats if t.get("is_anomaly", False))
-    total_threats = len(automated_threats)
+    anomalies_detected = sum(1 for t in threats if t.get("is_anomaly", False))
+    total_threats = len(threats)
     anomaly_rate = 0.0
     if total_threats > 0:
         anomaly_rate = round((anomalies_detected / total_threats) * 100, 2)
@@ -92,10 +93,8 @@ async def get_system_stats(request: Request):
     tenant_id = getattr(request.state, "tenant_id", 1)  # Default to 1 for backward compatibility
 
     # Get repository for the current tenant
-    repo = await get_domain_repository(tenant_id=tenant_id)
-
-    # Get threat-based stats from the repository (tenant-aware)
-    threat_stats = await repo.get_stats()
+    async with get_domain_repository(tenant_id=tenant_id) as repo:
+        threat_stats = await repo.get_stats()
 
     # Get global stats (not tenant-aware in Phase 1)
     stats = get_classifier_stats()
@@ -281,22 +280,22 @@ def get_anomaly_stats_endpoint():
 def get_alerts_stats():
     """Get alert statistics for the alerts dashboard"""
     from backend.core.alerting import alert_manager
-    from backend.core.state import automated_threats
 
     # Get real alert stats from AlertManager
     alert_stats = alert_manager.get_stats()
 
     # Also compute threat-based stats for the threat summary
-    high_count = sum(1 for t in automated_threats if t.get("risk_score", "").lower() == "high")
-    medium_count = sum(1 for t in automated_threats if t.get("risk_score", "").lower() == "medium")
-    low_count = sum(1 for t in automated_threats if t.get("risk_score", "").lower() == "low")
-    anomaly_count = sum(1 for t in automated_threats if t.get("is_anomaly", False))
+    threats = get_all_threats()
+    high_count = sum(1 for t in threats if t.get("risk_score", "").lower() == "high")
+    medium_count = sum(1 for t in threats if t.get("risk_score", "").lower() == "medium")
+    low_count = sum(1 for t in threats if t.get("risk_score", "").lower() == "low")
+    anomaly_count = sum(1 for t in threats if t.get("is_anomaly", False))
 
-    total_threats = len(automated_threats)
+    total_threats = len(threats)
     current_time = time.time()
     recent_threats = sum(
         1
-        for t in automated_threats
+        for t in threats
         if "timestamp" in t
         and t["timestamp"]
         and (
@@ -384,16 +383,15 @@ def get_trend():
 @router.get("/ml/dashboard")
 def get_ml_dashboard():
     """Get ML dashboard statistics"""
-    from backend.core.state import automated_threats
-
     # Calculate basic metrics
-    total_domains = len(automated_threats)
-    high_entropy = sum(1 for t in automated_threats if t.get("entropy", 0) > 3.5)
-    medium_entropy = sum(1 for t in automated_threats if 2.0 <= t.get("entropy", 0) <= 3.5)
-    low_entropy = sum(1 for t in automated_threats if t.get("entropy", 0) < 2.0)
+    threats = get_all_threats()
+    total_domains = len(threats)
+    high_entropy = sum(1 for t in threats if t.get("entropy", 0) > 3.5)
+    medium_entropy = sum(1 for t in threats if 2.0 <= t.get("entropy", 0) <= 3.5)
+    low_entropy = sum(1 for t in threats if t.get("entropy", 0) < 2.0)
 
     # Calculate accuracy based on anomalies (simplified)
-    anomalies = sum(1 for t in automated_threats if t.get("is_anomaly", False))
+    anomalies = sum(1 for t in threats if t.get("is_anomaly", False))
     accuracy = 0.85 if total_domains > 0 else 0  # Mock accuracy
 
     return {
@@ -415,8 +413,8 @@ def get_ml_dashboard():
             "anomaly_threshold": 0.1,
         },
         "features": {
-            "tld_tracked": len({t.get("domain", "").split(".")[-1] for t in automated_threats}),
-            "domain_patterns": len({t.get("domain", "") for t in automated_threats}),
+            "tld_tracked": len({t.get("domain", "").split(".")[-1] for t in threats}),
+            "domain_patterns": len({t.get("domain", "") for t in threats}),
         },
         "entropy_distribution": {
             "high": high_entropy,

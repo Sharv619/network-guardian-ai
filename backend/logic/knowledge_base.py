@@ -187,13 +187,14 @@ class KnowledgeBase:
 
     def store_knowledge(self, domain: str, analysis_result: dict[str, Any], source: str = "ollama"):
         """Store analysis result in knowledge base"""
-        # Create knowledge entry
-        entry = KnowledgeEntry(
-            domain=domain,
-            risk_score=analysis_result.get("risk_score", "Unknown"),
-            category=analysis_result.get("category", "Unknown"),
-            summary=analysis_result.get("summary", ""),
-            confidence=analysis_result.get("confidence", 0.9) if source == "ollama" else 0.8,
+        try:
+            # Create knowledge entry
+            entry = KnowledgeEntry(
+                domain=domain,
+                risk_score=analysis_result.get("risk_score", "Unknown"),
+                category=analysis_result.get("category", "Unknown"),
+                summary=analysis_result.get("summary", ""),
+                confidence=analysis_result.get("confidence", 0.9) if source == "ollama" else 0.8,
                 source=source,
                 features={
                     "entropy": analysis_result.get("entropy_score"),
@@ -246,7 +247,6 @@ class KnowledgeBase:
             self.vector_memory.add_to_memory(domain, metadata, persist=True)
 
             logger.info(f"Stored knowledge for domain: {domain} (Source: {source})")
-
         except Exception as e:
             logger.error(f"Error storing knowledge for {domain}: {e}")
 

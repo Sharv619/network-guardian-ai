@@ -36,6 +36,7 @@ class AnalysisCache:
         self.disk_ttl = disk_ttl  # 1 hour for disk cache
         self.memory_cache: dict[str, CacheEntry] = {}
         self.lock = threading.RLock()
+        self.disk_lock = threading.Lock()
 
         # Load existing cache
         self._load_cache()
@@ -150,18 +151,19 @@ class AnalysisCache:
 
     def _save_to_disk(self, signature: str, entry: CacheEntry):
         """Save cache entry to disk"""
-        try:
-            cache_data = {}
-            if os.path.exists(self.cache_file):
-                with open(self.cache_file) as f:
-                    cache_data = json.load(f)
+        with self.disk_lock:
+            try:
+                cache_data = {}
+                if os.path.exists(self.cache_file):
+                    with open(self.cache_file) as f:
+                        cache_data = json.load(f)
 
-            cache_data[signature] = asdict(entry)
+                cache_data[signature] = asdict(entry)
 
-            with open(self.cache_file, "w") as f:
-                json.dump(cache_data, f, indent=2)
-        except Exception as e:
-            print(f"Error saving to disk cache: {e}")
+                with open(self.cache_file, "w") as f:
+                    json.dump(cache_data, f, indent=2)
+            except Exception as e:
+                print(f"Error saving to disk cache: {e}")
 
     def _cleanup_expired(self):
         """Remove expired entries from memory cache"""

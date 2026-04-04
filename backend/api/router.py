@@ -32,14 +32,14 @@ def api_health():
 @router.get("/history")
 async def api_history(request: Request):
     """Get all threat history - database + live combined."""
-    from ..core.state import automated_threats
+    from ..core.state import get_threats
 
     # Get tenant_id from request state
     tenant_id = getattr(request.state, "tenant_id", 1)
 
     # Get repository for database domains
-    repo = await get_domain_repository(tenant_id=tenant_id)
-    db_domains = await repo.get_all_domains()
+    async with get_domain_repository(tenant_id=tenant_id) as repo:
+        db_domains = await repo.get_all_domains()
 
     # Convert database domains to dict (keyed by domain)
     all_threats: dict[str, dict] = {}
@@ -57,7 +57,7 @@ async def api_history(request: Request):
         }
 
     # Add live automated_threats - overwrites DB entries for same domain
-    for threat in automated_threats:
+    for threat in get_threats():
         domain = threat.get("domain", "")
         if domain:
             all_threats[domain] = {

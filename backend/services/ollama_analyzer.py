@@ -4,6 +4,7 @@ Ollama Analyzer - Local LLM for domain analysis and embeddings
 
 import json
 import logging
+import threading
 from typing import Any
 
 import numpy as np
@@ -12,6 +13,10 @@ import requests
 from backend.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Shared semaphore: limits concurrent Ollama calls across ALL callers
+# (poller thread + API endpoint threads)
+_ollama_semaphore = threading.Semaphore(settings.OLLAMA_MAX_CONCURRENT)
 
 
 def get_ollama_models() -> list[str]:
@@ -38,11 +43,12 @@ def get_embedding(text: str) -> list[float]:
     model = settings.OLLAMA_MODEL or "nomic-embed-text"
 
     try:
-        response = requests.post(
-            f"{settings.OLLAMA_BASE_URL}/api/embeddings",
-            json={"model": model, "prompt": text},
-            timeout=10,
-        )
+        with _ollama_semaphore:
+            response = requests.post(
+                f"{settings.OLLAMA_BASE_URL}/api/embeddings",
+                json={"model": model, "prompt": text},
+                timeout=10,
+            )
         if response.ok:
             data = response.json()
             return data.get("embedding", [])
@@ -102,16 +108,17 @@ Respond with a JSON object containing:
 Only respond with valid JSON, no other text."""
 
     try:
-        response = requests.post(
-            f"{settings.OLLAMA_BASE_URL}/api/generate",
-            json={
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "format": "json",
-            },
-            timeout=30,
-        )
+        with _ollama_semaphore:
+            response = requests.post(
+                f"{settings.OLLAMA_BASE_URL}/api/generate",
+                json={
+                    "model": model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "format": "json",
+                },
+                timeout=30,
+            )
 
         if response.ok:
             data = response.json()
@@ -195,15 +202,16 @@ User: {message}{context_info}
 Respond helpfully and concisely."""
 
     try:
-        response = requests.post(
-            f"{settings.OLLAMA_BASE_URL}/api/generate",
-            json={
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-            },
-            timeout=30,
-        )
+        with _ollama_semaphore:
+            response = requests.post(
+                f"{settings.OLLAMA_BASE_URL}/api/generate",
+                json={
+                    "model": model,
+                    "prompt": prompt,
+                    "stream": False,
+                },
+                timeout=30,
+            )
 
         if response.ok:
             data = response.json()

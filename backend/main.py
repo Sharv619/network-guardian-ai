@@ -77,9 +77,23 @@ async def lifespan(app: FastAPI):
     print("Initializing database...")
     await init_db()
 
+    # Initialize async singletons (deferred from __init__ to avoid import-time sync/async mixing)
+    print("Initializing async components...")
+    try:
+        from backend.core.alerting import alert_manager
+        from backend.logic.anomaly_engine import engine
+        from backend.logic.metadata_classifier import classifier
+
+        await alert_manager.init_client()
+        await engine.init()
+        await classifier.init()
+        print("Async components initialized")
+    except Exception as e:
+        print(f"Warning: Async component init failed: {e}")
+
     # Display system intelligence on startup
     print("\n" + "=" * 80)
-    display_system_intelligence()
+    await display_system_intelligence()
     print("=" * 80 + "\n")
 
     # Load knowledge base on startup
@@ -87,9 +101,9 @@ async def lifespan(app: FastAPI):
     load_knowledge_base()
 
     # Seed demo data if no threats exist
-    from backend.core.state import automated_threats
+    from backend.core.state import get_threat_count
 
-    if not automated_threats:
+    if not get_threat_count():
         print("Seeding demo data...")
         import time
 
@@ -156,13 +170,11 @@ async def lifespan(app: FastAPI):
 
     # Blocklist Knowledge Base Initialization (non-blocking)
     def run_blocklist_init():
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
         try:
             from backend.services.blocklist_loader import blocklist_loader
 
             print("Starting initial blocklist sync (all sources)...")
-            results = loop.run_until_complete(blocklist_loader.sync_all())
+            results = asyncio.run(blocklist_loader.sync_all())
             for r in results:
                 if r.success:
                     print(f"  ✓ {r.source}: {r.total_entries} entries")
@@ -172,8 +184,6 @@ async def lifespan(app: FastAPI):
             print(f"Initial blocklist sync complete: {total} total entries")
         except Exception as e:
             print(f"Blocklist init error: {e}")
-        finally:
-            loop.close()
 
     if settings.BLOCKLIST_ENABLED:
         print("Blocklist knowledge base enabled. Initializing...")
@@ -184,14 +194,12 @@ async def lifespan(app: FastAPI):
 
         # Start background scheduler
         def blocklist_sync_loop():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
             while True:
                 time.sleep(settings.BLOCKLIST_SYNC_INTERVAL)
                 try:
                     from backend.services.blocklist_loader import blocklist_loader
 
-                    results = loop.run_until_complete(blocklist_loader.sync_all())
+                    results = asyncio.run(blocklist_loader.sync_all())
                     total = sum(r.total_entries for r in results)
                     print(f"[Blocklist Scheduler] Sync complete: {total} entries")
                 except Exception as e:
@@ -218,6 +226,18 @@ async def lifespan(app: FastAPI):
     # Stop WebSocket manager on shutdown
     print("Stopping WebSocket manager...")
     await ws_manager.stop()
+
+    # Close async singletons
+    try:
+        from backend.core.alerting import alert_manager
+        from backend.services.blocklist_loader import blocklist_loader
+        from backend.services.db_logger import db_logger
+
+        await alert_manager.close_client()
+        await blocklist_loader.close()
+        db_logger.close()
+    except Exception as e:
+        print(f"Warning: Shutdown cleanup error: {e}")
 
     # Close database connections
     print("Closing database connections...")
