@@ -1,5 +1,7 @@
+import os
 import sqlite3
 import threading
+from pathlib import Path
 from typing import Any
 
 from ..core.logging_config import get_logger
@@ -10,6 +12,10 @@ logger = get_logger(__name__)
 
 class DBLogger:
     def __init__(self, db_path: str = "network_guardian.db"):
+        if os.getenv("VERCEL") == "1" and db_path == "network_guardian.db":
+            db_path = "/tmp/network_guardian.db"
+
+        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self.db_path = db_path
         self.connection = sqlite3.connect(db_path, check_same_thread=False)
         self.connection.row_factory = sqlite3.Row

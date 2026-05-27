@@ -22,10 +22,14 @@ from backend.core.tenant_middleware import TenantMiddleware
 
 from .core.websocket_manager import ws_manager
 
+IS_VERCEL = os.getenv("VERCEL") == "1"
+
 
 # Register shutdown handler for knowledge base persistence
 def shutdown_handler():
     """Handle application shutdown to save knowledge base"""
+    if IS_VERCEL:
+        return
     print("Saving knowledge base on shutdown...")
     save_knowledge_base()
 
@@ -73,6 +77,19 @@ async def rate_limit_middleware(request: Request, call_next):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if IS_VERCEL:
+        print("Vercel runtime detected. Starting API without background workers.")
+        try:
+            await init_db()
+        except Exception as e:
+            print(f"Warning: Vercel database init failed: {e}")
+        yield
+        try:
+            await close_db()
+        except Exception as e:
+            print(f"Warning: Vercel database cleanup failed: {e}")
+        return
+
     # Initialize database on startup
     print("Initializing database...")
     await init_db()

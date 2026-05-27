@@ -10,6 +10,13 @@ logger = logging.getLogger(__name__)
 # Load .env from backend directory
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
+IS_VERCEL = os.getenv("VERCEL") == "1"
+DEFAULT_DATABASE_URL = (
+    "sqlite+aiosqlite:////tmp/network_guardian.db"
+    if IS_VERCEL
+    else "sqlite+aiosqlite:///./network_guardian.db"
+)
+
 
 class ConfigurationError(Exception):
     """Raised when required configuration is missing."""
@@ -29,7 +36,7 @@ class Settings(BaseSettings):
 
     # Ollama Configuration (Local LLM)
     OLLAMA_ENABLED: bool = Field(
-        True, description="Enable Ollama for local embeddings and analysis"
+        not IS_VERCEL, description="Enable Ollama for local embeddings and analysis"
     )
     OLLAMA_BASE_URL: str = Field("http://localhost:11434", description="Ollama API base URL")
     OLLAMA_MODEL: str = Field("nomic-embed-text", description="Ollama embedding model")
@@ -39,7 +46,7 @@ class Settings(BaseSettings):
 
     # Ollama live feed enhancement
     OLLAMA_LIVE_FEED_ENABLED: bool = Field(
-        True, description="Enable Ollama AI enhancement in live feed polling"
+        not IS_VERCEL, description="Enable Ollama AI enhancement in live feed polling"
     )
     OLLAMA_MAX_CONCURRENT: int = Field(
         2, ge=1, le=10, description="Max concurrent Ollama requests (prevents resource exhaustion)"
@@ -50,7 +57,8 @@ class Settings(BaseSettings):
 
     # Embedding provider choice
     EMBEDDING_PROVIDER: str = Field(
-        "ollama", description="Provider: ollama (local), sentence-transformers, or mock"
+        "mock" if IS_VERCEL else "ollama",
+        description="Provider: ollama (local), sentence-transformers, or mock",
     )
 
     # AdGuard is now optional
@@ -72,7 +80,7 @@ class Settings(BaseSettings):
 
     # Database configuration
     DATABASE_URL: str = Field(
-        "sqlite+aiosqlite:///./network_guardian.db", description="Database connection URL"
+        DEFAULT_DATABASE_URL, description="Database connection URL"
     )
     DATABASE_ECHO: bool = Field(False, description="Enable SQL query logging")
     DATABASE_POOL_SIZE: int = Field(5, description="Database connection pool size")
@@ -92,10 +100,10 @@ class Settings(BaseSettings):
     # Backup configuration
     BACKUP_PATH: str = Field("./backups", description="Path for database backups")
     BACKUP_RETENTION_DAYS: int = Field(7, description="Days to retain backup files")
-    BACKUP_ENABLED: bool = Field(True, description="Enable automatic backups")
+    BACKUP_ENABLED: bool = Field(not IS_VERCEL, description="Enable automatic backups")
 
     # Blocklist configuration
-    BLOCKLIST_ENABLED: bool = Field(True, description="Enable blocklist knowledge base")
+    BLOCKLIST_ENABLED: bool = Field(not IS_VERCEL, description="Enable blocklist knowledge base")
     BLOCKLIST_SYNC_INTERVAL: int = Field(
         21600, description="Blocklist sync interval in seconds (default: 6 hours)"
     )
