@@ -17,3 +17,6 @@ ignore = ["B008", "E501"]
 testpaths = ["backend/tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
+
+[tool.vercel]
+entrypoint = "backend.main:app"
